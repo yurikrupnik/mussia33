@@ -99,7 +99,7 @@ export function toJson_DatabaseProps(obj: DatabaseProps | undefined): Record<str
  */
 export interface DatabaseSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DatabaseSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DatabaseSpec {
   readonly forProvider: DatabaseSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DatabaseSpec#managementPolicy
+   * @schema DatabaseSpec#initProvider
    */
-  readonly managementPolicy?: DatabaseSpecManagementPolicy;
+  readonly initProvider?: DatabaseSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DatabaseSpec#managementPolicies
+   */
+  readonly managementPolicies?: DatabaseSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DatabaseSpec {
    * @schema DatabaseSpec#providerConfigRef
    */
   readonly providerConfigRef?: DatabaseSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DatabaseSpec#providerRef
-   */
-  readonly providerRef?: DatabaseSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DatabaseSpec(obj: DatabaseSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DatabaseSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DatabaseSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DatabaseSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DatabaseSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DatabaseSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DatabaseSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DatabaseSpec(obj: DatabaseSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DatabaseSpecDeletionPolicy
  */
@@ -239,17 +239,52 @@ export function toJson_DatabaseSpecForProvider(obj: DatabaseSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DatabaseSpecManagementPolicy
+ * @schema DatabaseSpecInitProvider
  */
-export enum DatabaseSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DatabaseSpecInitProvider {
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DatabaseSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DatabaseSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DatabaseSpecInitProvider(obj: DatabaseSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DatabaseSpecManagementPolicies
+ */
+export enum DatabaseSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +318,6 @@ export function toJson_DatabaseSpecProviderConfigRef(obj: DatabaseSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_DatabaseSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DatabaseSpecProviderRef
- */
-export interface DatabaseSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DatabaseSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DatabaseSpecProviderRef#policy
-   */
-  readonly policy?: DatabaseSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DatabaseSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseSpecProviderRef(obj: DatabaseSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DatabaseSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -528,43 +526,6 @@ export function toJson_DatabaseSpecProviderConfigRefPolicy(obj: DatabaseSpecProv
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DatabaseSpecProviderRefPolicy
- */
-export interface DatabaseSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DatabaseSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DatabaseSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DatabaseSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DatabaseSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DatabaseSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DatabaseSpecProviderRefPolicy(obj: DatabaseSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DatabaseSpecPublishConnectionDetailsToConfigRef
@@ -738,30 +699,6 @@ export enum DatabaseSpecProviderConfigRefPolicyResolution {
  * @schema DatabaseSpecProviderConfigRefPolicyResolve
  */
 export enum DatabaseSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DatabaseSpecProviderRefPolicyResolution
- */
-export enum DatabaseSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DatabaseSpecProviderRefPolicyResolve
- */
-export enum DatabaseSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -974,7 +911,7 @@ export function toJson_TableProps(obj: TableProps | undefined): Record<string, a
  */
 export interface TableSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TableSpec#deletionPolicy
    */
@@ -986,11 +923,18 @@ export interface TableSpec {
   readonly forProvider: TableSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TableSpec#managementPolicy
+   * @schema TableSpec#initProvider
    */
-  readonly managementPolicy?: TableSpecManagementPolicy;
+  readonly initProvider?: TableSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TableSpec#managementPolicies
+   */
+  readonly managementPolicies?: TableSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -998,13 +942,6 @@ export interface TableSpec {
    * @schema TableSpec#providerConfigRef
    */
   readonly providerConfigRef?: TableSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TableSpec#providerRef
-   */
-  readonly providerRef?: TableSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1031,9 +968,9 @@ export function toJson_TableSpec(obj: TableSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TableSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TableSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TableSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TableSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TableSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TableSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1043,7 +980,7 @@ export function toJson_TableSpec(obj: TableSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TableSpecDeletionPolicy
  */
@@ -1138,17 +1075,68 @@ export function toJson_TableSpecForProvider(obj: TableSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TableSpecManagementPolicy
+ * @schema TableSpecInitProvider
  */
-export enum TableSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TableSpecInitProvider {
+  /**
+   * Contains properties to set on the table when enabling magnetic store writes. See Magnetic Store Write Properties below for more details.
+   *
+   * @schema TableSpecInitProvider#magneticStoreWriteProperties
+   */
+  readonly magneticStoreWriteProperties?: TableSpecInitProviderMagneticStoreWriteProperties[];
+
+  /**
+   * The retention duration for the memory store and magnetic store. See Retention Properties below for more details. If not provided, magnetic_store_retention_period_in_days default to 73000 and memory_store_retention_period_in_hours defaults to 6.
+   *
+   * @schema TableSpecInitProvider#retentionProperties
+   */
+  readonly retentionProperties?: TableSpecInitProviderRetentionProperties[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema TableSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'TableSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableSpecInitProvider(obj: TableSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'magneticStoreWriteProperties': obj.magneticStoreWriteProperties?.map(y => toJson_TableSpecInitProviderMagneticStoreWriteProperties(y)),
+    'retentionProperties': obj.retentionProperties?.map(y => toJson_TableSpecInitProviderRetentionProperties(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TableSpecManagementPolicies
+ */
+export enum TableSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1182,43 +1170,6 @@ export function toJson_TableSpecProviderConfigRef(obj: TableSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_TableSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TableSpecProviderRef
- */
-export interface TableSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TableSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TableSpecProviderRef#policy
-   */
-  readonly policy?: TableSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TableSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TableSpecProviderRef(obj: TableSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TableSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1433,14 +1384,14 @@ export interface TableSpecForProviderRetentionProperties {
    *
    * @schema TableSpecForProviderRetentionProperties#magneticStoreRetentionPeriodInDays
    */
-  readonly magneticStoreRetentionPeriodInDays: number;
+  readonly magneticStoreRetentionPeriodInDays?: number;
 
   /**
    * The duration for which data must be stored in the memory store. Minimum value of 1. Maximum value of 8766.
    *
    * @schema TableSpecForProviderRetentionProperties#memoryStoreRetentionPeriodInHours
    */
-  readonly memoryStoreRetentionPeriodInHours: number;
+  readonly memoryStoreRetentionPeriodInHours?: number;
 
 }
 
@@ -1449,6 +1400,76 @@ export interface TableSpecForProviderRetentionProperties {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TableSpecForProviderRetentionProperties(obj: TableSpecForProviderRetentionProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'magneticStoreRetentionPeriodInDays': obj.magneticStoreRetentionPeriodInDays,
+    'memoryStoreRetentionPeriodInHours': obj.memoryStoreRetentionPeriodInHours,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TableSpecInitProviderMagneticStoreWriteProperties
+ */
+export interface TableSpecInitProviderMagneticStoreWriteProperties {
+  /**
+   * A flag to enable magnetic store writes.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWriteProperties#enableMagneticStoreWrites
+   */
+  readonly enableMagneticStoreWrites?: boolean;
+
+  /**
+   * The location to write error reports for records rejected asynchronously during magnetic store writes. See Magnetic Store Rejected Data Location below for more details.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWriteProperties#magneticStoreRejectedDataLocation
+   */
+  readonly magneticStoreRejectedDataLocation?: TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation[];
+
+}
+
+/**
+ * Converts an object of type 'TableSpecInitProviderMagneticStoreWriteProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableSpecInitProviderMagneticStoreWriteProperties(obj: TableSpecInitProviderMagneticStoreWriteProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableMagneticStoreWrites': obj.enableMagneticStoreWrites,
+    'magneticStoreRejectedDataLocation': obj.magneticStoreRejectedDataLocation?.map(y => toJson_TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TableSpecInitProviderRetentionProperties
+ */
+export interface TableSpecInitProviderRetentionProperties {
+  /**
+   * The duration for which data must be stored in the magnetic store. Minimum value of 1. Maximum value of 73000.
+   *
+   * @schema TableSpecInitProviderRetentionProperties#magneticStoreRetentionPeriodInDays
+   */
+  readonly magneticStoreRetentionPeriodInDays?: number;
+
+  /**
+   * The duration for which data must be stored in the memory store. Minimum value of 1. Maximum value of 8766.
+   *
+   * @schema TableSpecInitProviderRetentionProperties#memoryStoreRetentionPeriodInHours
+   */
+  readonly memoryStoreRetentionPeriodInHours?: number;
+
+}
+
+/**
+ * Converts an object of type 'TableSpecInitProviderRetentionProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableSpecInitProviderRetentionProperties(obj: TableSpecInitProviderRetentionProperties | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'magneticStoreRetentionPeriodInDays': obj.magneticStoreRetentionPeriodInDays,
@@ -1486,43 +1507,6 @@ export interface TableSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TableSpecProviderConfigRefPolicy(obj: TableSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema TableSpecProviderRefPolicy
- */
-export interface TableSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TableSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TableSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TableSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TableSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TableSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TableSpecProviderRefPolicy(obj: TableSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1717,6 +1701,33 @@ export function toJson_TableSpecForProviderMagneticStoreWritePropertiesMagneticS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation
+ */
+export interface TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation {
+  /**
+   * Configuration of an S3 location to write error reports for records rejected, asynchronously, during magnetic store writes. See S3 Configuration below for more details.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation#s3Configuration
+   */
+  readonly s3Configuration?: TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration[];
+
+}
+
+/**
+ * Converts an object of type 'TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation(obj: TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3Configuration': obj.s3Configuration?.map(y => toJson_TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema TableSpecProviderConfigRefPolicyResolution
@@ -1734,30 +1745,6 @@ export enum TableSpecProviderConfigRefPolicyResolution {
  * @schema TableSpecProviderConfigRefPolicyResolve
  */
 export enum TableSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TableSpecProviderRefPolicyResolution
- */
-export enum TableSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TableSpecProviderRefPolicyResolve
- */
-export enum TableSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1888,6 +1875,57 @@ export interface TableSpecForProviderMagneticStoreWritePropertiesMagneticStoreRe
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TableSpecForProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration(obj: TableSpecForProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'encryptionOption': obj.encryptionOption,
+    'kmsKeyId': obj.kmsKeyId,
+    'objectKeyPrefix': obj.objectKeyPrefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration
+ */
+export interface TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration {
+  /**
+   * Bucket name of the customer S3 bucket.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Encryption option for the customer s3 location. Options are S3 server side encryption with an S3-managed key or KMS managed key. Valid values are SSE_KMS and SSE_S3.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration#encryptionOption
+   */
+  readonly encryptionOption?: string;
+
+  /**
+   * KMS key arn for the customer s3 location when encrypting with a KMS managed key.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * Object key prefix for the customer S3 location.
+   *
+   * @schema TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration#objectKeyPrefix
+   */
+  readonly objectKeyPrefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration(obj: TableSpecInitProviderMagneticStoreWritePropertiesMagneticStoreRejectedDataLocationS3Configuration | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'bucketName': obj.bucketName,

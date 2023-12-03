@@ -99,7 +99,7 @@ export function toJson_DetectorProps(obj: DetectorProps | undefined): Record<str
  */
 export interface DetectorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DetectorSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DetectorSpec {
   readonly forProvider: DetectorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DetectorSpec#managementPolicy
+   * @schema DetectorSpec#initProvider
    */
-  readonly managementPolicy?: DetectorSpecManagementPolicy;
+  readonly initProvider?: DetectorSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DetectorSpec#managementPolicies
+   */
+  readonly managementPolicies?: DetectorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DetectorSpec {
    * @schema DetectorSpec#providerConfigRef
    */
   readonly providerConfigRef?: DetectorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DetectorSpec#providerRef
-   */
-  readonly providerRef?: DetectorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DetectorSpec(obj: DetectorSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DetectorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DetectorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DetectorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DetectorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DetectorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DetectorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DetectorSpec(obj: DetectorSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DetectorSpecDeletionPolicy
  */
@@ -240,17 +240,77 @@ export function toJson_DetectorSpecForProvider(obj: DetectorSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DetectorSpecManagementPolicy
+ * @schema DetectorSpecInitProvider
  */
-export enum DetectorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DetectorSpecInitProvider {
+  /**
+   * Describes which data sources will be enabled for the detector. See Data Sources below for more details.
+   *
+   * @schema DetectorSpecInitProvider#datasources
+   */
+  readonly datasources?: DetectorSpecInitProviderDatasources[];
+
+  /**
+   * Enable monitoring and feedback reporting. Setting to false is equivalent to "suspending" GuardDuty. Defaults to true.
+   *
+   * @default true.
+   * @schema DetectorSpecInitProvider#enable
+   */
+  readonly enable?: boolean;
+
+  /**
+   * Specifies the frequency of notifications sent for subsequent finding occurrences. If the detector is a GuardDuty member account, the value is determined by the GuardDuty primary account and cannot be modified, otherwise defaults to SIX_HOURS. Valid values for standalone and primary accounts: FIFTEEN_MINUTES, ONE_HOUR, SIX_HOURS. See AWS Documentation for more information.
+   *
+   * @schema DetectorSpecInitProvider#findingPublishingFrequency
+   */
+  readonly findingPublishingFrequency?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DetectorSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProvider(obj: DetectorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'datasources': obj.datasources?.map(y => toJson_DetectorSpecInitProviderDatasources(y)),
+    'enable': obj.enable,
+    'findingPublishingFrequency': obj.findingPublishingFrequency,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DetectorSpecManagementPolicies
+ */
+export enum DetectorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -284,43 +344,6 @@ export function toJson_DetectorSpecProviderConfigRef(obj: DetectorSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_DetectorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DetectorSpecProviderRef
- */
-export interface DetectorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DetectorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DetectorSpecProviderRef#policy
-   */
-  readonly policy?: DetectorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DetectorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DetectorSpecProviderRef(obj: DetectorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DetectorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -453,6 +476,49 @@ export function toJson_DetectorSpecForProviderDatasources(obj: DetectorSpecForPr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DetectorSpecInitProviderDatasources
+ */
+export interface DetectorSpecInitProviderDatasources {
+  /**
+   * Configures Kubernetes protection. See Kubernetes and Kubernetes Audit Logs below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasources#kubernetes
+   */
+  readonly kubernetes?: DetectorSpecInitProviderDatasourcesKubernetes[];
+
+  /**
+   * Configures Malware Protection. See Malware Protection, Scan EC2 instance with findings and EBS volumes below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasources#malwareProtection
+   */
+  readonly malwareProtection?: DetectorSpecInitProviderDatasourcesMalwareProtection[];
+
+  /**
+   * Configures S3 protection. See S3 Logs below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasources#s3Logs
+   */
+  readonly s3Logs?: DetectorSpecInitProviderDatasourcesS3Logs[];
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasources(obj: DetectorSpecInitProviderDatasources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kubernetes': obj.kubernetes?.map(y => toJson_DetectorSpecInitProviderDatasourcesKubernetes(y)),
+    'malwareProtection': obj.malwareProtection?.map(y => toJson_DetectorSpecInitProviderDatasourcesMalwareProtection(y)),
+    's3Logs': obj.s3Logs?.map(y => toJson_DetectorSpecInitProviderDatasourcesS3Logs(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DetectorSpecProviderConfigRefPolicy
@@ -479,43 +545,6 @@ export interface DetectorSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DetectorSpecProviderConfigRefPolicy(obj: DetectorSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DetectorSpecProviderRefPolicy
- */
-export interface DetectorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DetectorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DetectorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DetectorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DetectorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DetectorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DetectorSpecProviderRefPolicy(obj: DetectorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -617,7 +646,7 @@ export interface DetectorSpecForProviderDatasourcesKubernetes {
    *
    * @schema DetectorSpecForProviderDatasourcesKubernetes#auditLogs
    */
-  readonly auditLogs: DetectorSpecForProviderDatasourcesKubernetesAuditLogs[];
+  readonly auditLogs?: DetectorSpecForProviderDatasourcesKubernetesAuditLogs[];
 
 }
 
@@ -644,7 +673,7 @@ export interface DetectorSpecForProviderDatasourcesMalwareProtection {
    *
    * @schema DetectorSpecForProviderDatasourcesMalwareProtection#scanEc2InstanceWithFindings
    */
-  readonly scanEc2InstanceWithFindings: DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings[];
+  readonly scanEc2InstanceWithFindings?: DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings[];
 
 }
 
@@ -672,7 +701,7 @@ export interface DetectorSpecForProviderDatasourcesS3Logs {
    * @default true.
    * @schema DetectorSpecForProviderDatasourcesS3Logs#enable
    */
-  readonly enable: boolean;
+  readonly enable?: boolean;
 
 }
 
@@ -681,6 +710,88 @@ export interface DetectorSpecForProviderDatasourcesS3Logs {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DetectorSpecForProviderDatasourcesS3Logs(obj: DetectorSpecForProviderDatasourcesS3Logs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enable': obj.enable,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesKubernetes
+ */
+export interface DetectorSpecInitProviderDatasourcesKubernetes {
+  /**
+   * Configures Kubernetes audit logs as a data source for Kubernetes protection. See Kubernetes Audit Logs below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasourcesKubernetes#auditLogs
+   */
+  readonly auditLogs?: DetectorSpecInitProviderDatasourcesKubernetesAuditLogs[];
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesKubernetes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesKubernetes(obj: DetectorSpecInitProviderDatasourcesKubernetes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'auditLogs': obj.auditLogs?.map(y => toJson_DetectorSpecInitProviderDatasourcesKubernetesAuditLogs(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesMalwareProtection
+ */
+export interface DetectorSpecInitProviderDatasourcesMalwareProtection {
+  /**
+   * Configure whether Malware Protection is enabled as data source for EC2 instances with findings for the detector. See Scan EC2 instance with findings below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasourcesMalwareProtection#scanEc2InstanceWithFindings
+   */
+  readonly scanEc2InstanceWithFindings?: DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings[];
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesMalwareProtection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesMalwareProtection(obj: DetectorSpecInitProviderDatasourcesMalwareProtection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scanEc2InstanceWithFindings': obj.scanEc2InstanceWithFindings?.map(y => toJson_DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesS3Logs
+ */
+export interface DetectorSpecInitProviderDatasourcesS3Logs {
+  /**
+   * If true, enables S3 protection. Defaults to true.
+   *
+   * @default true.
+   * @schema DetectorSpecInitProviderDatasourcesS3Logs#enable
+   */
+  readonly enable?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesS3Logs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesS3Logs(obj: DetectorSpecInitProviderDatasourcesS3Logs | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'enable': obj.enable,
@@ -708,30 +819,6 @@ export enum DetectorSpecProviderConfigRefPolicyResolution {
  * @schema DetectorSpecProviderConfigRefPolicyResolve
  */
 export enum DetectorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DetectorSpecProviderRefPolicyResolution
- */
-export enum DetectorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DetectorSpecProviderRefPolicyResolve
- */
-export enum DetectorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -785,7 +872,7 @@ export interface DetectorSpecForProviderDatasourcesKubernetesAuditLogs {
    * @default true.
    * @schema DetectorSpecForProviderDatasourcesKubernetesAuditLogs#enable
    */
-  readonly enable: boolean;
+  readonly enable?: boolean;
 
 }
 
@@ -812,7 +899,7 @@ export interface DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2Insta
    *
    * @schema DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings#ebsVolumes
    */
-  readonly ebsVolumes: DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes[];
+  readonly ebsVolumes?: DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes[];
 
 }
 
@@ -824,6 +911,61 @@ export function toJson_DetectorSpecForProviderDatasourcesMalwareProtectionScanEc
   if (obj === undefined) { return undefined; }
   const result = {
     'ebsVolumes': obj.ebsVolumes?.map(y => toJson_DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesKubernetesAuditLogs
+ */
+export interface DetectorSpecInitProviderDatasourcesKubernetesAuditLogs {
+  /**
+   * If true, enables Malware Protection as data source for the detector. Defaults to true.
+   *
+   * @default true.
+   * @schema DetectorSpecInitProviderDatasourcesKubernetesAuditLogs#enable
+   */
+  readonly enable?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesKubernetesAuditLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesKubernetesAuditLogs(obj: DetectorSpecInitProviderDatasourcesKubernetesAuditLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enable': obj.enable,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings
+ */
+export interface DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings {
+  /**
+   * Configure whether scanning EBS volumes is enabled as data source for the detector for instances with findings. See EBS volumes below for more details.
+   *
+   * @schema DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings#ebsVolumes
+   */
+  readonly ebsVolumes?: DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes[];
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings(obj: DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ebsVolumes': obj.ebsVolumes?.map(y => toJson_DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -864,7 +1006,7 @@ export interface DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2Insta
    * @default true.
    * @schema DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes#enable
    */
-  readonly enable: boolean;
+  readonly enable?: boolean;
 
 }
 
@@ -873,6 +1015,34 @@ export interface DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2Insta
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes(obj: DetectorSpecForProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enable': obj.enable,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes
+ */
+export interface DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes {
+  /**
+   * If true, enables Malware Protection as data source for the detector. Defaults to true.
+   *
+   * @default true.
+   * @schema DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes#enable
+   */
+  readonly enable?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes(obj: DetectorSpecInitProviderDatasourcesMalwareProtectionScanEc2InstanceWithFindingsEbsVolumes | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'enable': obj.enable,
@@ -979,7 +1149,7 @@ export function toJson_FilterProps(obj: FilterProps | undefined): Record<string,
  */
 export interface FilterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FilterSpec#deletionPolicy
    */
@@ -991,11 +1161,18 @@ export interface FilterSpec {
   readonly forProvider: FilterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FilterSpec#managementPolicy
+   * @schema FilterSpec#initProvider
    */
-  readonly managementPolicy?: FilterSpecManagementPolicy;
+  readonly initProvider?: FilterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FilterSpec#managementPolicies
+   */
+  readonly managementPolicies?: FilterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1003,13 +1180,6 @@ export interface FilterSpec {
    * @schema FilterSpec#providerConfigRef
    */
   readonly providerConfigRef?: FilterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FilterSpec#providerRef
-   */
-  readonly providerRef?: FilterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1036,9 +1206,9 @@ export function toJson_FilterSpec(obj: FilterSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FilterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FilterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FilterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FilterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FilterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FilterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1048,7 +1218,7 @@ export function toJson_FilterSpec(obj: FilterSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FilterSpecDeletionPolicy
  */
@@ -1151,17 +1321,84 @@ export function toJson_FilterSpecForProvider(obj: FilterSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FilterSpecManagementPolicy
+ * @schema FilterSpecInitProvider
  */
-export enum FilterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FilterSpecInitProvider {
+  /**
+   * Specifies the action that is to be applied to the findings that match the filter. Can be one of ARCHIVE or NOOP.
+   *
+   * @schema FilterSpecInitProvider#action
+   */
+  readonly action?: string;
+
+  /**
+   * Description of the filter.
+   *
+   * @schema FilterSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Represents the criteria to be used in the filter for querying findings. Contains one or more criterion blocks, documented below.
+   *
+   * @schema FilterSpecInitProvider#findingCriteria
+   */
+  readonly findingCriteria?: FilterSpecInitProviderFindingCriteria[];
+
+  /**
+   * Specifies the position of the filter in the list of current filters. Also specifies the order in which this filter is applied to the findings.
+   *
+   * @schema FilterSpecInitProvider#rank
+   */
+  readonly rank?: number;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FilterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'FilterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FilterSpecInitProvider(obj: FilterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'description': obj.description,
+    'findingCriteria': obj.findingCriteria?.map(y => toJson_FilterSpecInitProviderFindingCriteria(y)),
+    'rank': obj.rank,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FilterSpecManagementPolicies
+ */
+export enum FilterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1195,43 +1432,6 @@ export function toJson_FilterSpecProviderConfigRef(obj: FilterSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_FilterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FilterSpecProviderRef
- */
-export interface FilterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FilterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FilterSpecProviderRef#policy
-   */
-  readonly policy?: FilterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FilterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FilterSpecProviderRef(obj: FilterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FilterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1409,7 +1609,7 @@ export interface FilterSpecForProviderFindingCriteria {
   /**
    * @schema FilterSpecForProviderFindingCriteria#criterion
    */
-  readonly criterion: FilterSpecForProviderFindingCriteriaCriterion[];
+  readonly criterion?: FilterSpecForProviderFindingCriteriaCriterion[];
 
 }
 
@@ -1421,6 +1621,31 @@ export function toJson_FilterSpecForProviderFindingCriteria(obj: FilterSpecForPr
   if (obj === undefined) { return undefined; }
   const result = {
     'criterion': obj.criterion?.map(y => toJson_FilterSpecForProviderFindingCriteriaCriterion(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FilterSpecInitProviderFindingCriteria
+ */
+export interface FilterSpecInitProviderFindingCriteria {
+  /**
+   * @schema FilterSpecInitProviderFindingCriteria#criterion
+   */
+  readonly criterion?: FilterSpecInitProviderFindingCriteriaCriterion[];
+
+}
+
+/**
+ * Converts an object of type 'FilterSpecInitProviderFindingCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FilterSpecInitProviderFindingCriteria(obj: FilterSpecInitProviderFindingCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'criterion': obj.criterion?.map(y => toJson_FilterSpecInitProviderFindingCriteriaCriterion(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1454,43 +1679,6 @@ export interface FilterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FilterSpecProviderConfigRefPolicy(obj: FilterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FilterSpecProviderRefPolicy
- */
-export interface FilterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FilterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FilterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FilterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FilterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FilterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FilterSpecProviderRefPolicy(obj: FilterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1673,7 +1861,7 @@ export interface FilterSpecForProviderFindingCriteriaCriterion {
    *
    * @schema FilterSpecForProviderFindingCriteriaCriterion#field
    */
-  readonly field: string;
+  readonly field?: string;
 
   /**
    * A value to be evaluated. Accepts either an integer or a date in RFC 3339 format.
@@ -1733,6 +1921,81 @@ export function toJson_FilterSpecForProviderFindingCriteriaCriterion(obj: Filter
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FilterSpecInitProviderFindingCriteriaCriterion
+ */
+export interface FilterSpecInitProviderFindingCriteriaCriterion {
+  /**
+   * List of string values to be evaluated.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#equals
+   */
+  readonly equals?: string[];
+
+  /**
+   * The name of the field to be evaluated. The full list of field names can be found in AWS documentation.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#field
+   */
+  readonly field?: string;
+
+  /**
+   * A value to be evaluated. Accepts either an integer or a date in RFC 3339 format.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#greaterThan
+   */
+  readonly greaterThan?: string;
+
+  /**
+   * A value to be evaluated. Accepts either an integer or a date in RFC 3339 format.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#greaterThanOrEqual
+   */
+  readonly greaterThanOrEqual?: string;
+
+  /**
+   * A value to be evaluated. Accepts either an integer or a date in RFC 3339 format.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#lessThan
+   */
+  readonly lessThan?: string;
+
+  /**
+   * A value to be evaluated. Accepts either an integer or a date in RFC 3339 format.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#lessThanOrEqual
+   */
+  readonly lessThanOrEqual?: string;
+
+  /**
+   * List of string values to be evaluated.
+   *
+   * @schema FilterSpecInitProviderFindingCriteriaCriterion#notEquals
+   */
+  readonly notEquals?: string[];
+
+}
+
+/**
+ * Converts an object of type 'FilterSpecInitProviderFindingCriteriaCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FilterSpecInitProviderFindingCriteriaCriterion(obj: FilterSpecInitProviderFindingCriteriaCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'equals': obj.equals?.map(y => y),
+    'field': obj.field,
+    'greaterThan': obj.greaterThan,
+    'greaterThanOrEqual': obj.greaterThanOrEqual,
+    'lessThan': obj.lessThan,
+    'lessThanOrEqual': obj.lessThanOrEqual,
+    'notEquals': obj.notEquals?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FilterSpecProviderConfigRefPolicyResolution
@@ -1750,30 +2013,6 @@ export enum FilterSpecProviderConfigRefPolicyResolution {
  * @schema FilterSpecProviderConfigRefPolicyResolve
  */
 export enum FilterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FilterSpecProviderRefPolicyResolution
- */
-export enum FilterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FilterSpecProviderRefPolicyResolve
- */
-export enum FilterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1986,7 +2225,7 @@ export function toJson_MemberProps(obj: MemberProps | undefined): Record<string,
  */
 export interface MemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MemberSpec#deletionPolicy
    */
@@ -1998,11 +2237,18 @@ export interface MemberSpec {
   readonly forProvider: MemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MemberSpec#managementPolicy
+   * @schema MemberSpec#initProvider
    */
-  readonly managementPolicy?: MemberSpecManagementPolicy;
+  readonly initProvider?: MemberSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: MemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2010,13 +2256,6 @@ export interface MemberSpec {
    * @schema MemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: MemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MemberSpec#providerRef
-   */
-  readonly providerRef?: MemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2043,9 +2282,9 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2055,7 +2294,7 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MemberSpecDeletionPolicy
  */
@@ -2176,17 +2415,78 @@ export function toJson_MemberSpecForProvider(obj: MemberSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MemberSpecManagementPolicy
+ * @schema MemberSpecInitProvider
  */
-export enum MemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MemberSpecInitProvider {
+  /**
+   * Boolean whether an email notification is sent to the accounts. Defaults to false.
+   *
+   * @default false.
+   * @schema MemberSpecInitProvider#disableEmailNotification
+   */
+  readonly disableEmailNotification?: boolean;
+
+  /**
+   * Email address for member account.
+   *
+   * @schema MemberSpecInitProvider#email
+   */
+  readonly email?: string;
+
+  /**
+   * Message for invitation.
+   *
+   * @schema MemberSpecInitProvider#invitationMessage
+   */
+  readonly invitationMessage?: string;
+
+  /**
+   * Boolean whether to invite the account to GuardDuty as a member. Defaults to false.
+   *
+   * @default false.
+   * @schema MemberSpecInitProvider#invite
+   */
+  readonly invite?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemberSpecInitProvider(obj: MemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disableEmailNotification': obj.disableEmailNotification,
+    'email': obj.email,
+    'invitationMessage': obj.invitationMessage,
+    'invite': obj.invite,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MemberSpecManagementPolicies
+ */
+export enum MemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2220,43 +2520,6 @@ export function toJson_MemberSpecProviderConfigRef(obj: MemberSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_MemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MemberSpecProviderRef
- */
-export interface MemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MemberSpecProviderRef#policy
-   */
-  readonly policy?: MemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRef(obj: MemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2547,43 +2810,6 @@ export function toJson_MemberSpecProviderConfigRefPolicy(obj: MemberSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema MemberSpecProviderRefPolicy
- */
-export interface MemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRefPolicy(obj: MemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema MemberSpecPublishConnectionDetailsToConfigRef
@@ -2831,30 +3057,6 @@ export enum MemberSpecProviderConfigRefPolicyResolution {
  * @schema MemberSpecProviderConfigRefPolicyResolve
  */
 export enum MemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MemberSpecProviderRefPolicyResolution
- */
-export enum MemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MemberSpecProviderRefPolicyResolve
- */
-export enum MemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

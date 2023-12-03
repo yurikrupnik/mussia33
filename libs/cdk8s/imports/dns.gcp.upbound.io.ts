@@ -99,7 +99,7 @@ export function toJson_ManagedZoneProps(obj: ManagedZoneProps | undefined): Reco
  */
 export interface ManagedZoneSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ManagedZoneSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ManagedZoneSpec {
   readonly forProvider: ManagedZoneSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ManagedZoneSpec#managementPolicy
+   * @schema ManagedZoneSpec#initProvider
    */
-  readonly managementPolicy?: ManagedZoneSpecManagementPolicy;
+  readonly initProvider?: ManagedZoneSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ManagedZoneSpec#managementPolicies
+   */
+  readonly managementPolicies?: ManagedZoneSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ManagedZoneSpec {
    * @schema ManagedZoneSpec#providerConfigRef
    */
   readonly providerConfigRef?: ManagedZoneSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ManagedZoneSpec#providerRef
-   */
-  readonly providerRef?: ManagedZoneSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ManagedZoneSpec(obj: ManagedZoneSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ManagedZoneSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ManagedZoneSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ManagedZoneSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ManagedZoneSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ManagedZoneSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ManagedZoneSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ManagedZoneSpec(obj: ManagedZoneSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ManagedZoneSpecDeletionPolicy
  */
@@ -287,17 +287,132 @@ export function toJson_ManagedZoneSpecForProvider(obj: ManagedZoneSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ManagedZoneSpecManagementPolicy
+ * @schema ManagedZoneSpecInitProvider
  */
-export enum ManagedZoneSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ManagedZoneSpecInitProvider {
+  /**
+   * Cloud logging configuration Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProvider#cloudLoggingConfig
+   */
+  readonly cloudLoggingConfig?: ManagedZoneSpecInitProviderCloudLoggingConfig[];
+
+  /**
+   * A textual description field.
+   *
+   * @schema ManagedZoneSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The DNS name of this managed zone, for instance "example.com.".
+   *
+   * @schema ManagedZoneSpecInitProvider#dnsName
+   */
+  readonly dnsName?: string;
+
+  /**
+   * DNSSEC configuration Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProvider#dnssecConfig
+   */
+  readonly dnssecConfig?: ManagedZoneSpecInitProviderDnssecConfig[];
+
+  /**
+   * Set this true to delete all records in the zone.
+   *
+   * @schema ManagedZoneSpecInitProvider#forceDestroy
+   */
+  readonly forceDestroy?: boolean;
+
+  /**
+   * The presence for this field indicates that outbound forwarding is enabled for this zone. The value of this field contains the set of destinations to forward to. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProvider#forwardingConfig
+   */
+  readonly forwardingConfig?: ManagedZoneSpecInitProviderForwardingConfig[];
+
+  /**
+   * A set of key/value label pairs to assign to this ManagedZone.
+   *
+   * @schema ManagedZoneSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The presence of this field indicates that DNS Peering is enabled for this zone. The value of this field contains the network to peer with. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProvider#peeringConfig
+   */
+  readonly peeringConfig?: ManagedZoneSpecInitProviderPeeringConfig[];
+
+  /**
+   * For privately visible zones, the set of Virtual Private Cloud resources that the zone is visible from. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProvider#privateVisibilityConfig
+   */
+  readonly privateVisibilityConfig?: ManagedZoneSpecInitProviderPrivateVisibilityConfig[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ManagedZoneSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The zone's visibility: public zones are exposed to the Internet, while private zones are visible only to Virtual Private Cloud resources. Default value is public. Possible values are: private, public.
+   *
+   * @schema ManagedZoneSpecInitProvider#visibility
+   */
+  readonly visibility?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProvider(obj: ManagedZoneSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudLoggingConfig': obj.cloudLoggingConfig?.map(y => toJson_ManagedZoneSpecInitProviderCloudLoggingConfig(y)),
+    'description': obj.description,
+    'dnsName': obj.dnsName,
+    'dnssecConfig': obj.dnssecConfig?.map(y => toJson_ManagedZoneSpecInitProviderDnssecConfig(y)),
+    'forceDestroy': obj.forceDestroy,
+    'forwardingConfig': obj.forwardingConfig?.map(y => toJson_ManagedZoneSpecInitProviderForwardingConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'peeringConfig': obj.peeringConfig?.map(y => toJson_ManagedZoneSpecInitProviderPeeringConfig(y)),
+    'privateVisibilityConfig': obj.privateVisibilityConfig?.map(y => toJson_ManagedZoneSpecInitProviderPrivateVisibilityConfig(y)),
+    'project': obj.project,
+    'visibility': obj.visibility,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ManagedZoneSpecManagementPolicies
+ */
+export enum ManagedZoneSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -331,43 +446,6 @@ export function toJson_ManagedZoneSpecProviderConfigRef(obj: ManagedZoneSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_ManagedZoneSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ManagedZoneSpecProviderRef
- */
-export interface ManagedZoneSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ManagedZoneSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ManagedZoneSpecProviderRef#policy
-   */
-  readonly policy?: ManagedZoneSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ManagedZoneSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ManagedZoneSpecProviderRef(obj: ManagedZoneSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ManagedZoneSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -465,7 +543,7 @@ export interface ManagedZoneSpecForProviderCloudLoggingConfig {
    *
    * @schema ManagedZoneSpecForProviderCloudLoggingConfig#enableLogging
    */
-  readonly enableLogging: boolean;
+  readonly enableLogging?: boolean;
 
 }
 
@@ -543,7 +621,7 @@ export interface ManagedZoneSpecForProviderForwardingConfig {
    *
    * @schema ManagedZoneSpecForProviderForwardingConfig#targetNameServers
    */
-  readonly targetNameServers: ManagedZoneSpecForProviderForwardingConfigTargetNameServers[];
+  readonly targetNameServers?: ManagedZoneSpecForProviderForwardingConfigTargetNameServers[];
 
 }
 
@@ -570,7 +648,7 @@ export interface ManagedZoneSpecForProviderPeeringConfig {
    *
    * @schema ManagedZoneSpecForProviderPeeringConfig#targetNetwork
    */
-  readonly targetNetwork: ManagedZoneSpecForProviderPeeringConfigTargetNetwork[];
+  readonly targetNetwork?: ManagedZoneSpecForProviderPeeringConfigTargetNetwork[];
 
 }
 
@@ -604,7 +682,7 @@ export interface ManagedZoneSpecForProviderPrivateVisibilityConfig {
    *
    * @schema ManagedZoneSpecForProviderPrivateVisibilityConfig#networks
    */
-  readonly networks: ManagedZoneSpecForProviderPrivateVisibilityConfigNetworks[];
+  readonly networks?: ManagedZoneSpecForProviderPrivateVisibilityConfigNetworks[];
 
 }
 
@@ -617,6 +695,173 @@ export function toJson_ManagedZoneSpecForProviderPrivateVisibilityConfig(obj: Ma
   const result = {
     'gkeClusters': obj.gkeClusters?.map(y => toJson_ManagedZoneSpecForProviderPrivateVisibilityConfigGkeClusters(y)),
     'networks': obj.networks?.map(y => toJson_ManagedZoneSpecForProviderPrivateVisibilityConfigNetworks(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderCloudLoggingConfig
+ */
+export interface ManagedZoneSpecInitProviderCloudLoggingConfig {
+  /**
+   * If set, enable query logging for this ManagedZone. False by default, making logging opt-in.
+   *
+   * @schema ManagedZoneSpecInitProviderCloudLoggingConfig#enableLogging
+   */
+  readonly enableLogging?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderCloudLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderCloudLoggingConfig(obj: ManagedZoneSpecInitProviderCloudLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableLogging': obj.enableLogging,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderDnssecConfig
+ */
+export interface ManagedZoneSpecInitProviderDnssecConfig {
+  /**
+   * Specifies parameters that will be used for generating initial DnsKeys for this ManagedZone. If you provide a spec for keySigning or zoneSigning, you must also provide one for the other. default_key_specs can only be updated when the state is off. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfig#defaultKeySpecs
+   */
+  readonly defaultKeySpecs?: ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs[];
+
+  /**
+   * Identifies what kind of resource this is
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfig#kind
+   */
+  readonly kind?: string;
+
+  /**
+   * Specifies the mechanism used to provide authenticated denial-of-existence responses. non_existence can only be updated when the state is off. Possible values are: nsec, nsec3.
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfig#nonExistence
+   */
+  readonly nonExistence?: string;
+
+  /**
+   * Specifies whether DNSSEC is enabled, and what mode it is in Possible values are: off, on, transfer.
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfig#state
+   */
+  readonly state?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderDnssecConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderDnssecConfig(obj: ManagedZoneSpecInitProviderDnssecConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultKeySpecs': obj.defaultKeySpecs?.map(y => toJson_ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs(y)),
+    'kind': obj.kind,
+    'nonExistence': obj.nonExistence,
+    'state': obj.state,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderForwardingConfig
+ */
+export interface ManagedZoneSpecInitProviderForwardingConfig {
+  /**
+   * List of target name servers to forward to. Cloud DNS will select the best available name server if more than one target is given. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProviderForwardingConfig#targetNameServers
+   */
+  readonly targetNameServers?: ManagedZoneSpecInitProviderForwardingConfigTargetNameServers[];
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderForwardingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderForwardingConfig(obj: ManagedZoneSpecInitProviderForwardingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'targetNameServers': obj.targetNameServers?.map(y => toJson_ManagedZoneSpecInitProviderForwardingConfigTargetNameServers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderPeeringConfig
+ */
+export interface ManagedZoneSpecInitProviderPeeringConfig {
+  /**
+   * The network with which to peer. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProviderPeeringConfig#targetNetwork
+   */
+  readonly targetNetwork?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderPeeringConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderPeeringConfig(obj: ManagedZoneSpecInitProviderPeeringConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'targetNetwork': obj.targetNetwork?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderPrivateVisibilityConfig
+ */
+export interface ManagedZoneSpecInitProviderPrivateVisibilityConfig {
+  /**
+   * The list of Google Kubernetes Engine clusters that can see this zone. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProviderPrivateVisibilityConfig#gkeClusters
+   */
+  readonly gkeClusters?: any[];
+
+  /**
+   * The list of VPC networks that can see this zone.12 SDK in a future release, you may experience issues with this resource while updating. If you encounter this issue, remove all networks blocks in an update and then apply another update adding all of them back simultaneously. Structure is documented below.
+   *
+   * @schema ManagedZoneSpecInitProviderPrivateVisibilityConfig#networks
+   */
+  readonly networks?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderPrivateVisibilityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderPrivateVisibilityConfig(obj: ManagedZoneSpecInitProviderPrivateVisibilityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gkeClusters': obj.gkeClusters?.map(y => y),
+    'networks': obj.networks?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -650,43 +895,6 @@ export interface ManagedZoneSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ManagedZoneSpecProviderConfigRefPolicy(obj: ManagedZoneSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ManagedZoneSpecProviderRefPolicy
- */
-export interface ManagedZoneSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ManagedZoneSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ManagedZoneSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ManagedZoneSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ManagedZoneSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ManagedZoneSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ManagedZoneSpecProviderRefPolicy(obj: ManagedZoneSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -846,7 +1054,7 @@ export interface ManagedZoneSpecForProviderForwardingConfigTargetNameServers {
    *
    * @schema ManagedZoneSpecForProviderForwardingConfigTargetNameServers#ipv4Address
    */
-  readonly ipv4Address: string;
+  readonly ipv4Address?: string;
 
 }
 
@@ -995,6 +1203,92 @@ export function toJson_ManagedZoneSpecForProviderPrivateVisibilityConfigNetworks
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs
+ */
+export interface ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs {
+  /**
+   * String mnemonic specifying the DNSSEC algorithm of this key Possible values are: ecdsap256sha256, ecdsap384sha384, rsasha1, rsasha256, rsasha512.
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs#algorithm
+   */
+  readonly algorithm?: string;
+
+  /**
+   * Length of the keys in bits
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs#keyLength
+   */
+  readonly keyLength?: number;
+
+  /**
+   * Specifies whether this is a key signing key (KSK) or a zone signing key (ZSK). Key signing keys have the Secure Entry Point flag set and, when active, will only be used to sign resource record sets of type DNSKEY. Zone signing keys do not have the Secure Entry Point flag set and will be used to sign all other types of resource record sets. Possible values are: keySigning, zoneSigning.
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs#keyType
+   */
+  readonly keyType?: string;
+
+  /**
+   * Identifies what kind of resource this is
+   *
+   * @schema ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs#kind
+   */
+  readonly kind?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs(obj: ManagedZoneSpecInitProviderDnssecConfigDefaultKeySpecs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'algorithm': obj.algorithm,
+    'keyLength': obj.keyLength,
+    'keyType': obj.keyType,
+    'kind': obj.kind,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneSpecInitProviderForwardingConfigTargetNameServers
+ */
+export interface ManagedZoneSpecInitProviderForwardingConfigTargetNameServers {
+  /**
+   * Forwarding path for this TargetNameServer. If unset or default Cloud DNS will make forwarding decision based on address ranges, i.e. RFC1918 addresses go to the VPC, Non-RFC1918 addresses go to the Internet. When set to private, Cloud DNS will always send queries through VPC for this target Possible values are: default, private.
+   *
+   * @schema ManagedZoneSpecInitProviderForwardingConfigTargetNameServers#forwardingPath
+   */
+  readonly forwardingPath?: string;
+
+  /**
+   * IPv4 address of a target name server.
+   *
+   * @schema ManagedZoneSpecInitProviderForwardingConfigTargetNameServers#ipv4Address
+   */
+  readonly ipv4Address?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneSpecInitProviderForwardingConfigTargetNameServers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneSpecInitProviderForwardingConfigTargetNameServers(obj: ManagedZoneSpecInitProviderForwardingConfigTargetNameServers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forwardingPath': obj.forwardingPath,
+    'ipv4Address': obj.ipv4Address,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ManagedZoneSpecProviderConfigRefPolicyResolution
@@ -1012,30 +1306,6 @@ export enum ManagedZoneSpecProviderConfigRefPolicyResolution {
  * @schema ManagedZoneSpecProviderConfigRefPolicyResolve
  */
 export enum ManagedZoneSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ManagedZoneSpecProviderRefPolicyResolution
- */
-export enum ManagedZoneSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ManagedZoneSpecProviderRefPolicyResolve
- */
-export enum ManagedZoneSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1812,7 +2082,7 @@ export function toJson_ManagedZoneIamMemberProps(obj: ManagedZoneIamMemberProps 
  */
 export interface ManagedZoneIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ManagedZoneIamMemberSpec#deletionPolicy
    */
@@ -1824,11 +2094,18 @@ export interface ManagedZoneIamMemberSpec {
   readonly forProvider: ManagedZoneIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ManagedZoneIamMemberSpec#managementPolicy
+   * @schema ManagedZoneIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: ManagedZoneIamMemberSpecManagementPolicy;
+  readonly initProvider?: ManagedZoneIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ManagedZoneIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: ManagedZoneIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1836,13 +2113,6 @@ export interface ManagedZoneIamMemberSpec {
    * @schema ManagedZoneIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: ManagedZoneIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ManagedZoneIamMemberSpec#providerRef
-   */
-  readonly providerRef?: ManagedZoneIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1869,9 +2139,9 @@ export function toJson_ManagedZoneIamMemberSpec(obj: ManagedZoneIamMemberSpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ManagedZoneIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ManagedZoneIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ManagedZoneIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ManagedZoneIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ManagedZoneIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ManagedZoneIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1881,7 +2151,7 @@ export function toJson_ManagedZoneIamMemberSpec(obj: ManagedZoneIamMemberSpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ManagedZoneIamMemberSpecDeletionPolicy
  */
@@ -1942,17 +2212,74 @@ export function toJson_ManagedZoneIamMemberSpecForProvider(obj: ManagedZoneIamMe
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ManagedZoneIamMemberSpecManagementPolicy
+ * @schema ManagedZoneIamMemberSpecInitProvider
  */
-export enum ManagedZoneIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ManagedZoneIamMemberSpecInitProvider {
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: ManagedZoneIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProvider#managedZone
+   */
+  readonly managedZone?: string;
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneIamMemberSpecInitProvider(obj: ManagedZoneIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_ManagedZoneIamMemberSpecInitProviderCondition(y)),
+    'managedZone': obj.managedZone,
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ManagedZoneIamMemberSpecManagementPolicies
+ */
+export enum ManagedZoneIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1986,43 +2313,6 @@ export function toJson_ManagedZoneIamMemberSpecProviderConfigRef(obj: ManagedZon
   const result = {
     'name': obj.name,
     'policy': toJson_ManagedZoneIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ManagedZoneIamMemberSpecProviderRef
- */
-export interface ManagedZoneIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ManagedZoneIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ManagedZoneIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: ManagedZoneIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ManagedZoneIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ManagedZoneIamMemberSpecProviderRef(obj: ManagedZoneIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ManagedZoneIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2123,12 +2413,12 @@ export interface ManagedZoneIamMemberSpecForProviderCondition {
   /**
    * @schema ManagedZoneIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema ManagedZoneIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -2137,6 +2427,43 @@ export interface ManagedZoneIamMemberSpecForProviderCondition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ManagedZoneIamMemberSpecForProviderCondition(obj: ManagedZoneIamMemberSpecForProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ManagedZoneIamMemberSpecInitProviderCondition
+ */
+export interface ManagedZoneIamMemberSpecInitProviderCondition {
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema ManagedZoneIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'ManagedZoneIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ManagedZoneIamMemberSpecInitProviderCondition(obj: ManagedZoneIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -2175,43 +2502,6 @@ export interface ManagedZoneIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ManagedZoneIamMemberSpecProviderConfigRefPolicy(obj: ManagedZoneIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ManagedZoneIamMemberSpecProviderRefPolicy
- */
-export interface ManagedZoneIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ManagedZoneIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ManagedZoneIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ManagedZoneIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ManagedZoneIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ManagedZoneIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ManagedZoneIamMemberSpecProviderRefPolicy(obj: ManagedZoneIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2322,30 +2612,6 @@ export enum ManagedZoneIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema ManagedZoneIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum ManagedZoneIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ManagedZoneIamMemberSpecProviderRefPolicyResolution
- */
-export enum ManagedZoneIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ManagedZoneIamMemberSpecProviderRefPolicyResolve
- */
-export enum ManagedZoneIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2510,7 +2776,7 @@ export function toJson_PolicyProps(obj: PolicyProps | undefined): Record<string,
  */
 export interface PolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PolicySpec#deletionPolicy
    */
@@ -2522,11 +2788,18 @@ export interface PolicySpec {
   readonly forProvider: PolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PolicySpec#managementPolicy
+   * @schema PolicySpec#initProvider
    */
-  readonly managementPolicy?: PolicySpecManagementPolicy;
+  readonly initProvider?: PolicySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: PolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2534,13 +2807,6 @@ export interface PolicySpec {
    * @schema PolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: PolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PolicySpec#providerRef
-   */
-  readonly providerRef?: PolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2567,9 +2833,9 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2579,7 +2845,7 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PolicySpecDeletionPolicy
  */
@@ -2659,17 +2925,93 @@ export function toJson_PolicySpecForProvider(obj: PolicySpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PolicySpecManagementPolicy
+ * @schema PolicySpecInitProvider
  */
-export enum PolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PolicySpecInitProvider {
+  /**
+   * Sets an alternative name server for the associated networks. When specified, all DNS queries are forwarded to a name server that you choose. Names such as .internal are not available when an alternative name server is specified. Structure is documented below.
+   *
+   * @schema PolicySpecInitProvider#alternativeNameServerConfig
+   */
+  readonly alternativeNameServerConfig?: PolicySpecInitProviderAlternativeNameServerConfig[];
+
+  /**
+   * A textual description field.
+   *
+   * @schema PolicySpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Allows networks bound to this policy to receive DNS queries sent by VMs or applications over VPN connections. When enabled, a virtual IP address will be allocated from each of the sub-networks that are bound to this policy.
+   *
+   * @schema PolicySpecInitProvider#enableInboundForwarding
+   */
+  readonly enableInboundForwarding?: boolean;
+
+  /**
+   * Controls whether logging is enabled for the networks bound to this policy. Defaults to no logging if not set.
+   *
+   * @default no logging if not set.
+   * @schema PolicySpecInitProvider#enableLogging
+   */
+  readonly enableLogging?: boolean;
+
+  /**
+   * List of network names specifying networks to which this policy is applied. Structure is documented below.
+   *
+   * @schema PolicySpecInitProvider#networks
+   */
+  readonly networks?: any[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema PolicySpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProvider(obj: PolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alternativeNameServerConfig': obj.alternativeNameServerConfig?.map(y => toJson_PolicySpecInitProviderAlternativeNameServerConfig(y)),
+    'description': obj.description,
+    'enableInboundForwarding': obj.enableInboundForwarding,
+    'enableLogging': obj.enableLogging,
+    'networks': obj.networks?.map(y => y),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PolicySpecManagementPolicies
+ */
+export enum PolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2703,43 +3045,6 @@ export function toJson_PolicySpecProviderConfigRef(obj: PolicySpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_PolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PolicySpecProviderRef
- */
-export interface PolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PolicySpecProviderRef#policy
-   */
-  readonly policy?: PolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRef(obj: PolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2837,7 +3142,7 @@ export interface PolicySpecForProviderAlternativeNameServerConfig {
    *
    * @schema PolicySpecForProviderAlternativeNameServerConfig#targetNameServers
    */
-  readonly targetNameServers: PolicySpecForProviderAlternativeNameServerConfigTargetNameServers[];
+  readonly targetNameServers?: PolicySpecForProviderAlternativeNameServerConfigTargetNameServers[];
 
 }
 
@@ -2899,6 +3204,33 @@ export function toJson_PolicySpecForProviderNetworks(obj: PolicySpecForProviderN
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderAlternativeNameServerConfig
+ */
+export interface PolicySpecInitProviderAlternativeNameServerConfig {
+  /**
+   * Sets an alternative name server for the associated networks. When specified, all DNS queries are forwarded to a name server that you choose. Names such as .internal are not available when an alternative name server is specified. Structure is documented below.
+   *
+   * @schema PolicySpecInitProviderAlternativeNameServerConfig#targetNameServers
+   */
+  readonly targetNameServers?: PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers[];
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderAlternativeNameServerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderAlternativeNameServerConfig(obj: PolicySpecInitProviderAlternativeNameServerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'targetNameServers': obj.targetNameServers?.map(y => toJson_PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PolicySpecProviderConfigRefPolicy
@@ -2925,43 +3257,6 @@ export interface PolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecProviderConfigRefPolicy(obj: PolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PolicySpecProviderRefPolicy
- */
-export interface PolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRefPolicy(obj: PolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3070,7 +3365,7 @@ export interface PolicySpecForProviderAlternativeNameServerConfigTargetNameServe
    *
    * @schema PolicySpecForProviderAlternativeNameServerConfigTargetNameServers#ipv4Address
    */
-  readonly ipv4Address: string;
+  readonly ipv4Address?: string;
 
 }
 
@@ -3172,6 +3467,41 @@ export function toJson_PolicySpecForProviderNetworksNetworkSelector(obj: PolicyS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers
+ */
+export interface PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers {
+  /**
+   * Forwarding path for this TargetNameServer. If unset or default Cloud DNS will make forwarding decision based on address ranges, i.e. RFC1918 addresses go to the VPC, Non-RFC1918 addresses go to the Internet. When set to private, Cloud DNS will always send queries through VPC for this target Possible values are: default, private.
+   *
+   * @schema PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers#forwardingPath
+   */
+  readonly forwardingPath?: string;
+
+  /**
+   * IPv4 address to forward to.
+   *
+   * @schema PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers#ipv4Address
+   */
+  readonly ipv4Address?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers(obj: PolicySpecInitProviderAlternativeNameServerConfigTargetNameServers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forwardingPath': obj.forwardingPath,
+    'ipv4Address': obj.ipv4Address,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema PolicySpecProviderConfigRefPolicyResolution
@@ -3189,30 +3519,6 @@ export enum PolicySpecProviderConfigRefPolicyResolution {
  * @schema PolicySpecProviderConfigRefPolicyResolve
  */
 export enum PolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PolicySpecProviderRefPolicyResolution
- */
-export enum PolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PolicySpecProviderRefPolicyResolve
- */
-export enum PolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3499,7 +3805,7 @@ export function toJson_RecordSetProps(obj: RecordSetProps | undefined): Record<s
  */
 export interface RecordSetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RecordSetSpec#deletionPolicy
    */
@@ -3511,11 +3817,18 @@ export interface RecordSetSpec {
   readonly forProvider: RecordSetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RecordSetSpec#managementPolicy
+   * @schema RecordSetSpec#initProvider
    */
-  readonly managementPolicy?: RecordSetSpecManagementPolicy;
+  readonly initProvider?: RecordSetSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RecordSetSpec#managementPolicies
+   */
+  readonly managementPolicies?: RecordSetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3523,13 +3836,6 @@ export interface RecordSetSpec {
    * @schema RecordSetSpec#providerConfigRef
    */
   readonly providerConfigRef?: RecordSetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RecordSetSpec#providerRef
-   */
-  readonly providerRef?: RecordSetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3556,9 +3862,9 @@ export function toJson_RecordSetSpec(obj: RecordSetSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RecordSetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RecordSetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RecordSetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RecordSetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RecordSetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RecordSetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3568,7 +3874,7 @@ export function toJson_RecordSetSpec(obj: RecordSetSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RecordSetSpecDeletionPolicy
  */
@@ -3671,17 +3977,92 @@ export function toJson_RecordSetSpecForProvider(obj: RecordSetSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RecordSetSpecManagementPolicy
+ * @schema RecordSetSpecInitProvider
  */
-export enum RecordSetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RecordSetSpecInitProvider {
+  /**
+   * The DNS name this record set will apply to.
+   *
+   * @schema RecordSetSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RecordSetSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The configuration for steering traffic based on query. Now you can specify either Weighted Round Robin(WRR) type or Geolocation(GEO) type. Structure is documented below.
+   *
+   * @schema RecordSetSpecInitProvider#routingPolicy
+   */
+  readonly routingPolicy?: RecordSetSpecInitProviderRoutingPolicy[];
+
+  /**
+   * The string data for the records in this record set whose meaning depends on the DNS type. For TXT record, if the string data contains spaces, add surrounding \" if you don't want your string to get split on spaces.g. "first255characters\" \"morecharacters").
+   *
+   * @schema RecordSetSpecInitProvider#rrdatas
+   */
+  readonly rrdatas?: string[];
+
+  /**
+   * The time-to-live of this record set (seconds).
+   *
+   * @schema RecordSetSpecInitProvider#ttl
+   */
+  readonly ttl?: number;
+
+  /**
+   * The DNS record set type.
+   *
+   * @schema RecordSetSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProvider(obj: RecordSetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'project': obj.project,
+    'routingPolicy': obj.routingPolicy?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicy(y)),
+    'rrdatas': obj.rrdatas?.map(y => y),
+    'ttl': obj.ttl,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RecordSetSpecManagementPolicies
+ */
+export enum RecordSetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3715,43 +4096,6 @@ export function toJson_RecordSetSpecProviderConfigRef(obj: RecordSetSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_RecordSetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RecordSetSpecProviderRef
- */
-export interface RecordSetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RecordSetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RecordSetSpecProviderRef#policy
-   */
-  readonly policy?: RecordSetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RecordSetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RecordSetSpecProviderRef(obj: RecordSetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RecordSetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3974,6 +4318,57 @@ export function toJson_RecordSetSpecForProviderRoutingPolicy(obj: RecordSetSpecF
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RecordSetSpecInitProviderRoutingPolicy
+ */
+export interface RecordSetSpecInitProviderRoutingPolicy {
+  /**
+   * Specifies whether to enable fencing for geo queries.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicy#enableGeoFencing
+   */
+  readonly enableGeoFencing?: boolean;
+
+  /**
+   * The configuration for Geolocation based routing policy. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicy#geo
+   */
+  readonly geo?: RecordSetSpecInitProviderRoutingPolicyGeo[];
+
+  /**
+   * The configuration for a primary-backup policy with global to regional failover. Queries are responded to with the global primary targets, but if none of the primary targets are healthy, then we fallback to a regional failover policy. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicy#primaryBackup
+   */
+  readonly primaryBackup?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackup[];
+
+  /**
+   * The configuration for Weighted Round Robin based routing policy. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicy#wrr
+   */
+  readonly wrr?: RecordSetSpecInitProviderRoutingPolicyWrr[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicy(obj: RecordSetSpecInitProviderRoutingPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableGeoFencing': obj.enableGeoFencing,
+    'geo': obj.geo?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyGeo(y)),
+    'primaryBackup': obj.primaryBackup?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackup(y)),
+    'wrr': obj.wrr?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyWrr(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RecordSetSpecProviderConfigRefPolicy
@@ -4000,43 +4395,6 @@ export interface RecordSetSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RecordSetSpecProviderConfigRefPolicy(obj: RecordSetSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RecordSetSpecProviderRefPolicy
- */
-export interface RecordSetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RecordSetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RecordSetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RecordSetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RecordSetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RecordSetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RecordSetSpecProviderRefPolicy(obj: RecordSetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4219,7 +4577,7 @@ export interface RecordSetSpecForProviderRoutingPolicyGeo {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeo#location
    */
-  readonly location: string;
+  readonly location?: string;
 
   /**
    * Same as rrdatas above.
@@ -4255,7 +4613,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackup {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackup#backupGeo
    */
-  readonly backupGeo: RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeo[];
+  readonly backupGeo?: RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeo[];
 
   /**
    * Specifies whether to enable fencing for backup geo queries.
@@ -4269,7 +4627,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackup {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackup#primary
    */
-  readonly primary: RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimary[];
+  readonly primary?: RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimary[];
 
   /**
    * Specifies the percentage of traffic to send to the backup targets even when the primary targets are healthy.
@@ -4320,7 +4678,7 @@ export interface RecordSetSpecForProviderRoutingPolicyWrr {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrr#weight
    */
-  readonly weight: number;
+  readonly weight?: number;
 
 }
 
@@ -4332,6 +4690,143 @@ export function toJson_RecordSetSpecForProviderRoutingPolicyWrr(obj: RecordSetSp
   if (obj === undefined) { return undefined; }
   const result = {
     'healthCheckedTargets': obj.healthCheckedTargets?.map(y => toJson_RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargets(y)),
+    'rrdatas': obj.rrdatas?.map(y => y),
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyGeo
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyGeo {
+  /**
+   * The list of targets to be health checked. Note that if DNSSEC is enabled for this zone, only one of rrdatas or health_checked_targets can be set. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeo#healthCheckedTargets
+   */
+  readonly healthCheckedTargets?: RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets[];
+
+  /**
+   * The location name defined in Google Cloud.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeo#location
+   */
+  readonly location?: string;
+
+  /**
+   * Same as rrdatas above.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeo#rrdatas
+   */
+  readonly rrdatas?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyGeo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyGeo(obj: RecordSetSpecInitProviderRoutingPolicyGeo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthCheckedTargets': obj.healthCheckedTargets?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets(y)),
+    'location': obj.location,
+    'rrdatas': obj.rrdatas?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackup
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackup {
+  /**
+   * The backup geo targets, which provide a regional failover policy for the otherwise global primary targets. Structure is document above.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackup#backupGeo
+   */
+  readonly backupGeo?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo[];
+
+  /**
+   * Specifies whether to enable fencing for backup geo queries.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackup#enableGeoFencingForBackups
+   */
+  readonly enableGeoFencingForBackups?: boolean;
+
+  /**
+   * The list of global primary targets to be health checked. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackup#primary
+   */
+  readonly primary?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary[];
+
+  /**
+   * Specifies the percentage of traffic to send to the backup targets even when the primary targets are healthy.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackup#trickleRatio
+   */
+  readonly trickleRatio?: number;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackup' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackup(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackup | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'backupGeo': obj.backupGeo?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo(y)),
+    'enableGeoFencingForBackups': obj.enableGeoFencingForBackups,
+    'primary': obj.primary?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary(y)),
+    'trickleRatio': obj.trickleRatio,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyWrr
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyWrr {
+  /**
+   * The list of targets to be health checked. Note that if DNSSEC is enabled for this zone, only one of rrdatas or health_checked_targets can be set. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrr#healthCheckedTargets
+   */
+  readonly healthCheckedTargets?: RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets[];
+
+  /**
+   * Same as rrdatas above.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrr#rrdatas
+   */
+  readonly rrdatas?: string[];
+
+  /**
+   * The ratio of traffic routed to the target.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrr#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyWrr' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyWrr(obj: RecordSetSpecInitProviderRoutingPolicyWrr | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthCheckedTargets': obj.healthCheckedTargets?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets(y)),
     'rrdatas': obj.rrdatas?.map(y => y),
     'weight': obj.weight,
   };
@@ -4358,30 +4853,6 @@ export enum RecordSetSpecProviderConfigRefPolicyResolution {
  * @schema RecordSetSpecProviderConfigRefPolicyResolve
  */
 export enum RecordSetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RecordSetSpecProviderRefPolicyResolution
- */
-export enum RecordSetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RecordSetSpecProviderRefPolicyResolve
- */
-export enum RecordSetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4482,7 +4953,7 @@ export interface RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargets {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargets#internalLoadBalancers
    */
-  readonly internalLoadBalancers: RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers[];
+  readonly internalLoadBalancers?: RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers[];
 
 }
 
@@ -4516,7 +4987,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeo {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeo#location
    */
-  readonly location: string;
+  readonly location?: string;
 
   /**
    * Same as rrdatas above.
@@ -4552,7 +5023,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimary {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimary#internalLoadBalancers
    */
-  readonly internalLoadBalancers: RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers[];
+  readonly internalLoadBalancers?: RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers[];
 
 }
 
@@ -4579,7 +5050,7 @@ export interface RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargets {
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargets#internalLoadBalancers
    */
-  readonly internalLoadBalancers: RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers[];
+  readonly internalLoadBalancers?: RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers[];
 
 }
 
@@ -4591,6 +5062,130 @@ export function toJson_RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTarg
   if (obj === undefined) { return undefined; }
   const result = {
     'internalLoadBalancers': obj.internalLoadBalancers?.map(y => toJson_RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets {
+  /**
+   * The list of internal load balancers to health check. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets#internalLoadBalancers
+   */
+  readonly internalLoadBalancers?: RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets(obj: RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalLoadBalancers': obj.internalLoadBalancers?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo {
+  /**
+   * The list of targets to be health checked. Note that if DNSSEC is enabled for this zone, only one of rrdatas or health_checked_targets can be set. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo#healthCheckedTargets
+   */
+  readonly healthCheckedTargets?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets[];
+
+  /**
+   * The location name defined in Google Cloud.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo#location
+   */
+  readonly location?: string;
+
+  /**
+   * Same as rrdatas above.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo#rrdatas
+   */
+  readonly rrdatas?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthCheckedTargets': obj.healthCheckedTargets?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets(y)),
+    'location': obj.location,
+    'rrdatas': obj.rrdatas?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary {
+  /**
+   * The list of internal load balancers to health check. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary#internalLoadBalancers
+   */
+  readonly internalLoadBalancers?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimary | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalLoadBalancers': obj.internalLoadBalancers?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets {
+  /**
+   * The list of internal load balancers to health check. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets#internalLoadBalancers
+   */
+  readonly internalLoadBalancers?: RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets(obj: RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalLoadBalancers': obj.internalLoadBalancers?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4630,42 +5225,42 @@ export interface RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInt
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#ipAddress
    */
-  readonly ipAddress: string;
+  readonly ipAddress?: string;
 
   /**
    * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#ipProtocol
    */
-  readonly ipProtocol: string;
+  readonly ipProtocol?: string;
 
   /**
-   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb"]
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
    */
-  readonly loadBalancerType: string;
+  readonly loadBalancerType?: string;
 
   /**
    * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#networkUrl
    */
-  readonly networkUrl: string;
+  readonly networkUrl?: string;
 
   /**
    * The configured port of the load balancer.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#port
    */
-  readonly port: string;
+  readonly port?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#project
    */
-  readonly project: string;
+  readonly project?: string;
 
   /**
    * The region of the load balancer. Only needed for regional load balancers.
@@ -4705,7 +5300,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHeal
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets#internalLoadBalancers
    */
-  readonly internalLoadBalancers: RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers[];
+  readonly internalLoadBalancers?: RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers[];
 
 }
 
@@ -4753,14 +5348,14 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryIntern
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#ipProtocol
    */
-  readonly ipProtocol: string;
+  readonly ipProtocol?: string;
 
   /**
-   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb"]
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#loadBalancerType
    */
-  readonly loadBalancerType: string;
+  readonly loadBalancerType?: string;
 
   /**
    * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
@@ -4788,7 +5383,7 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryIntern
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#port
    */
-  readonly port: string;
+  readonly port?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
@@ -4871,42 +5466,42 @@ export interface RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInt
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#ipAddress
    */
-  readonly ipAddress: string;
+  readonly ipAddress?: string;
 
   /**
    * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#ipProtocol
    */
-  readonly ipProtocol: string;
+  readonly ipProtocol?: string;
 
   /**
-   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb"]
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
    */
-  readonly loadBalancerType: string;
+  readonly loadBalancerType?: string;
 
   /**
    * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#networkUrl
    */
-  readonly networkUrl: string;
+  readonly networkUrl?: string;
 
   /**
    * The configured port of the load balancer.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#port
    */
-  readonly port: string;
+  readonly port?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#project
    */
-  readonly project: string;
+  readonly project?: string;
 
   /**
    * The region of the load balancer. Only needed for regional load balancers.
@@ -4938,6 +5533,226 @@ export function toJson_RecordSetSpecForProviderRoutingPolicyWrrHealthCheckedTarg
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers {
+  /**
+   * The frontend IP address of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#ipAddress
+   */
+  readonly ipAddress?: string;
+
+  /**
+   * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#ipProtocol
+   */
+  readonly ipProtocol?: string;
+
+  /**
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+  /**
+   * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#networkUrl
+   */
+  readonly networkUrl?: string;
+
+  /**
+   * The configured port of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#port
+   */
+  readonly port?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region of the load balancer. Only needed for regional load balancers.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers#region
+   */
+  readonly region?: string;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers(obj: RecordSetSpecInitProviderRoutingPolicyGeoHealthCheckedTargetsInternalLoadBalancers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipAddress': obj.ipAddress,
+    'ipProtocol': obj.ipProtocol,
+    'loadBalancerType': obj.loadBalancerType,
+    'networkUrl': obj.networkUrl,
+    'port': obj.port,
+    'project': obj.project,
+    'region': obj.region,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets {
+  /**
+   * The list of internal load balancers to health check. Structure is document below.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets#internalLoadBalancers
+   */
+  readonly internalLoadBalancers?: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers[];
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargets | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalLoadBalancers': obj.internalLoadBalancers?.map(y => toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers {
+  /**
+   * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#ipProtocol
+   */
+  readonly ipProtocol?: string;
+
+  /**
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+  /**
+   * The configured port of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers#port
+   */
+  readonly port?: string;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipProtocol': obj.ipProtocol,
+    'loadBalancerType': obj.loadBalancerType,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers {
+  /**
+   * The frontend IP address of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#ipAddress
+   */
+  readonly ipAddress?: string;
+
+  /**
+   * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#ipProtocol
+   */
+  readonly ipProtocol?: string;
+
+  /**
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+  /**
+   * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#networkUrl
+   */
+  readonly networkUrl?: string;
+
+  /**
+   * The configured port of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#port
+   */
+  readonly port?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region of the load balancer. Only needed for regional load balancers.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers#region
+   */
+  readonly region?: string;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers(obj: RecordSetSpecInitProviderRoutingPolicyWrrHealthCheckedTargetsInternalLoadBalancers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipAddress': obj.ipAddress,
+    'ipProtocol': obj.ipProtocol,
+    'loadBalancerType': obj.loadBalancerType,
+    'networkUrl': obj.networkUrl,
+    'port': obj.port,
+    'project': obj.project,
+    'region': obj.region,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers
  */
 export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers {
@@ -4946,42 +5761,42 @@ export interface RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHeal
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#ipAddress
    */
-  readonly ipAddress: string;
+  readonly ipAddress?: string;
 
   /**
    * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#ipProtocol
    */
-  readonly ipProtocol: string;
+  readonly ipProtocol?: string;
 
   /**
-   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb"]
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
    */
-  readonly loadBalancerType: string;
+  readonly loadBalancerType?: string;
 
   /**
    * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#networkUrl
    */
-  readonly networkUrl: string;
+  readonly networkUrl?: string;
 
   /**
    * The configured port of the load balancer.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#port
    */
-  readonly port: string;
+  readonly port?: string;
 
   /**
    * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
    *
    * @schema RecordSetSpecForProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#project
    */
-  readonly project: string;
+  readonly project?: string;
 
   /**
    * The region of the load balancer. Only needed for regional load balancers.
@@ -5334,6 +6149,81 @@ export function toJson_RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimary
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_RecordSetSpecForProviderRoutingPolicyPrimaryBackupPrimaryInternalLoadBalancersRegionSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers
+ */
+export interface RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers {
+  /**
+   * The frontend IP address of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#ipAddress
+   */
+  readonly ipAddress?: string;
+
+  /**
+   * The configured IP protocol of the load balancer. This value is case-sensitive. Possible values: ["tcp", "udp"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#ipProtocol
+   */
+  readonly ipProtocol?: string;
+
+  /**
+   * The type of load balancer. This value is case-sensitive. Possible values: ["regionalL4ilb", "regionalL7ilb"]
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+  /**
+   * The fully qualified url of the network in which the load balancer belongs. This should be formatted like projects/{project}/global/networks/{network} or https://www.googleapis.com/compute/v1/projects/{project}/global/networks/{network}.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#networkUrl
+   */
+  readonly networkUrl?: string;
+
+  /**
+   * The configured port of the load balancer.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#port
+   */
+  readonly port?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region of the load balancer. Only needed for regional load balancers.
+   *
+   * @schema RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers#region
+   */
+  readonly region?: string;
+
+}
+
+/**
+ * Converts an object of type 'RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers(obj: RecordSetSpecInitProviderRoutingPolicyPrimaryBackupBackupGeoHealthCheckedTargetsInternalLoadBalancers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ipAddress': obj.ipAddress,
+    'ipProtocol': obj.ipProtocol,
+    'loadBalancerType': obj.loadBalancerType,
+    'networkUrl': obj.networkUrl,
+    'port': obj.port,
+    'project': obj.project,
+    'region': obj.region,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

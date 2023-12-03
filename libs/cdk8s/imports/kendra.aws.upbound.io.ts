@@ -99,7 +99,7 @@ export function toJson_DataSourceProps(obj: DataSourceProps | undefined): Record
  */
 export interface DataSourceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DataSourceSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DataSourceSpec {
   readonly forProvider: DataSourceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DataSourceSpec#managementPolicy
+   * @schema DataSourceSpec#initProvider
    */
-  readonly managementPolicy?: DataSourceSpecManagementPolicy;
+  readonly initProvider?: DataSourceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DataSourceSpec#managementPolicies
+   */
+  readonly managementPolicies?: DataSourceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DataSourceSpec {
    * @schema DataSourceSpec#providerConfigRef
    */
   readonly providerConfigRef?: DataSourceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DataSourceSpec#providerRef
-   */
-  readonly providerRef?: DataSourceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DataSourceSpec(obj: DataSourceSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DataSourceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DataSourceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DataSourceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DataSourceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DataSourceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DataSourceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DataSourceSpec(obj: DataSourceSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DataSourceSpecDeletionPolicy
  */
@@ -319,17 +319,108 @@ export function toJson_DataSourceSpecForProvider(obj: DataSourceSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DataSourceSpecManagementPolicy
+ * @schema DataSourceSpecInitProvider
  */
-export enum DataSourceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DataSourceSpecInitProvider {
+  /**
+   * A block with the configuration information to connect to your Data Source repository. You can't specify the configuration argument when the type parameter is set to CUSTOM. Detailed below.
+   *
+   * @schema DataSourceSpecInitProvider#configuration
+   */
+  readonly configuration?: DataSourceSpecInitProviderConfiguration[];
+
+  /**
+   * A block with the configuration information for altering document metadata and content during the document ingestion process. For more information on how to create, modify and delete document metadata, or make other content alterations when you ingest documents into Amazon Kendra, see Customizing document metadata during the ingestion process. Detailed below.
+   *
+   * @schema DataSourceSpecInitProvider#customDocumentEnrichmentConfiguration
+   */
+  readonly customDocumentEnrichmentConfiguration?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration[];
+
+  /**
+   * A description for the Data Source connector.
+   *
+   * @schema DataSourceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The code for a language. This allows you to support a language for all documents when creating the Data Source connector. English is supported by default. For more information on supported languages, including their codes, see Adding documents in languages other than English.
+   *
+   * @schema DataSourceSpecInitProvider#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * A name for your Data Source connector.
+   *
+   * @schema DataSourceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Sets the frequency for Amazon Kendra to check the documents in your Data Source repository and update the index. If you don't set a schedule Amazon Kendra will not periodically update the index. You can call the StartDataSourceSyncJob API to update the index.
+   *
+   * @schema DataSourceSpecInitProvider#schedule
+   */
+  readonly schedule?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DataSourceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The type of data source repository. For an updated list of values, refer to Valid Values for Type.
+   *
+   * @schema DataSourceSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProvider(obj: DataSourceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configuration': obj.configuration?.map(y => toJson_DataSourceSpecInitProviderConfiguration(y)),
+    'customDocumentEnrichmentConfiguration': obj.customDocumentEnrichmentConfiguration?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration(y)),
+    'description': obj.description,
+    'languageCode': obj.languageCode,
+    'name': obj.name,
+    'schedule': obj.schedule,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DataSourceSpecManagementPolicies
+ */
+export enum DataSourceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -363,43 +454,6 @@ export function toJson_DataSourceSpecProviderConfigRef(obj: DataSourceSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_DataSourceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DataSourceSpecProviderRef
- */
-export interface DataSourceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DataSourceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DataSourceSpecProviderRef#policy
-   */
-  readonly policy?: DataSourceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DataSourceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DataSourceSpecProviderRef(obj: DataSourceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DataSourceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -739,6 +793,92 @@ export function toJson_DataSourceSpecForProviderRoleArnSelector(obj: DataSourceS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DataSourceSpecInitProviderConfiguration
+ */
+export interface DataSourceSpecInitProviderConfiguration {
+  /**
+   * A block that provides the configuration information to connect to an Amazon S3 bucket as your data source. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfiguration#s3Configuration
+   */
+  readonly s3Configuration?: DataSourceSpecInitProviderConfigurationS3Configuration[];
+
+  /**
+   * A block that provides the configuration information required for Amazon Kendra Web Crawler. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfiguration#webCrawlerConfiguration
+   */
+  readonly webCrawlerConfiguration?: DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfiguration(obj: DataSourceSpecInitProviderConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3Configuration': obj.s3Configuration?.map(y => toJson_DataSourceSpecInitProviderConfigurationS3Configuration(y)),
+    'webCrawlerConfiguration': obj.webCrawlerConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration {
+  /**
+   * Configuration information to alter document attributes or metadata fields and content when ingesting documents into Amazon Kendra. Minimum number of 0 items. Maximum number of 100 items. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration#inlineConfigurations
+   */
+  readonly inlineConfigurations?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations[];
+
+  /**
+   * A block that specifies the configuration information for invoking a Lambda function in AWS Lambda on the structured documents with their metadata and text extracted. You can use a Lambda function to apply advanced logic for creating, modifying, or deleting document metadata and content. For more information, see Advanced data manipulation. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration#postExtractionHookConfiguration
+   */
+  readonly postExtractionHookConfiguration?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration[];
+
+  /**
+   * Configuration information for invoking a Lambda function in AWS Lambda on the original or raw documents before extracting their metadata and text. You can use a Lambda function to apply advanced logic for creating, modifying, or deleting document metadata and content. For more information, see Advanced data manipulation. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration#preExtractionHookConfiguration
+   */
+  readonly preExtractionHookConfiguration?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration[];
+
+  /**
+   * The Amazon Resource Name (ARN) of a role with permission to run pre_extraction_hook_configuration and post_extraction_hook_configuration for altering document metadata and content during the document ingestion process. For more information, see IAM roles for Amazon Kendra.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration#roleArn
+   */
+  readonly roleArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'inlineConfigurations': obj.inlineConfigurations?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations(y)),
+    'postExtractionHookConfiguration': obj.postExtractionHookConfiguration?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration(y)),
+    'preExtractionHookConfiguration': obj.preExtractionHookConfiguration?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration(y)),
+    'roleArn': obj.roleArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DataSourceSpecProviderConfigRefPolicy
@@ -765,43 +905,6 @@ export interface DataSourceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DataSourceSpecProviderConfigRefPolicy(obj: DataSourceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DataSourceSpecProviderRefPolicy
- */
-export interface DataSourceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DataSourceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DataSourceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DataSourceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DataSourceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DataSourceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DataSourceSpecProviderRefPolicy(obj: DataSourceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1042,7 +1145,7 @@ export interface DataSourceSpecForProviderConfigurationWebCrawlerConfiguration {
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfiguration#urls
    */
-  readonly urls: DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUrls[];
+  readonly urls?: DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUrls[];
 
 }
 
@@ -1127,14 +1230,14 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration#lambdaArn
    */
-  readonly lambdaArn: string;
+  readonly lambdaArn?: string;
 
   /**
    * Stores the original, raw documents or the structured, parsed documents before and after altering them. For more information, see Data contracts for Lambda functions.
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration#s3Bucket
    */
-  readonly s3Bucket: string;
+  readonly s3Bucket?: string;
 
 }
 
@@ -1170,14 +1273,14 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration#lambdaArn
    */
-  readonly lambdaArn: string;
+  readonly lambdaArn?: string;
 
   /**
    * Stores the original, raw documents or the structured, parsed documents before and after altering them. For more information, see Data contracts for Lambda functions.
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration#s3Bucket
    */
-  readonly s3Bucket: string;
+  readonly s3Bucket?: string;
 
 }
 
@@ -1346,6 +1449,285 @@ export function toJson_DataSourceSpecForProviderRoleArnSelectorPolicy(obj: DataS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DataSourceSpecInitProviderConfigurationS3Configuration
+ */
+export interface DataSourceSpecInitProviderConfigurationS3Configuration {
+  /**
+   * A block that provides the path to the S3 bucket that contains the user context filtering files for the data source. For the format of the file, see Access control for S3 data sources. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3Configuration#accessControlListConfiguration
+   */
+  readonly accessControlListConfiguration?: DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration[];
+
+  /**
+   * A block that defines the Document metadata files that contain information such as the document access control information, source URI, document author, and custom attributes. Each metadata file contains metadata about a single document. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3Configuration#documentsMetadataConfiguration
+   */
+  readonly documentsMetadataConfiguration?: DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration[];
+
+  /**
+   * A list of glob patterns for documents that should not be indexed. If a document that matches an inclusion prefix or inclusion pattern also matches an exclusion pattern, the document is not indexed. Refer to Exclusion Patterns for more examples.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3Configuration#exclusionPatterns
+   */
+  readonly exclusionPatterns?: string[];
+
+  /**
+   * A list of glob patterns for documents that should be indexed. If a document that matches an inclusion pattern also matches an exclusion pattern, the document is not indexed. Refer to Inclusion Patterns for more examples.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3Configuration#inclusionPatterns
+   */
+  readonly inclusionPatterns?: string[];
+
+  /**
+   * A list of S3 prefixes for the documents that should be included in the index.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3Configuration#inclusionPrefixes
+   */
+  readonly inclusionPrefixes?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationS3Configuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationS3Configuration(obj: DataSourceSpecInitProviderConfigurationS3Configuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessControlListConfiguration': obj.accessControlListConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration(y)),
+    'documentsMetadataConfiguration': obj.documentsMetadataConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration(y)),
+    'exclusionPatterns': obj.exclusionPatterns?.map(y => y),
+    'inclusionPatterns': obj.inclusionPatterns?.map(y => y),
+    'inclusionPrefixes': obj.inclusionPrefixes?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration {
+  /**
+   * A block with the configuration information required to connect to websites using authentication. You can connect to websites using basic authentication of user name and password. You use a secret in AWS Secrets Manager to store your authentication credentials. You must provide the website host name and port number. For example, the host name of https://a.example.com/page1.html is "a.example.com" and the port is 443, the standard port for HTTPS. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#authenticationConfiguration
+   */
+  readonly authenticationConfiguration?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration[];
+
+  /**
+   * Specifies the number of levels in a website that you want to crawl. The first level begins from the website seed or starting point URL. For example, if a website has 3 levels – index level (i.e. seed in this example), sections level, and subsections level – and you are only interested in crawling information up to the sections level (i.e. levels 0-1), you can set your depth to 1. The default crawl depth is set to 2. Minimum value of 0. Maximum value of 10.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#crawlDepth
+   */
+  readonly crawlDepth?: number;
+
+  /**
+   * The maximum size (in MB) of a webpage or attachment to crawl. Files larger than this size (in MB) are skipped/not crawled. The default maximum size of a webpage or attachment is set to 50 MB. Minimum value of 1.0e-06. Maximum value of 50.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#maxContentSizePerPageInMegaBytes
+   */
+  readonly maxContentSizePerPageInMegaBytes?: number;
+
+  /**
+   * The maximum number of URLs on a webpage to include when crawling a website. This number is per webpage. As a website’s webpages are crawled, any URLs the webpages link to are also crawled. URLs on a webpage are crawled in order of appearance. The default maximum links per page is 100. Minimum value of 1. Maximum value of 1000.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#maxLinksPerPage
+   */
+  readonly maxLinksPerPage?: number;
+
+  /**
+   * The maximum number of URLs crawled per website host per minute. The default maximum number of URLs crawled per website host per minute is 300. Minimum value of 1. Maximum value of 300.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#maxUrlsPerMinuteCrawlRate
+   */
+  readonly maxUrlsPerMinuteCrawlRate?: number;
+
+  /**
+   * Configuration information required to connect to your internal websites via a web proxy. You must provide the website host name and port number. For example, the host name of https://a.example.com/page1.html is "a.example.com" and the port is 443, the standard port for HTTPS. Web proxy credentials are optional and you can use them to connect to a web proxy server that requires basic authentication. To store web proxy credentials, you use a secret in AWS Secrets Manager. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#proxyConfiguration
+   */
+  readonly proxyConfiguration?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration[];
+
+  /**
+   * A list of regular expression patterns to exclude certain URLs to crawl. URLs that match the patterns are excluded from the index. URLs that don't match the patterns are included in the index. If a URL matches both an inclusion and exclusion pattern, the exclusion pattern takes precedence and the URL file isn't included in the index. Array Members: Minimum number of 0 items. Maximum number of 100 items. Length Constraints: Minimum length of 1. Maximum length of 150.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#urlExclusionPatterns
+   */
+  readonly urlExclusionPatterns?: string[];
+
+  /**
+   * A list of regular expression patterns to include certain URLs to crawl. URLs that match the patterns are included in the index. URLs that don't match the patterns are excluded from the index. If a URL matches both an inclusion and exclusion pattern, the exclusion pattern takes precedence and the URL file isn't included in the index. Array Members: Minimum number of 0 items. Maximum number of 100 items. Length Constraints: Minimum length of 1. Maximum length of 150.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#urlInclusionPatterns
+   */
+  readonly urlInclusionPatterns?: string[];
+
+  /**
+   * A block that specifies the seed or starting point URLs of the websites or the sitemap URLs of the websites you want to crawl. You can include website subdomains. You can list up to 100 seed URLs and up to 3 sitemap URLs. You can only crawl websites that use the secure communication protocol, Hypertext Transfer Protocol Secure (HTTPS). If you receive an error when crawling a website, it could be that the website is blocked from crawling. When selecting websites to index, you must adhere to the Amazon Acceptable Use Policy and all other Amazon terms. Remember that you must only use Amazon Kendra Web Crawler to index your own webpages, or webpages that you have authorization to index. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration#urls
+   */
+  readonly urls?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationConfiguration': obj.authenticationConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration(y)),
+    'crawlDepth': obj.crawlDepth,
+    'maxContentSizePerPageInMegaBytes': obj.maxContentSizePerPageInMegaBytes,
+    'maxLinksPerPage': obj.maxLinksPerPage,
+    'maxUrlsPerMinuteCrawlRate': obj.maxUrlsPerMinuteCrawlRate,
+    'proxyConfiguration': obj.proxyConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration(y)),
+    'urlExclusionPatterns': obj.urlExclusionPatterns?.map(y => y),
+    'urlInclusionPatterns': obj.urlInclusionPatterns?.map(y => y),
+    'urls': obj.urls?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations {
+  /**
+   * Configuration of the condition used for the target document attribute or metadata field when ingesting documents into Amazon Kendra. See Document Attribute Condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations#condition
+   */
+  readonly condition?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition[];
+
+  /**
+   * TRUE to delete content if the condition used for the target attribute is met.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations#documentContentDeletion
+   */
+  readonly documentContentDeletion?: boolean;
+
+  /**
+   * Configuration of the target document attribute or metadata field when ingesting documents into Amazon Kendra. You can also include a value. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations#target
+   */
+  readonly target?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition(y)),
+    'documentContentDeletion': obj.documentContentDeletion,
+    'target': obj.target?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration {
+  /**
+   * A block that specifies the condition used for when a Lambda function should be invoked. For example, you can specify a condition that if there are empty date-time values, then Amazon Kendra should invoke a function that inserts the current date-time. See Document Attribute Condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration#invocationCondition
+   */
+  readonly invocationCondition?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition[];
+
+  /**
+   * The Amazon Resource Name (ARN) of a Lambda Function that can manipulate your document metadata fields or attributes and content.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration#lambdaArn
+   */
+  readonly lambdaArn?: string;
+
+  /**
+   * Stores the original, raw documents or the structured, parsed documents before and after altering them. For more information, see Data contracts for Lambda functions.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration#s3Bucket
+   */
+  readonly s3Bucket?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invocationCondition': obj.invocationCondition?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition(y)),
+    'lambdaArn': obj.lambdaArn,
+    's3Bucket': obj.s3Bucket,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration {
+  /**
+   * A block that specifies the condition used for when a Lambda function should be invoked. For example, you can specify a condition that if there are empty date-time values, then Amazon Kendra should invoke a function that inserts the current date-time. See Document Attribute Condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration#invocationCondition
+   */
+  readonly invocationCondition?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition[];
+
+  /**
+   * The Amazon Resource Name (ARN) of a Lambda Function that can manipulate your document metadata fields or attributes and content.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration#lambdaArn
+   */
+  readonly lambdaArn?: string;
+
+  /**
+   * Stores the original, raw documents or the structured, parsed documents before and after altering them. For more information, see Data contracts for Lambda functions.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration#s3Bucket
+   */
+  readonly s3Bucket?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'invocationCondition': obj.invocationCondition?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition(y)),
+    'lambdaArn': obj.lambdaArn,
+    's3Bucket': obj.s3Bucket,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DataSourceSpecProviderConfigRefPolicyResolution
@@ -1363,30 +1745,6 @@ export enum DataSourceSpecProviderConfigRefPolicyResolution {
  * @schema DataSourceSpecProviderConfigRefPolicyResolve
  */
 export enum DataSourceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DataSourceSpecProviderRefPolicyResolution
- */
-export enum DataSourceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DataSourceSpecProviderRefPolicyResolve
- */
-export enum DataSourceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1623,14 +1981,14 @@ export interface DataSourceSpecForProviderConfigurationWebCrawlerConfigurationPr
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationProxyConfiguration#host
    */
-  readonly host: string;
+  readonly host?: string;
 
   /**
    * The port number of the website host you want to connect to using authentication credentials. For example, the port for https://a.example.com/page1.html is 443, the standard port for HTTPS.
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationProxyConfiguration#port
    */
-  readonly port: number;
+  readonly port?: number;
 
 }
 
@@ -1696,7 +2054,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationI
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition#conditionDocumentAttributeKey
    */
-  readonly conditionDocumentAttributeKey: string;
+  readonly conditionDocumentAttributeKey?: string;
 
   /**
    * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
@@ -1710,7 +2068,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationI
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition#operator
    */
-  readonly operator: string;
+  readonly operator?: string;
 
 }
 
@@ -1782,7 +2140,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition#conditionDocumentAttributeKey
    */
-  readonly conditionDocumentAttributeKey: string;
+  readonly conditionDocumentAttributeKey?: string;
 
   /**
    * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
@@ -1796,7 +2154,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition#operator
    */
-  readonly operator: string;
+  readonly operator?: string;
 
 }
 
@@ -1825,7 +2183,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition#conditionDocumentAttributeKey
    */
-  readonly conditionDocumentAttributeKey: string;
+  readonly conditionDocumentAttributeKey?: string;
 
   /**
    * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
@@ -1839,7 +2197,7 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
    *
    * @schema DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition#operator
    */
-  readonly operator: string;
+  readonly operator?: string;
 
 }
 
@@ -1954,6 +2312,329 @@ export enum DataSourceSpecForProviderRoleArnSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration {
+  /**
+   * Path to the AWS S3 bucket that contains the ACL files.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration#keyPath
+   */
+  readonly keyPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration(obj: DataSourceSpecInitProviderConfigurationS3ConfigurationAccessControlListConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyPath': obj.keyPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration {
+  /**
+   * A prefix used to filter metadata configuration files in the AWS S3 bucket. The S3 bucket might contain multiple metadata files. Use s3_prefix to include only the desired metadata files.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration#s3Prefix
+   */
+  readonly s3Prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration(obj: DataSourceSpecInitProviderConfigurationS3ConfigurationDocumentsMetadataConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3Prefix': obj.s3Prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration {
+  /**
+   * The list of configuration information that's required to connect to and crawl a website host using basic authentication credentials. The list includes the name and port number of the website host. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration#basicAuthentication
+   */
+  readonly basicAuthentication?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'basicAuthentication': obj.basicAuthentication?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration {
+  /**
+   * The name of the website host you want to connect to using authentication credentials. For example, the host name of https://a.example.com/page1.html is "a.example.com".
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration#host
+   */
+  readonly host?: string;
+
+  /**
+   * The port number of the website host you want to connect to using authentication credentials. For example, the port for https://a.example.com/page1.html is 443, the standard port for HTTPS.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationProxyConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls {
+  /**
+   * A block that specifies the configuration of the seed or starting point URLs of the websites you want to crawl. You can choose to crawl only the website host names, or the website host names with subdomains, or the website host names with subdomains and other domains that the webpages link to. You can list up to 100 seed URLs. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls#seedUrlConfiguration
+   */
+  readonly seedUrlConfiguration?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration[];
+
+  /**
+   * A block that specifies the configuration of the sitemap URLs of the websites you want to crawl. Only URLs belonging to the same website host names are crawled. You can list up to 3 sitemap URLs. Detailed below.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls#siteMapsConfiguration
+   */
+  readonly siteMapsConfiguration?: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrls | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'seedUrlConfiguration': obj.seedUrlConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration(y)),
+    'siteMapsConfiguration': obj.siteMapsConfiguration?.map(y => toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition {
+  /**
+   * The identifier of the document attribute used for the condition. For example, _source_uri could be an identifier for the attribute or metadata field that contains source URIs associated with the documents. Amazon Kendra currently does not support _document_body as an attribute key used for the condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition#conditionDocumentAttributeKey
+   */
+  readonly conditionDocumentAttributeKey?: string;
+
+  /**
+   * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition#conditionOnValue
+   */
+  readonly conditionOnValue?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue[];
+
+  /**
+   * The condition operator. For example, you can use Contains to partially match a string. Valid Values: GreaterThan | GreaterThanOrEquals | LessThan | LessThanOrEquals | Equals | NotEquals | Contains | NotContains | Exists | NotExists | BeginsWith.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition#operator
+   */
+  readonly operator?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'conditionDocumentAttributeKey': obj.conditionDocumentAttributeKey,
+    'conditionOnValue': obj.conditionOnValue?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue(y)),
+    'operator': obj.operator,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget {
+  /**
+   * The identifier of the target document attribute or metadata field. For example, 'Department' could be an identifier for the target attribute or metadata field that includes the department names associated with the documents.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget#targetDocumentAttributeKey
+   */
+  readonly targetDocumentAttributeKey?: string;
+
+  /**
+   * The target value you want to create for the target attribute. For example, 'Finance' could be the target value for the target attribute key 'Department'. See Document Attribute Value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget#targetDocumentAttributeValue
+   */
+  readonly targetDocumentAttributeValue?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue[];
+
+  /**
+   * TRUE to delete the existing target value for your specified target attribute key. You cannot create a target value and set this to TRUE. To create a target value (TargetDocumentAttributeValue), set this to FALSE.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget#targetDocumentAttributeValueDeletion
+   */
+  readonly targetDocumentAttributeValueDeletion?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'targetDocumentAttributeKey': obj.targetDocumentAttributeKey,
+    'targetDocumentAttributeValue': obj.targetDocumentAttributeValue?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue(y)),
+    'targetDocumentAttributeValueDeletion': obj.targetDocumentAttributeValueDeletion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition {
+  /**
+   * The identifier of the document attribute used for the condition. For example, _source_uri could be an identifier for the attribute or metadata field that contains source URIs associated with the documents. Amazon Kendra currently does not support _document_body as an attribute key used for the condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition#conditionDocumentAttributeKey
+   */
+  readonly conditionDocumentAttributeKey?: string;
+
+  /**
+   * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition#conditionOnValue
+   */
+  readonly conditionOnValue?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue[];
+
+  /**
+   * The condition operator. For example, you can use Contains to partially match a string. Valid Values: GreaterThan | GreaterThanOrEquals | LessThan | LessThanOrEquals | Equals | NotEquals | Contains | NotContains | Exists | NotExists | BeginsWith.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition#operator
+   */
+  readonly operator?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'conditionDocumentAttributeKey': obj.conditionDocumentAttributeKey,
+    'conditionOnValue': obj.conditionOnValue?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue(y)),
+    'operator': obj.operator,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition {
+  /**
+   * The identifier of the document attribute used for the condition. For example, _source_uri could be an identifier for the attribute or metadata field that contains source URIs associated with the documents. Amazon Kendra currently does not support _document_body as an attribute key used for the condition.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition#conditionDocumentAttributeKey
+   */
+  readonly conditionDocumentAttributeKey?: string;
+
+  /**
+   * The value used by the operator. For example, you can specify the value 'financial' for strings in the _source_uri field that partially match or contain this value. See Document Attribute Value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition#conditionOnValue
+   */
+  readonly conditionOnValue?: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue[];
+
+  /**
+   * The condition operator. For example, you can use Contains to partially match a string. Valid Values: GreaterThan | GreaterThanOrEquals | LessThan | LessThanOrEquals | Equals | NotEquals | Contains | NotContains | Exists | NotExists | BeginsWith.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition#operator
+   */
+  readonly operator?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'conditionDocumentAttributeKey': obj.conditionDocumentAttributeKey,
+    'conditionOnValue': obj.conditionOnValue?.map(y => toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue(y)),
+    'operator': obj.operator,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -2083,14 +2764,14 @@ export interface DataSourceSpecForProviderConfigurationWebCrawlerConfigurationAu
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication#host
    */
-  readonly host: string;
+  readonly host?: string;
 
   /**
    * The port number of the website host you want to connect to using authentication credentials. For example, the port for https://a.example.com/page1.html is 443, the standard port for HTTPS.
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication#port
    */
-  readonly port: number;
+  readonly port?: number;
 
 }
 
@@ -2203,7 +2884,7 @@ export interface DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUr
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration#seedUrls
    */
-  readonly seedUrls: string[];
+  readonly seedUrls?: string[];
 
   /**
    * The default mode is set to HOST_ONLY. You can choose one of the following modes:
@@ -2238,7 +2919,7 @@ export interface DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUr
    *
    * @schema DataSourceSpecForProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration#siteMaps
    */
-  readonly siteMaps: string[];
+  readonly siteMaps?: string[];
 
 }
 
@@ -2440,6 +3121,299 @@ export interface DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationP
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue(obj: DataSourceSpecForProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateValue': obj.dateValue,
+    'longValue': obj.longValue,
+    'stringListValue': obj.stringListValue?.map(y => y),
+    'stringValue': obj.stringValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication {
+  /**
+   * The name of the website host you want to connect to using authentication credentials. For example, the host name of https://a.example.com/page1.html is "a.example.com".
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication#host
+   */
+  readonly host?: string;
+
+  /**
+   * The port number of the website host you want to connect to using authentication credentials. For example, the port for https://a.example.com/page1.html is 443, the standard port for HTTPS.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationAuthenticationConfigurationBasicAuthentication | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration {
+  /**
+   * The list of seed or starting point URLs of the websites you want to crawl. The list can include a maximum of 100 seed URLs. Array Members: Minimum number of 0 items. Maximum number of 100 items. Length Constraints: Minimum length of 1. Maximum length of 2048.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration#seedUrls
+   */
+  readonly seedUrls?: string[];
+
+  /**
+   * The default mode is set to HOST_ONLY. You can choose one of the following modes:
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration#webCrawlerMode
+   */
+  readonly webCrawlerMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSeedUrlConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'seedUrls': obj.seedUrls?.map(y => y),
+    'webCrawlerMode': obj.webCrawlerMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration
+ */
+export interface DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration {
+  /**
+   * The list of sitemap URLs of the websites you want to crawl. The list can include a maximum of 3 sitemap URLs.
+   *
+   * @schema DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration#siteMaps
+   */
+  readonly siteMaps?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration(obj: DataSourceSpecInitProviderConfigurationWebCrawlerConfigurationUrlsSiteMapsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'siteMaps': obj.siteMaps?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue {
+  /**
+   * A date expressed as an ISO 8601 string. It is important for the time zone to be included in the ISO 8601 date-time format. As of this writing only UTC is supported. For example, 2012-03-25T12:30:10+00:00.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue#dateValue
+   */
+  readonly dateValue?: string;
+
+  /**
+   * A long integer value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue#longValue
+   */
+  readonly longValue?: number;
+
+  /**
+   * A list of strings.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue#stringListValue
+   */
+  readonly stringListValue?: string[];
+
+  /**
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue#stringValue
+   */
+  readonly stringValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsConditionConditionOnValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateValue': obj.dateValue,
+    'longValue': obj.longValue,
+    'stringListValue': obj.stringListValue?.map(y => y),
+    'stringValue': obj.stringValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue {
+  /**
+   * A date expressed as an ISO 8601 string. It is important for the time zone to be included in the ISO 8601 date-time format. As of this writing only UTC is supported. For example, 2012-03-25T12:30:10+00:00.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue#dateValue
+   */
+  readonly dateValue?: string;
+
+  /**
+   * A long integer value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue#longValue
+   */
+  readonly longValue?: number;
+
+  /**
+   * A list of strings.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue#stringListValue
+   */
+  readonly stringListValue?: string[];
+
+  /**
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue#stringValue
+   */
+  readonly stringValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationInlineConfigurationsTargetTargetDocumentAttributeValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateValue': obj.dateValue,
+    'longValue': obj.longValue,
+    'stringListValue': obj.stringListValue?.map(y => y),
+    'stringValue': obj.stringValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue {
+  /**
+   * A date expressed as an ISO 8601 string. It is important for the time zone to be included in the ISO 8601 date-time format. As of this writing only UTC is supported. For example, 2012-03-25T12:30:10+00:00.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue#dateValue
+   */
+  readonly dateValue?: string;
+
+  /**
+   * A long integer value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue#longValue
+   */
+  readonly longValue?: number;
+
+  /**
+   * A list of strings.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue#stringListValue
+   */
+  readonly stringListValue?: string[];
+
+  /**
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue#stringValue
+   */
+  readonly stringValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPostExtractionHookConfigurationInvocationConditionConditionOnValue | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dateValue': obj.dateValue,
+    'longValue': obj.longValue,
+    'stringListValue': obj.stringListValue?.map(y => y),
+    'stringValue': obj.stringValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue
+ */
+export interface DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue {
+  /**
+   * A date expressed as an ISO 8601 string. It is important for the time zone to be included in the ISO 8601 date-time format. As of this writing only UTC is supported. For example, 2012-03-25T12:30:10+00:00.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue#dateValue
+   */
+  readonly dateValue?: string;
+
+  /**
+   * A long integer value.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue#longValue
+   */
+  readonly longValue?: number;
+
+  /**
+   * A list of strings.
+   *
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue#stringListValue
+   */
+  readonly stringListValue?: string[];
+
+  /**
+   * @schema DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue#stringValue
+   */
+  readonly stringValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue(obj: DataSourceSpecInitProviderCustomDocumentEnrichmentConfigurationPreExtractionHookConfigurationInvocationConditionConditionOnValue | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'dateValue': obj.dateValue,
@@ -2923,7 +3897,7 @@ export function toJson_ExperienceProps(obj: ExperienceProps | undefined): Record
  */
 export interface ExperienceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ExperienceSpec#deletionPolicy
    */
@@ -2935,11 +3909,18 @@ export interface ExperienceSpec {
   readonly forProvider: ExperienceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ExperienceSpec#managementPolicy
+   * @schema ExperienceSpec#initProvider
    */
-  readonly managementPolicy?: ExperienceSpecManagementPolicy;
+  readonly initProvider?: ExperienceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ExperienceSpec#managementPolicies
+   */
+  readonly managementPolicies?: ExperienceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2947,13 +3928,6 @@ export interface ExperienceSpec {
    * @schema ExperienceSpec#providerConfigRef
    */
   readonly providerConfigRef?: ExperienceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ExperienceSpec#providerRef
-   */
-  readonly providerRef?: ExperienceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2980,9 +3954,9 @@ export function toJson_ExperienceSpec(obj: ExperienceSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ExperienceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ExperienceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ExperienceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ExperienceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ExperienceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ExperienceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2992,7 +3966,7 @@ export function toJson_ExperienceSpec(obj: ExperienceSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ExperienceSpecDeletionPolicy
  */
@@ -3103,17 +4077,68 @@ export function toJson_ExperienceSpecForProvider(obj: ExperienceSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ExperienceSpecManagementPolicy
+ * @schema ExperienceSpecInitProvider
  */
-export enum ExperienceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ExperienceSpecInitProvider {
+  /**
+   * Configuration information for your Amazon Kendra experience. Detailed below.
+   *
+   * @schema ExperienceSpecInitProvider#configuration
+   */
+  readonly configuration?: ExperienceSpecInitProviderConfiguration[];
+
+  /**
+   * A description for your Amazon Kendra experience.
+   *
+   * @schema ExperienceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A name for your Amazon Kendra experience.
+   *
+   * @schema ExperienceSpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperienceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperienceSpecInitProvider(obj: ExperienceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configuration': obj.configuration?.map(y => toJson_ExperienceSpecInitProviderConfiguration(y)),
+    'description': obj.description,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ExperienceSpecManagementPolicies
+ */
+export enum ExperienceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3147,43 +4172,6 @@ export function toJson_ExperienceSpecProviderConfigRef(obj: ExperienceSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_ExperienceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ExperienceSpecProviderRef
- */
-export interface ExperienceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ExperienceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ExperienceSpecProviderRef#policy
-   */
-  readonly policy?: ExperienceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ExperienceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ExperienceSpecProviderRef(obj: ExperienceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ExperienceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3472,6 +4460,41 @@ export function toJson_ExperienceSpecForProviderRoleArnSelector(obj: ExperienceS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ExperienceSpecInitProviderConfiguration
+ */
+export interface ExperienceSpecInitProviderConfiguration {
+  /**
+   * The identifiers of your data sources and FAQs. Or, you can specify that you want to use documents indexed via the BatchPutDocument API. Detailed below.
+   *
+   * @schema ExperienceSpecInitProviderConfiguration#contentSourceConfiguration
+   */
+  readonly contentSourceConfiguration?: ExperienceSpecInitProviderConfigurationContentSourceConfiguration[];
+
+  /**
+   * The AWS SSO field name that contains the identifiers of your users, such as their emails. Detailed below.
+   *
+   * @schema ExperienceSpecInitProviderConfiguration#userIdentityConfiguration
+   */
+  readonly userIdentityConfiguration?: ExperienceSpecInitProviderConfigurationUserIdentityConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'ExperienceSpecInitProviderConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperienceSpecInitProviderConfiguration(obj: ExperienceSpecInitProviderConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'contentSourceConfiguration': obj.contentSourceConfiguration?.map(y => toJson_ExperienceSpecInitProviderConfigurationContentSourceConfiguration(y)),
+    'userIdentityConfiguration': obj.userIdentityConfiguration?.map(y => toJson_ExperienceSpecInitProviderConfigurationUserIdentityConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ExperienceSpecProviderConfigRefPolicy
@@ -3498,43 +4521,6 @@ export interface ExperienceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ExperienceSpecProviderConfigRefPolicy(obj: ExperienceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ExperienceSpecProviderRefPolicy
- */
-export interface ExperienceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ExperienceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ExperienceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ExperienceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ExperienceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ExperienceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ExperienceSpecProviderRefPolicy(obj: ExperienceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3680,7 +4666,7 @@ export interface ExperienceSpecForProviderConfigurationUserIdentityConfiguration
    *
    * @schema ExperienceSpecForProviderConfigurationUserIdentityConfiguration#identityAttributeName
    */
-  readonly identityAttributeName: string;
+  readonly identityAttributeName?: string;
 
 }
 
@@ -3847,6 +4833,77 @@ export function toJson_ExperienceSpecForProviderRoleArnSelectorPolicy(obj: Exper
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ExperienceSpecInitProviderConfigurationContentSourceConfiguration
+ */
+export interface ExperienceSpecInitProviderConfigurationContentSourceConfiguration {
+  /**
+   * The identifiers of the data sources you want to use for your Amazon Kendra experience. Maximum number of 100 items.
+   *
+   * @schema ExperienceSpecInitProviderConfigurationContentSourceConfiguration#dataSourceIds
+   */
+  readonly dataSourceIds?: string[];
+
+  /**
+   * Whether to use documents you indexed directly using the BatchPutDocument API. Defaults to false.
+   *
+   * @default false.
+   * @schema ExperienceSpecInitProviderConfigurationContentSourceConfiguration#directPutContent
+   */
+  readonly directPutContent?: boolean;
+
+  /**
+   * The identifier of the FAQs that you want to use for your Amazon Kendra experience. Maximum number of 100 items.
+   *
+   * @schema ExperienceSpecInitProviderConfigurationContentSourceConfiguration#faqIds
+   */
+  readonly faqIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ExperienceSpecInitProviderConfigurationContentSourceConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperienceSpecInitProviderConfigurationContentSourceConfiguration(obj: ExperienceSpecInitProviderConfigurationContentSourceConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataSourceIds': obj.dataSourceIds?.map(y => y),
+    'directPutContent': obj.directPutContent,
+    'faqIds': obj.faqIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExperienceSpecInitProviderConfigurationUserIdentityConfiguration
+ */
+export interface ExperienceSpecInitProviderConfigurationUserIdentityConfiguration {
+  /**
+   * The AWS SSO field name that contains the identifiers of your users, such as their emails.
+   *
+   * @schema ExperienceSpecInitProviderConfigurationUserIdentityConfiguration#identityAttributeName
+   */
+  readonly identityAttributeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ExperienceSpecInitProviderConfigurationUserIdentityConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExperienceSpecInitProviderConfigurationUserIdentityConfiguration(obj: ExperienceSpecInitProviderConfigurationUserIdentityConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'identityAttributeName': obj.identityAttributeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ExperienceSpecProviderConfigRefPolicyResolution
@@ -3864,30 +4921,6 @@ export enum ExperienceSpecProviderConfigRefPolicyResolution {
  * @schema ExperienceSpecProviderConfigRefPolicyResolve
  */
 export enum ExperienceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ExperienceSpecProviderRefPolicyResolution
- */
-export enum ExperienceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ExperienceSpecProviderRefPolicyResolve
- */
-export enum ExperienceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4148,7 +5181,7 @@ export function toJson_IndexProps(obj: IndexProps | undefined): Record<string, a
  */
 export interface IndexSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema IndexSpec#deletionPolicy
    */
@@ -4160,11 +5193,18 @@ export interface IndexSpec {
   readonly forProvider: IndexSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema IndexSpec#managementPolicy
+   * @schema IndexSpec#initProvider
    */
-  readonly managementPolicy?: IndexSpecManagementPolicy;
+  readonly initProvider?: IndexSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema IndexSpec#managementPolicies
+   */
+  readonly managementPolicies?: IndexSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4172,13 +5212,6 @@ export interface IndexSpec {
    * @schema IndexSpec#providerConfigRef
    */
   readonly providerConfigRef?: IndexSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema IndexSpec#providerRef
-   */
-  readonly providerRef?: IndexSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4205,9 +5238,9 @@ export function toJson_IndexSpec(obj: IndexSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_IndexSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_IndexSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_IndexSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_IndexSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_IndexSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_IndexSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4217,7 +5250,7 @@ export function toJson_IndexSpec(obj: IndexSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema IndexSpecDeletionPolicy
  */
@@ -4362,17 +5395,126 @@ export function toJson_IndexSpecForProvider(obj: IndexSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema IndexSpecManagementPolicy
+ * @schema IndexSpecInitProvider
  */
-export enum IndexSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface IndexSpecInitProvider {
+  /**
+   * A block that sets the number of additional document storage and query capacity units that should be used by the index. Detailed below.
+   *
+   * @schema IndexSpecInitProvider#capacityUnits
+   */
+  readonly capacityUnits?: IndexSpecInitProviderCapacityUnits[];
+
+  /**
+   * The description of the Index.
+   *
+   * @schema IndexSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * One or more blocks that specify the configuration settings for any metadata applied to the documents in the index. Minimum number of 0 items. Maximum number of 500 items. If specified, you must define all elements, including those that are provided by default. These index fields are documented at Amazon Kendra Index documentation. For an example resource that defines these default index fields, refer to the default example above. For an example resource that appends additional index fields, refer to the append example above. All arguments for each block must be specified. Note that blocks cannot be removed since index fields cannot be deleted. This argument is detailed below.
+   *
+   * @schema IndexSpecInitProvider#documentMetadataConfigurationUpdates
+   */
+  readonly documentMetadataConfigurationUpdates?: IndexSpecInitProviderDocumentMetadataConfigurationUpdates[];
+
+  /**
+   * The Amazon Kendra edition to use for the index. Choose DEVELOPER_EDITION for indexes intended for development, testing, or proof of concept. Use ENTERPRISE_EDITION for your production databases. Once you set the edition for an index, it can't be changed. Defaults to ENTERPRISE_EDITION
+   *
+   * @default ENTERPRISE_EDITION
+   * @schema IndexSpecInitProvider#edition
+   */
+  readonly edition?: string;
+
+  /**
+   * Specifies the name of the Index.
+   *
+   * @schema IndexSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * A block that specifies the identifier of the AWS KMS customer managed key (CMK) that's used to encrypt data indexed by Amazon Kendra. Amazon Kendra doesn't support asymmetric CMKs. Detailed below.
+   *
+   * @schema IndexSpecInitProvider#serverSideEncryptionConfiguration
+   */
+  readonly serverSideEncryptionConfiguration?: IndexSpecInitProviderServerSideEncryptionConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema IndexSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The user context policy. Valid values are ATTRIBUTE_FILTER or USER_TOKEN. For more information, refer to UserContextPolicy. Defaults to ATTRIBUTE_FILTER.
+   *
+   * @default ATTRIBUTE_FILTER.
+   * @schema IndexSpecInitProvider#userContextPolicy
+   */
+  readonly userContextPolicy?: string;
+
+  /**
+   * A block that enables fetching access levels of groups and users from an AWS Single Sign-On identity source. To configure this, see UserGroupResolutionConfiguration. Detailed below.
+   *
+   * @schema IndexSpecInitProvider#userGroupResolutionConfiguration
+   */
+  readonly userGroupResolutionConfiguration?: IndexSpecInitProviderUserGroupResolutionConfiguration[];
+
+  /**
+   * A block that specifies the user token configuration. Detailed below.
+   *
+   * @schema IndexSpecInitProvider#userTokenConfigurations
+   */
+  readonly userTokenConfigurations?: IndexSpecInitProviderUserTokenConfigurations[];
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProvider(obj: IndexSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'capacityUnits': obj.capacityUnits?.map(y => toJson_IndexSpecInitProviderCapacityUnits(y)),
+    'description': obj.description,
+    'documentMetadataConfigurationUpdates': obj.documentMetadataConfigurationUpdates?.map(y => toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdates(y)),
+    'edition': obj.edition,
+    'name': obj.name,
+    'serverSideEncryptionConfiguration': obj.serverSideEncryptionConfiguration?.map(y => toJson_IndexSpecInitProviderServerSideEncryptionConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'userContextPolicy': obj.userContextPolicy,
+    'userGroupResolutionConfiguration': obj.userGroupResolutionConfiguration?.map(y => toJson_IndexSpecInitProviderUserGroupResolutionConfiguration(y)),
+    'userTokenConfigurations': obj.userTokenConfigurations?.map(y => toJson_IndexSpecInitProviderUserTokenConfigurations(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema IndexSpecManagementPolicies
+ */
+export enum IndexSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4406,43 +5548,6 @@ export function toJson_IndexSpecProviderConfigRef(obj: IndexSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_IndexSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema IndexSpecProviderRef
- */
-export interface IndexSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema IndexSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema IndexSpecProviderRef#policy
-   */
-  readonly policy?: IndexSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'IndexSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IndexSpecProviderRef(obj: IndexSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_IndexSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4575,7 +5680,7 @@ export interface IndexSpecForProviderDocumentMetadataConfigurationUpdates {
    *
    * @schema IndexSpecForProviderDocumentMetadataConfigurationUpdates#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * A block that provides manual tuning parameters to determine how the field affects the search results. Detailed below
@@ -4596,7 +5701,7 @@ export interface IndexSpecForProviderDocumentMetadataConfigurationUpdates {
    *
    * @schema IndexSpecForProviderDocumentMetadataConfigurationUpdates#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -4735,7 +5840,7 @@ export interface IndexSpecForProviderUserGroupResolutionConfiguration {
    *
    * @schema IndexSpecForProviderUserGroupResolutionConfiguration#userGroupResolutionMode
    */
-  readonly userGroupResolutionMode: string;
+  readonly userGroupResolutionMode?: string;
 
 }
 
@@ -4789,6 +5894,181 @@ export function toJson_IndexSpecForProviderUserTokenConfigurations(obj: IndexSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema IndexSpecInitProviderCapacityUnits
+ */
+export interface IndexSpecInitProviderCapacityUnits {
+  /**
+   * The amount of extra query capacity for an index and GetQuerySuggestions capacity. For more information, refer to QueryCapacityUnits.
+   *
+   * @schema IndexSpecInitProviderCapacityUnits#queryCapacityUnits
+   */
+  readonly queryCapacityUnits?: number;
+
+  /**
+   * The amount of extra storage capacity for an index. A single capacity unit provides 30 GB of storage space or 100,000 documents, whichever is reached first. Minimum value of 0.
+   *
+   * @schema IndexSpecInitProviderCapacityUnits#storageCapacityUnits
+   */
+  readonly storageCapacityUnits?: number;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderCapacityUnits' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderCapacityUnits(obj: IndexSpecInitProviderCapacityUnits | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queryCapacityUnits': obj.queryCapacityUnits,
+    'storageCapacityUnits': obj.storageCapacityUnits,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdates
+ */
+export interface IndexSpecInitProviderDocumentMetadataConfigurationUpdates {
+  /**
+   * The name of the index field. Minimum length of 1. Maximum length of 30.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdates#name
+   */
+  readonly name?: string;
+
+  /**
+   * A block that provides manual tuning parameters to determine how the field affects the search results. Detailed below
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdates#relevance
+   */
+  readonly relevance?: IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance[];
+
+  /**
+   * A block that provides information about how the field is used during a search. Documented below. Detailed below
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdates#search
+   */
+  readonly search?: IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch[];
+
+  /**
+   * The data type of the index field. Valid values are STRING_VALUE, STRING_LIST_VALUE, LONG_VALUE, DATE_VALUE.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdates#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderDocumentMetadataConfigurationUpdates' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdates(obj: IndexSpecInitProviderDocumentMetadataConfigurationUpdates | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'relevance': obj.relevance?.map(y => toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance(y)),
+    'search': obj.search?.map(y => toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderServerSideEncryptionConfiguration
+ */
+export interface IndexSpecInitProviderServerSideEncryptionConfiguration {
+  /**
+   * The identifier of the AWS KMScustomer master key (CMK). Amazon Kendra doesn't support asymmetric CMKs.
+   *
+   * @schema IndexSpecInitProviderServerSideEncryptionConfiguration#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderServerSideEncryptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderServerSideEncryptionConfiguration(obj: IndexSpecInitProviderServerSideEncryptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderUserGroupResolutionConfiguration
+ */
+export interface IndexSpecInitProviderUserGroupResolutionConfiguration {
+  /**
+   * The identity store provider (mode) you want to use to fetch access levels of groups and users. AWS Single Sign-On is currently the only available mode. Your users and groups must exist in an AWS SSO identity source in order to use this mode. Valid Values are AWS_SSO or NONE.
+   *
+   * @schema IndexSpecInitProviderUserGroupResolutionConfiguration#userGroupResolutionMode
+   */
+  readonly userGroupResolutionMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderUserGroupResolutionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderUserGroupResolutionConfiguration(obj: IndexSpecInitProviderUserGroupResolutionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'userGroupResolutionMode': obj.userGroupResolutionMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderUserTokenConfigurations
+ */
+export interface IndexSpecInitProviderUserTokenConfigurations {
+  /**
+   * A block that specifies the information about the JSON token type configuration. Detailed below.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurations#jsonTokenTypeConfiguration
+   */
+  readonly jsonTokenTypeConfiguration?: IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration[];
+
+  /**
+   * A block that specifies the information about the JWT token type configuration. Detailed below.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurations#jwtTokenTypeConfiguration
+   */
+  readonly jwtTokenTypeConfiguration?: IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderUserTokenConfigurations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderUserTokenConfigurations(obj: IndexSpecInitProviderUserTokenConfigurations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jsonTokenTypeConfiguration': obj.jsonTokenTypeConfiguration?.map(y => toJson_IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration(y)),
+    'jwtTokenTypeConfiguration': obj.jwtTokenTypeConfiguration?.map(y => toJson_IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema IndexSpecProviderConfigRefPolicy
@@ -4815,43 +6095,6 @@ export interface IndexSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_IndexSpecProviderConfigRefPolicy(obj: IndexSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema IndexSpecProviderRefPolicy
- */
-export interface IndexSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema IndexSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: IndexSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema IndexSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: IndexSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'IndexSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IndexSpecProviderRefPolicy(obj: IndexSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5137,14 +6380,14 @@ export interface IndexSpecForProviderUserTokenConfigurationsJsonTokenTypeConfigu
    *
    * @schema IndexSpecForProviderUserTokenConfigurationsJsonTokenTypeConfiguration#groupAttributeField
    */
-  readonly groupAttributeField: string;
+  readonly groupAttributeField?: string;
 
   /**
    * The user name attribute field. Minimum length of 1. Maximum length of 2048.
    *
    * @schema IndexSpecForProviderUserTokenConfigurationsJsonTokenTypeConfiguration#userNameAttributeField
    */
-  readonly userNameAttributeField: string;
+  readonly userNameAttributeField?: string;
 
 }
 
@@ -5193,7 +6436,7 @@ export interface IndexSpecForProviderUserTokenConfigurationsJwtTokenTypeConfigur
    *
    * @schema IndexSpecForProviderUserTokenConfigurationsJwtTokenTypeConfiguration#keyLocation
    */
-  readonly keyLocation: string;
+  readonly keyLocation?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the secret.
@@ -5239,6 +6482,226 @@ export function toJson_IndexSpecForProviderUserTokenConfigurationsJwtTokenTypeCo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance
+ */
+export interface IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance {
+  /**
+   * Specifies the time period that the boost applies to. For more information, refer to Duration.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * Indicates that this field determines how "fresh" a document is. For more information, refer to Freshness.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance#freshness
+   */
+  readonly freshness?: boolean;
+
+  /**
+   * The relative importance of the field in the search. Larger numbers provide more of a boost than smaller numbers. Minimum value of 1. Maximum value of 10.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance#importance
+   */
+  readonly importance?: number;
+
+  /**
+   * Determines how values should be interpreted. For more information, refer to RankOrder.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance#rankOrder
+   */
+  readonly rankOrder?: string;
+
+  /**
+   * A list of values that should be given a different boost when they appear in the result list. For more information, refer to ValueImportanceMap.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance#valuesImportanceMap
+   */
+  readonly valuesImportanceMap?: { [key: string]: number };
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance(obj: IndexSpecInitProviderDocumentMetadataConfigurationUpdatesRelevance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'duration': obj.duration,
+    'freshness': obj.freshness,
+    'importance': obj.importance,
+    'rankOrder': obj.rankOrder,
+    'valuesImportanceMap': ((obj.valuesImportanceMap) === undefined) ? undefined : (Object.entries(obj.valuesImportanceMap).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch
+ */
+export interface IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch {
+  /**
+   * Determines whether the field is returned in the query response. The default is true.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch#displayable
+   */
+  readonly displayable?: boolean;
+
+  /**
+   * Indicates that the field can be used to create search facets, a count of results for each value in the field. The default is false.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch#facetable
+   */
+  readonly facetable?: boolean;
+
+  /**
+   * Determines whether the field is used in the search. If the Searchable field is true, you can use relevance tuning to manually tune how Amazon Kendra weights the field in the search. The default is true for string fields and false for number and date fields.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch#searchable
+   */
+  readonly searchable?: boolean;
+
+  /**
+   * Determines whether the field can be used to sort the results of a query. If you specify sorting on a field that does not have Sortable set to true, Amazon Kendra returns an exception. The default is false.
+   *
+   * @schema IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch#sortable
+   */
+  readonly sortable?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch(obj: IndexSpecInitProviderDocumentMetadataConfigurationUpdatesSearch | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayable': obj.displayable,
+    'facetable': obj.facetable,
+    'searchable': obj.searchable,
+    'sortable': obj.sortable,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration
+ */
+export interface IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration {
+  /**
+   * The group attribute field. Minimum length of 1. Maximum length of 2048.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration#groupAttributeField
+   */
+  readonly groupAttributeField?: string;
+
+  /**
+   * The user name attribute field. Minimum length of 1. Maximum length of 2048.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration#userNameAttributeField
+   */
+  readonly userNameAttributeField?: string;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration(obj: IndexSpecInitProviderUserTokenConfigurationsJsonTokenTypeConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupAttributeField': obj.groupAttributeField,
+    'userNameAttributeField': obj.userNameAttributeField,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration
+ */
+export interface IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration {
+  /**
+   * The regular expression that identifies the claim. Minimum length of 1. Maximum length of 100.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#claimRegex
+   */
+  readonly claimRegex?: string;
+
+  /**
+   * The group attribute field. Minimum length of 1. Maximum length of 2048.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#groupAttributeField
+   */
+  readonly groupAttributeField?: string;
+
+  /**
+   * The issuer of the token. Minimum length of 1. Maximum length of 65.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#issuer
+   */
+  readonly issuer?: string;
+
+  /**
+   * The location of the key. Valid values are URL or SECRET_MANAGER
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#keyLocation
+   */
+  readonly keyLocation?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the secret.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#secretsManagerArn
+   */
+  readonly secretsManagerArn?: string;
+
+  /**
+   * The signing key URL. Valid pattern is ^(https?|ftp|file):\/\/([^\s]*)
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#url
+   */
+  readonly url?: string;
+
+  /**
+   * The user name attribute field. Minimum length of 1. Maximum length of 2048.
+   *
+   * @schema IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration#userNameAttributeField
+   */
+  readonly userNameAttributeField?: string;
+
+}
+
+/**
+ * Converts an object of type 'IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration(obj: IndexSpecInitProviderUserTokenConfigurationsJwtTokenTypeConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'claimRegex': obj.claimRegex,
+    'groupAttributeField': obj.groupAttributeField,
+    'issuer': obj.issuer,
+    'keyLocation': obj.keyLocation,
+    'secretsManagerArn': obj.secretsManagerArn,
+    'url': obj.url,
+    'userNameAttributeField': obj.userNameAttributeField,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema IndexSpecProviderConfigRefPolicyResolution
@@ -5256,30 +6719,6 @@ export enum IndexSpecProviderConfigRefPolicyResolution {
  * @schema IndexSpecProviderConfigRefPolicyResolve
  */
 export enum IndexSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema IndexSpecProviderRefPolicyResolution
- */
-export enum IndexSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema IndexSpecProviderRefPolicyResolve
- */
-export enum IndexSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5397,7 +6836,7 @@ export enum IndexSpecPublishConnectionDetailsToConfigRefPolicyResolve {
 
 
 /**
- * QuerySuggestionsBlockList is the Schema for the QuerySuggestionsBlockLists API. Upbound official provider resource for managing an aws kendra block list used for query suggestions for an index
+ * QuerySuggestionsBlockList is the Schema for the QuerySuggestionsBlockLists API. provider resource for managing an aws kendra block list used for query suggestions for an index
  *
  * @schema QuerySuggestionsBlockList
  */
@@ -5451,7 +6890,7 @@ export class QuerySuggestionsBlockList extends ApiObject {
 }
 
 /**
- * QuerySuggestionsBlockList is the Schema for the QuerySuggestionsBlockLists API. Upbound official provider resource for managing an aws kendra block list used for query suggestions for an index
+ * QuerySuggestionsBlockList is the Schema for the QuerySuggestionsBlockLists API. provider resource for managing an aws kendra block list used for query suggestions for an index
  *
  * @schema QuerySuggestionsBlockList
  */
@@ -5492,7 +6931,7 @@ export function toJson_QuerySuggestionsBlockListProps(obj: QuerySuggestionsBlock
  */
 export interface QuerySuggestionsBlockListSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema QuerySuggestionsBlockListSpec#deletionPolicy
    */
@@ -5504,11 +6943,18 @@ export interface QuerySuggestionsBlockListSpec {
   readonly forProvider: QuerySuggestionsBlockListSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema QuerySuggestionsBlockListSpec#managementPolicy
+   * @schema QuerySuggestionsBlockListSpec#initProvider
    */
-  readonly managementPolicy?: QuerySuggestionsBlockListSpecManagementPolicy;
+  readonly initProvider?: QuerySuggestionsBlockListSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema QuerySuggestionsBlockListSpec#managementPolicies
+   */
+  readonly managementPolicies?: QuerySuggestionsBlockListSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5516,13 +6962,6 @@ export interface QuerySuggestionsBlockListSpec {
    * @schema QuerySuggestionsBlockListSpec#providerConfigRef
    */
   readonly providerConfigRef?: QuerySuggestionsBlockListSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema QuerySuggestionsBlockListSpec#providerRef
-   */
-  readonly providerRef?: QuerySuggestionsBlockListSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5549,9 +6988,9 @@ export function toJson_QuerySuggestionsBlockListSpec(obj: QuerySuggestionsBlockL
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_QuerySuggestionsBlockListSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_QuerySuggestionsBlockListSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_QuerySuggestionsBlockListSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_QuerySuggestionsBlockListSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_QuerySuggestionsBlockListSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_QuerySuggestionsBlockListSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5561,7 +7000,7 @@ export function toJson_QuerySuggestionsBlockListSpec(obj: QuerySuggestionsBlockL
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema QuerySuggestionsBlockListSpecDeletionPolicy
  */
@@ -5680,17 +7119,76 @@ export function toJson_QuerySuggestionsBlockListSpecForProvider(obj: QuerySugges
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema QuerySuggestionsBlockListSpecManagementPolicy
+ * @schema QuerySuggestionsBlockListSpecInitProvider
  */
-export enum QuerySuggestionsBlockListSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface QuerySuggestionsBlockListSpecInitProvider {
+  /**
+   * The description for a block list.
+   *
+   * @schema QuerySuggestionsBlockListSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name for the block list.
+   *
+   * @schema QuerySuggestionsBlockListSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The S3 path where your block list text file sits in S3. Detailed below.
+   *
+   * @schema QuerySuggestionsBlockListSpecInitProvider#sourceS3Path
+   */
+  readonly sourceS3Path?: QuerySuggestionsBlockListSpecInitProviderSourceS3Path[];
+
+  /**
+   * Key-value map of resource tags. If configured with a provider default_tags configuration block present, tags with matching keys will overwrite those defined at the provider-level.
+   *
+   * @schema QuerySuggestionsBlockListSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'QuerySuggestionsBlockListSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_QuerySuggestionsBlockListSpecInitProvider(obj: QuerySuggestionsBlockListSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'sourceS3Path': obj.sourceS3Path?.map(y => toJson_QuerySuggestionsBlockListSpecInitProviderSourceS3Path(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema QuerySuggestionsBlockListSpecManagementPolicies
+ */
+export enum QuerySuggestionsBlockListSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5724,43 +7222,6 @@ export function toJson_QuerySuggestionsBlockListSpecProviderConfigRef(obj: Query
   const result = {
     'name': obj.name,
     'policy': toJson_QuerySuggestionsBlockListSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema QuerySuggestionsBlockListSpecProviderRef
- */
-export interface QuerySuggestionsBlockListSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema QuerySuggestionsBlockListSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema QuerySuggestionsBlockListSpecProviderRef#policy
-   */
-  readonly policy?: QuerySuggestionsBlockListSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'QuerySuggestionsBlockListSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_QuerySuggestionsBlockListSpecProviderRef(obj: QuerySuggestionsBlockListSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_QuerySuggestionsBlockListSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6043,7 +7504,7 @@ export interface QuerySuggestionsBlockListSpecForProviderSourceS3Path {
    *
    * @schema QuerySuggestionsBlockListSpecForProviderSourceS3Path#key
    */
-  readonly key: string;
+  readonly key?: string;
 
 }
 
@@ -6057,6 +7518,33 @@ export function toJson_QuerySuggestionsBlockListSpecForProviderSourceS3Path(obj:
     'bucket': obj.bucket,
     'bucketRef': toJson_QuerySuggestionsBlockListSpecForProviderSourceS3PathBucketRef(obj.bucketRef),
     'bucketSelector': toJson_QuerySuggestionsBlockListSpecForProviderSourceS3PathBucketSelector(obj.bucketSelector),
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema QuerySuggestionsBlockListSpecInitProviderSourceS3Path
+ */
+export interface QuerySuggestionsBlockListSpecInitProviderSourceS3Path {
+  /**
+   * The name of the file.
+   *
+   * @schema QuerySuggestionsBlockListSpecInitProviderSourceS3Path#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'QuerySuggestionsBlockListSpecInitProviderSourceS3Path' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_QuerySuggestionsBlockListSpecInitProviderSourceS3Path(obj: QuerySuggestionsBlockListSpecInitProviderSourceS3Path | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
     'key': obj.key,
   };
   // filter undefined values
@@ -6091,43 +7579,6 @@ export interface QuerySuggestionsBlockListSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_QuerySuggestionsBlockListSpecProviderConfigRefPolicy(obj: QuerySuggestionsBlockListSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema QuerySuggestionsBlockListSpecProviderRefPolicy
- */
-export interface QuerySuggestionsBlockListSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema QuerySuggestionsBlockListSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: QuerySuggestionsBlockListSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema QuerySuggestionsBlockListSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: QuerySuggestionsBlockListSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'QuerySuggestionsBlockListSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_QuerySuggestionsBlockListSpecProviderRefPolicy(obj: QuerySuggestionsBlockListSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6468,30 +7919,6 @@ export enum QuerySuggestionsBlockListSpecProviderConfigRefPolicyResolution {
  * @schema QuerySuggestionsBlockListSpecProviderConfigRefPolicyResolve
  */
 export enum QuerySuggestionsBlockListSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema QuerySuggestionsBlockListSpecProviderRefPolicyResolution
- */
-export enum QuerySuggestionsBlockListSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema QuerySuggestionsBlockListSpecProviderRefPolicyResolve
- */
-export enum QuerySuggestionsBlockListSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6874,7 +8301,7 @@ export function toJson_ThesaurusProps(obj: ThesaurusProps | undefined): Record<s
  */
 export interface ThesaurusSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ThesaurusSpec#deletionPolicy
    */
@@ -6886,11 +8313,18 @@ export interface ThesaurusSpec {
   readonly forProvider: ThesaurusSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ThesaurusSpec#managementPolicy
+   * @schema ThesaurusSpec#initProvider
    */
-  readonly managementPolicy?: ThesaurusSpecManagementPolicy;
+  readonly initProvider?: ThesaurusSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ThesaurusSpec#managementPolicies
+   */
+  readonly managementPolicies?: ThesaurusSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6898,13 +8332,6 @@ export interface ThesaurusSpec {
    * @schema ThesaurusSpec#providerConfigRef
    */
   readonly providerConfigRef?: ThesaurusSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ThesaurusSpec#providerRef
-   */
-  readonly providerRef?: ThesaurusSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6931,9 +8358,9 @@ export function toJson_ThesaurusSpec(obj: ThesaurusSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ThesaurusSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ThesaurusSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ThesaurusSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ThesaurusSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ThesaurusSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ThesaurusSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6943,7 +8370,7 @@ export function toJson_ThesaurusSpec(obj: ThesaurusSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ThesaurusSpecDeletionPolicy
  */
@@ -7062,17 +8489,76 @@ export function toJson_ThesaurusSpecForProvider(obj: ThesaurusSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ThesaurusSpecManagementPolicy
+ * @schema ThesaurusSpecInitProvider
  */
-export enum ThesaurusSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ThesaurusSpecInitProvider {
+  /**
+   * The description for a thesaurus.
+   *
+   * @schema ThesaurusSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name for the thesaurus.
+   *
+   * @schema ThesaurusSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The S3 path where your thesaurus file sits in S3. Detailed below.
+   *
+   * @schema ThesaurusSpecInitProvider#sourceS3Path
+   */
+  readonly sourceS3Path?: any[];
+
+  /**
+   * Key-value map of resource tags. If configured with a provider default_tags configuration block present, tags with matching keys will overwrite those defined at the provider-level.
+   *
+   * @schema ThesaurusSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ThesaurusSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ThesaurusSpecInitProvider(obj: ThesaurusSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'sourceS3Path': obj.sourceS3Path?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ThesaurusSpecManagementPolicies
+ */
+export enum ThesaurusSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7106,43 +8592,6 @@ export function toJson_ThesaurusSpecProviderConfigRef(obj: ThesaurusSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_ThesaurusSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ThesaurusSpecProviderRef
- */
-export interface ThesaurusSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ThesaurusSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ThesaurusSpecProviderRef#policy
-   */
-  readonly policy?: ThesaurusSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ThesaurusSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ThesaurusSpecProviderRef(obj: ThesaurusSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ThesaurusSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7489,43 +8938,6 @@ export interface ThesaurusSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ThesaurusSpecProviderConfigRefPolicy(obj: ThesaurusSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ThesaurusSpecProviderRefPolicy
- */
-export interface ThesaurusSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ThesaurusSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ThesaurusSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ThesaurusSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ThesaurusSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ThesaurusSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ThesaurusSpecProviderRefPolicy(obj: ThesaurusSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7948,30 +9360,6 @@ export enum ThesaurusSpecProviderConfigRefPolicyResolution {
  * @schema ThesaurusSpecProviderConfigRefPolicyResolve
  */
 export enum ThesaurusSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ThesaurusSpecProviderRefPolicyResolution
- */
-export enum ThesaurusSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ThesaurusSpecProviderRefPolicyResolve
- */
-export enum ThesaurusSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

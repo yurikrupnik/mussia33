@@ -99,7 +99,7 @@ export function toJson_AppCookieStickinessPolicyProps(obj: AppCookieStickinessPo
  */
 export interface AppCookieStickinessPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppCookieStickinessPolicySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AppCookieStickinessPolicySpec {
   readonly forProvider: AppCookieStickinessPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppCookieStickinessPolicySpec#managementPolicy
+   * @schema AppCookieStickinessPolicySpec#initProvider
    */
-  readonly managementPolicy?: AppCookieStickinessPolicySpecManagementPolicy;
+  readonly initProvider?: AppCookieStickinessPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppCookieStickinessPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: AppCookieStickinessPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AppCookieStickinessPolicySpec {
    * @schema AppCookieStickinessPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: AppCookieStickinessPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppCookieStickinessPolicySpec#providerRef
-   */
-  readonly providerRef?: AppCookieStickinessPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AppCookieStickinessPolicySpec(obj: AppCookieStickinessPol
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppCookieStickinessPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppCookieStickinessPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppCookieStickinessPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppCookieStickinessPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppCookieStickinessPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppCookieStickinessPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AppCookieStickinessPolicySpec(obj: AppCookieStickinessPol
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppCookieStickinessPolicySpecDeletionPolicy
  */
@@ -247,17 +247,52 @@ export function toJson_AppCookieStickinessPolicySpecForProvider(obj: AppCookieSt
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppCookieStickinessPolicySpecManagementPolicy
+ * @schema AppCookieStickinessPolicySpecInitProvider
  */
-export enum AppCookieStickinessPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppCookieStickinessPolicySpecInitProvider {
+  /**
+   * Application cookie whose lifetime the ELB's cookie should follow.
+   *
+   * @schema AppCookieStickinessPolicySpecInitProvider#cookieName
+   */
+  readonly cookieName?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppCookieStickinessPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppCookieStickinessPolicySpecInitProvider(obj: AppCookieStickinessPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cookieName': obj.cookieName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppCookieStickinessPolicySpecManagementPolicies
+ */
+export enum AppCookieStickinessPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -291,43 +326,6 @@ export function toJson_AppCookieStickinessPolicySpecProviderConfigRef(obj: AppCo
   const result = {
     'name': obj.name,
     'policy': toJson_AppCookieStickinessPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppCookieStickinessPolicySpecProviderRef
- */
-export interface AppCookieStickinessPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppCookieStickinessPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppCookieStickinessPolicySpecProviderRef#policy
-   */
-  readonly policy?: AppCookieStickinessPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppCookieStickinessPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppCookieStickinessPolicySpecProviderRef(obj: AppCookieStickinessPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppCookieStickinessPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -536,43 +534,6 @@ export function toJson_AppCookieStickinessPolicySpecProviderConfigRefPolicy(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AppCookieStickinessPolicySpecProviderRefPolicy
- */
-export interface AppCookieStickinessPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppCookieStickinessPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppCookieStickinessPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppCookieStickinessPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppCookieStickinessPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppCookieStickinessPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppCookieStickinessPolicySpecProviderRefPolicy(obj: AppCookieStickinessPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AppCookieStickinessPolicySpecPublishConnectionDetailsToConfigRef
@@ -746,30 +707,6 @@ export enum AppCookieStickinessPolicySpecProviderConfigRefPolicyResolution {
  * @schema AppCookieStickinessPolicySpecProviderConfigRefPolicyResolve
  */
 export enum AppCookieStickinessPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppCookieStickinessPolicySpecProviderRefPolicyResolution
- */
-export enum AppCookieStickinessPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppCookieStickinessPolicySpecProviderRefPolicyResolve
- */
-export enum AppCookieStickinessPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -982,7 +919,7 @@ export function toJson_AttachmentProps(obj: AttachmentProps | undefined): Record
  */
 export interface AttachmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AttachmentSpec#deletionPolicy
    */
@@ -994,11 +931,18 @@ export interface AttachmentSpec {
   readonly forProvider: AttachmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AttachmentSpec#managementPolicy
+   * @schema AttachmentSpec#initProvider
    */
-  readonly managementPolicy?: AttachmentSpecManagementPolicy;
+  readonly initProvider?: any;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AttachmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: AttachmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1006,13 +950,6 @@ export interface AttachmentSpec {
    * @schema AttachmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: AttachmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AttachmentSpec#providerRef
-   */
-  readonly providerRef?: AttachmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1039,9 +976,9 @@ export function toJson_AttachmentSpec(obj: AttachmentSpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AttachmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': obj.initProvider,
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AttachmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AttachmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AttachmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AttachmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1051,7 +988,7 @@ export function toJson_AttachmentSpec(obj: AttachmentSpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AttachmentSpecDeletionPolicy
  */
@@ -1138,17 +1075,23 @@ export function toJson_AttachmentSpecForProvider(obj: AttachmentSpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
  *
- * @schema AttachmentSpecManagementPolicy
+ * @schema AttachmentSpecManagementPolicies
  */
-export enum AttachmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export enum AttachmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1182,43 +1125,6 @@ export function toJson_AttachmentSpecProviderConfigRef(obj: AttachmentSpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_AttachmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AttachmentSpecProviderRef
- */
-export interface AttachmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AttachmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AttachmentSpecProviderRef#policy
-   */
-  readonly policy?: AttachmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AttachmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AttachmentSpecProviderRef(obj: AttachmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AttachmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1509,43 +1415,6 @@ export function toJson_AttachmentSpecProviderConfigRefPolicy(obj: AttachmentSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AttachmentSpecProviderRefPolicy
- */
-export interface AttachmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AttachmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AttachmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AttachmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AttachmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AttachmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AttachmentSpecProviderRefPolicy(obj: AttachmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AttachmentSpecPublishConnectionDetailsToConfigRef
@@ -1793,30 +1662,6 @@ export enum AttachmentSpecProviderConfigRefPolicyResolution {
  * @schema AttachmentSpecProviderConfigRefPolicyResolve
  */
 export enum AttachmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AttachmentSpecProviderRefPolicyResolution
- */
-export enum AttachmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AttachmentSpecProviderRefPolicyResolve
- */
-export enum AttachmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2077,7 +1922,7 @@ export function toJson_BackendServerPolicyProps(obj: BackendServerPolicyProps | 
  */
 export interface BackendServerPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BackendServerPolicySpec#deletionPolicy
    */
@@ -2089,11 +1934,18 @@ export interface BackendServerPolicySpec {
   readonly forProvider: BackendServerPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BackendServerPolicySpec#managementPolicy
+   * @schema BackendServerPolicySpec#initProvider
    */
-  readonly managementPolicy?: BackendServerPolicySpecManagementPolicy;
+  readonly initProvider?: BackendServerPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BackendServerPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: BackendServerPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2101,13 +1953,6 @@ export interface BackendServerPolicySpec {
    * @schema BackendServerPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: BackendServerPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BackendServerPolicySpec#providerRef
-   */
-  readonly providerRef?: BackendServerPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2134,9 +1979,9 @@ export function toJson_BackendServerPolicySpec(obj: BackendServerPolicySpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BackendServerPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BackendServerPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BackendServerPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BackendServerPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BackendServerPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BackendServerPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2146,7 +1991,7 @@ export function toJson_BackendServerPolicySpec(obj: BackendServerPolicySpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BackendServerPolicySpecDeletionPolicy
  */
@@ -2225,17 +2070,60 @@ export function toJson_BackendServerPolicySpecForProvider(obj: BackendServerPoli
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BackendServerPolicySpecManagementPolicy
+ * @schema BackendServerPolicySpecInitProvider
  */
-export enum BackendServerPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BackendServerPolicySpecInitProvider {
+  /**
+   * The instance port to apply the policy to.
+   *
+   * @schema BackendServerPolicySpecInitProvider#instancePort
+   */
+  readonly instancePort?: number;
+
+  /**
+   * List of Policy Names to apply to the backend server.
+   *
+   * @schema BackendServerPolicySpecInitProvider#policyNames
+   */
+  readonly policyNames?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BackendServerPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BackendServerPolicySpecInitProvider(obj: BackendServerPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instancePort': obj.instancePort,
+    'policyNames': obj.policyNames?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BackendServerPolicySpecManagementPolicies
+ */
+export enum BackendServerPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2269,43 +2157,6 @@ export function toJson_BackendServerPolicySpecProviderConfigRef(obj: BackendServ
   const result = {
     'name': obj.name,
     'policy': toJson_BackendServerPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BackendServerPolicySpecProviderRef
- */
-export interface BackendServerPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BackendServerPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BackendServerPolicySpecProviderRef#policy
-   */
-  readonly policy?: BackendServerPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BackendServerPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BackendServerPolicySpecProviderRef(obj: BackendServerPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BackendServerPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2514,43 +2365,6 @@ export function toJson_BackendServerPolicySpecProviderConfigRefPolicy(obj: Backe
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema BackendServerPolicySpecProviderRefPolicy
- */
-export interface BackendServerPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BackendServerPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BackendServerPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BackendServerPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BackendServerPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BackendServerPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BackendServerPolicySpecProviderRefPolicy(obj: BackendServerPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema BackendServerPolicySpecPublishConnectionDetailsToConfigRef
@@ -2724,30 +2538,6 @@ export enum BackendServerPolicySpecProviderConfigRefPolicyResolution {
  * @schema BackendServerPolicySpecProviderConfigRefPolicyResolve
  */
 export enum BackendServerPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BackendServerPolicySpecProviderRefPolicyResolution
- */
-export enum BackendServerPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BackendServerPolicySpecProviderRefPolicyResolve
- */
-export enum BackendServerPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2960,7 +2750,7 @@ export function toJson_ElbProps(obj: ElbProps | undefined): Record<string, any> 
  */
 export interface ElbSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ElbSpec#deletionPolicy
    */
@@ -2972,11 +2762,18 @@ export interface ElbSpec {
   readonly forProvider: ElbSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ElbSpec#managementPolicy
+   * @schema ElbSpec#initProvider
    */
-  readonly managementPolicy?: ElbSpecManagementPolicy;
+  readonly initProvider?: ElbSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ElbSpec#managementPolicies
+   */
+  readonly managementPolicies?: ElbSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2984,13 +2781,6 @@ export interface ElbSpec {
    * @schema ElbSpec#providerConfigRef
    */
   readonly providerConfigRef?: ElbSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ElbSpec#providerRef
-   */
-  readonly providerRef?: ElbSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3017,9 +2807,9 @@ export function toJson_ElbSpec(obj: ElbSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ElbSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ElbSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ElbSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ElbSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ElbSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ElbSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3029,7 +2819,7 @@ export function toJson_ElbSpec(obj: ElbSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ElbSpecDeletionPolicy
  */
@@ -3220,17 +3010,148 @@ export function toJson_ElbSpecForProvider(obj: ElbSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ElbSpecManagementPolicy
+ * @schema ElbSpecInitProvider
  */
-export enum ElbSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ElbSpecInitProvider {
+  /**
+   * An Access Logs block. Access Logs documented below.
+   *
+   * @schema ElbSpecInitProvider#accessLogs
+   */
+  readonly accessLogs?: ElbSpecInitProviderAccessLogs[];
+
+  /**
+   * The AZ's to serve traffic in.
+   *
+   * @schema ElbSpecInitProvider#availabilityZones
+   */
+  readonly availabilityZones?: string[];
+
+  /**
+   * Boolean to enable connection draining. Default: false
+   *
+   * @schema ElbSpecInitProvider#connectionDraining
+   */
+  readonly connectionDraining?: boolean;
+
+  /**
+   * The time in seconds to allow for connections to drain. Default: 300
+   *
+   * @schema ElbSpecInitProvider#connectionDrainingTimeout
+   */
+  readonly connectionDrainingTimeout?: number;
+
+  /**
+   * Enable cross-zone load balancing. Default: true
+   *
+   * @schema ElbSpecInitProvider#crossZoneLoadBalancing
+   */
+  readonly crossZoneLoadBalancing?: boolean;
+
+  /**
+   * Determines how the load balancer handles requests that might pose a security risk to an application due to HTTP desync. Valid values are monitor, defensive (default), strictest.
+   *
+   * @schema ElbSpecInitProvider#desyncMitigationMode
+   */
+  readonly desyncMitigationMode?: string;
+
+  /**
+   * A health_check block. Health Check documented below.
+   *
+   * @schema ElbSpecInitProvider#healthCheck
+   */
+  readonly healthCheck?: ElbSpecInitProviderHealthCheck[];
+
+  /**
+   * The time in seconds that the connection is allowed to be idle. Default: 60
+   *
+   * @schema ElbSpecInitProvider#idleTimeout
+   */
+  readonly idleTimeout?: number;
+
+  /**
+   * If true, ELB will be an internal ELB.
+   *
+   * @schema ElbSpecInitProvider#internal
+   */
+  readonly internal?: boolean;
+
+  /**
+   * A list of listener blocks. Listeners documented below.
+   *
+   * @schema ElbSpecInitProvider#listener
+   */
+  readonly listener?: ElbSpecInitProviderListener[];
+
+  /**
+   * A list of security group IDs to assign to the ELB. Only valid if creating an ELB within a VPC
+   *
+   * @schema ElbSpecInitProvider#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+  /**
+   * The name of the security group that you can use as part of your inbound rules for your load balancer's back-end application instances. Use this for Classic or Default VPC only.
+   *
+   * @schema ElbSpecInitProvider#sourceSecurityGroup
+   */
+  readonly sourceSecurityGroup?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ElbSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ElbSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ElbSpecInitProvider(obj: ElbSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessLogs': obj.accessLogs?.map(y => toJson_ElbSpecInitProviderAccessLogs(y)),
+    'availabilityZones': obj.availabilityZones?.map(y => y),
+    'connectionDraining': obj.connectionDraining,
+    'connectionDrainingTimeout': obj.connectionDrainingTimeout,
+    'crossZoneLoadBalancing': obj.crossZoneLoadBalancing,
+    'desyncMitigationMode': obj.desyncMitigationMode,
+    'healthCheck': obj.healthCheck?.map(y => toJson_ElbSpecInitProviderHealthCheck(y)),
+    'idleTimeout': obj.idleTimeout,
+    'internal': obj.internal,
+    'listener': obj.listener?.map(y => toJson_ElbSpecInitProviderListener(y)),
+    'securityGroups': obj.securityGroups?.map(y => y),
+    'sourceSecurityGroup': obj.sourceSecurityGroup,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ElbSpecManagementPolicies
+ */
+export enum ElbSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3264,43 +3185,6 @@ export function toJson_ElbSpecProviderConfigRef(obj: ElbSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_ElbSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ElbSpecProviderRef
- */
-export interface ElbSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ElbSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ElbSpecProviderRef#policy
-   */
-  readonly policy?: ElbSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ElbSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ElbSpecProviderRef(obj: ElbSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ElbSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3398,7 +3282,7 @@ export interface ElbSpecForProviderAccessLogs {
    *
    * @schema ElbSpecForProviderAccessLogs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * The S3 bucket prefix. Logs are stored in the root if not configured.
@@ -3450,35 +3334,35 @@ export interface ElbSpecForProviderHealthCheck {
    *
    * @schema ElbSpecForProviderHealthCheck#healthyThreshold
    */
-  readonly healthyThreshold: number;
+  readonly healthyThreshold?: number;
 
   /**
    * The publishing interval in minutes. Valid values: 5 and 60. Default: 60
    *
    * @schema ElbSpecForProviderHealthCheck#interval
    */
-  readonly interval: number;
+  readonly interval?: number;
 
   /**
    * The target of the check. Valid pattern is "${PROTOCOL}:${PORT}${PATH}", where PROTOCOL values are:
    *
    * @schema ElbSpecForProviderHealthCheck#target
    */
-  readonly target: string;
+  readonly target?: string;
 
   /**
    * The length of time before the check times out.
    *
    * @schema ElbSpecForProviderHealthCheck#timeout
    */
-  readonly timeout: number;
+  readonly timeout?: number;
 
   /**
    * The number of checks before the instance is declared unhealthy.
    *
    * @schema ElbSpecForProviderHealthCheck#unhealthyThreshold
    */
-  readonly unhealthyThreshold: number;
+  readonly unhealthyThreshold?: number;
 
 }
 
@@ -3591,28 +3475,28 @@ export interface ElbSpecForProviderListener {
    *
    * @schema ElbSpecForProviderListener#instancePort
    */
-  readonly instancePort: number;
+  readonly instancePort?: number;
 
   /**
    * The protocol to use to the instance. Valid values are HTTP, HTTPS, TCP, or SSL
    *
    * @schema ElbSpecForProviderListener#instanceProtocol
    */
-  readonly instanceProtocol: string;
+  readonly instanceProtocol?: string;
 
   /**
    * The port to listen on for the load balancer
    *
    * @schema ElbSpecForProviderListener#lbPort
    */
-  readonly lbPort: number;
+  readonly lbPort?: number;
 
   /**
    * The protocol to listen on. Valid values are HTTP, HTTPS, TCP, or SSL
    *
    * @schema ElbSpecForProviderListener#lbProtocol
    */
-  readonly lbProtocol: string;
+  readonly lbProtocol?: string;
 
   /**
    * The ARN of an SSL certificate you have uploaded to AWS IAM. Note ECDSA-specific restrictions below.  Only valid when
@@ -3724,6 +3608,176 @@ export function toJson_ElbSpecForProviderSubnetsSelector(obj: ElbSpecForProvider
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ElbSpecInitProviderAccessLogs
+ */
+export interface ElbSpecInitProviderAccessLogs {
+  /**
+   * The S3 bucket name to store the logs in.
+   *
+   * @schema ElbSpecInitProviderAccessLogs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * The S3 bucket prefix. Logs are stored in the root if not configured.
+   *
+   * @schema ElbSpecInitProviderAccessLogs#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * Boolean to enable / disable access_logs. Default is true
+   *
+   * @default true
+   * @schema ElbSpecInitProviderAccessLogs#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The publishing interval in minutes. Valid values: 5 and 60. Default: 60
+   *
+   * @schema ElbSpecInitProviderAccessLogs#interval
+   */
+  readonly interval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ElbSpecInitProviderAccessLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ElbSpecInitProviderAccessLogs(obj: ElbSpecInitProviderAccessLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'bucketPrefix': obj.bucketPrefix,
+    'enabled': obj.enabled,
+    'interval': obj.interval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ElbSpecInitProviderHealthCheck
+ */
+export interface ElbSpecInitProviderHealthCheck {
+  /**
+   * The number of checks before the instance is declared healthy.
+   *
+   * @schema ElbSpecInitProviderHealthCheck#healthyThreshold
+   */
+  readonly healthyThreshold?: number;
+
+  /**
+   * The publishing interval in minutes. Valid values: 5 and 60. Default: 60
+   *
+   * @schema ElbSpecInitProviderHealthCheck#interval
+   */
+  readonly interval?: number;
+
+  /**
+   * The target of the check. Valid pattern is "${PROTOCOL}:${PORT}${PATH}", where PROTOCOL values are:
+   *
+   * @schema ElbSpecInitProviderHealthCheck#target
+   */
+  readonly target?: string;
+
+  /**
+   * The length of time before the check times out.
+   *
+   * @schema ElbSpecInitProviderHealthCheck#timeout
+   */
+  readonly timeout?: number;
+
+  /**
+   * The number of checks before the instance is declared unhealthy.
+   *
+   * @schema ElbSpecInitProviderHealthCheck#unhealthyThreshold
+   */
+  readonly unhealthyThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'ElbSpecInitProviderHealthCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ElbSpecInitProviderHealthCheck(obj: ElbSpecInitProviderHealthCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'healthyThreshold': obj.healthyThreshold,
+    'interval': obj.interval,
+    'target': obj.target,
+    'timeout': obj.timeout,
+    'unhealthyThreshold': obj.unhealthyThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ElbSpecInitProviderListener
+ */
+export interface ElbSpecInitProviderListener {
+  /**
+   * The port on the instance to route to
+   *
+   * @schema ElbSpecInitProviderListener#instancePort
+   */
+  readonly instancePort?: number;
+
+  /**
+   * The protocol to use to the instance. Valid values are HTTP, HTTPS, TCP, or SSL
+   *
+   * @schema ElbSpecInitProviderListener#instanceProtocol
+   */
+  readonly instanceProtocol?: string;
+
+  /**
+   * The port to listen on for the load balancer
+   *
+   * @schema ElbSpecInitProviderListener#lbPort
+   */
+  readonly lbPort?: number;
+
+  /**
+   * The protocol to listen on. Valid values are HTTP, HTTPS, TCP, or SSL
+   *
+   * @schema ElbSpecInitProviderListener#lbProtocol
+   */
+  readonly lbProtocol?: string;
+
+  /**
+   * The ARN of an SSL certificate you have uploaded to AWS IAM. Note ECDSA-specific restrictions below.  Only valid when
+   *
+   * @schema ElbSpecInitProviderListener#sslCertificateId
+   */
+  readonly sslCertificateId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ElbSpecInitProviderListener' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ElbSpecInitProviderListener(obj: ElbSpecInitProviderListener | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instancePort': obj.instancePort,
+    'instanceProtocol': obj.instanceProtocol,
+    'lbPort': obj.lbPort,
+    'lbProtocol': obj.lbProtocol,
+    'sslCertificateId': obj.sslCertificateId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ElbSpecProviderConfigRefPolicy
@@ -3750,43 +3804,6 @@ export interface ElbSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ElbSpecProviderConfigRefPolicy(obj: ElbSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ElbSpecProviderRefPolicy
- */
-export interface ElbSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ElbSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ElbSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ElbSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ElbSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ElbSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ElbSpecProviderRefPolicy(obj: ElbSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4052,30 +4069,6 @@ export enum ElbSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ElbSpecProviderRefPolicyResolution
- */
-export enum ElbSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ElbSpecProviderRefPolicyResolve
- */
-export enum ElbSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema ElbSpecPublishConnectionDetailsToConfigRefPolicy
@@ -4329,7 +4322,7 @@ export function toJson_LbCookieStickinessPolicyProps(obj: LbCookieStickinessPoli
  */
 export interface LbCookieStickinessPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbCookieStickinessPolicySpec#deletionPolicy
    */
@@ -4341,11 +4334,18 @@ export interface LbCookieStickinessPolicySpec {
   readonly forProvider: LbCookieStickinessPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbCookieStickinessPolicySpec#managementPolicy
+   * @schema LbCookieStickinessPolicySpec#initProvider
    */
-  readonly managementPolicy?: LbCookieStickinessPolicySpecManagementPolicy;
+  readonly initProvider?: LbCookieStickinessPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbCookieStickinessPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: LbCookieStickinessPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4353,13 +4353,6 @@ export interface LbCookieStickinessPolicySpec {
    * @schema LbCookieStickinessPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: LbCookieStickinessPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbCookieStickinessPolicySpec#providerRef
-   */
-  readonly providerRef?: LbCookieStickinessPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4386,9 +4379,9 @@ export function toJson_LbCookieStickinessPolicySpec(obj: LbCookieStickinessPolic
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbCookieStickinessPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbCookieStickinessPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbCookieStickinessPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbCookieStickinessPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbCookieStickinessPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbCookieStickinessPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4398,7 +4391,7 @@ export function toJson_LbCookieStickinessPolicySpec(obj: LbCookieStickinessPolic
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbCookieStickinessPolicySpecDeletionPolicy
  */
@@ -4485,17 +4478,68 @@ export function toJson_LbCookieStickinessPolicySpecForProvider(obj: LbCookieStic
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbCookieStickinessPolicySpecManagementPolicy
+ * @schema LbCookieStickinessPolicySpecInitProvider
  */
-export enum LbCookieStickinessPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbCookieStickinessPolicySpecInitProvider {
+  /**
+   * The time period after which the session cookie should be considered stale, expressed in seconds.
+   *
+   * @schema LbCookieStickinessPolicySpecInitProvider#cookieExpirationPeriod
+   */
+  readonly cookieExpirationPeriod?: number;
+
+  /**
+   * The load balancer port to which the policy should be applied. This must be an active listener on the load balancer.
+   *
+   * @schema LbCookieStickinessPolicySpecInitProvider#lbPort
+   */
+  readonly lbPort?: number;
+
+  /**
+   * The name of the stickiness policy.
+   *
+   * @schema LbCookieStickinessPolicySpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbCookieStickinessPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbCookieStickinessPolicySpecInitProvider(obj: LbCookieStickinessPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cookieExpirationPeriod': obj.cookieExpirationPeriod,
+    'lbPort': obj.lbPort,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbCookieStickinessPolicySpecManagementPolicies
+ */
+export enum LbCookieStickinessPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4529,43 +4573,6 @@ export function toJson_LbCookieStickinessPolicySpecProviderConfigRef(obj: LbCook
   const result = {
     'name': obj.name,
     'policy': toJson_LbCookieStickinessPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbCookieStickinessPolicySpecProviderRef
- */
-export interface LbCookieStickinessPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbCookieStickinessPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbCookieStickinessPolicySpecProviderRef#policy
-   */
-  readonly policy?: LbCookieStickinessPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbCookieStickinessPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbCookieStickinessPolicySpecProviderRef(obj: LbCookieStickinessPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbCookieStickinessPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4774,43 +4781,6 @@ export function toJson_LbCookieStickinessPolicySpecProviderConfigRefPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema LbCookieStickinessPolicySpecProviderRefPolicy
- */
-export interface LbCookieStickinessPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbCookieStickinessPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbCookieStickinessPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbCookieStickinessPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbCookieStickinessPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbCookieStickinessPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbCookieStickinessPolicySpecProviderRefPolicy(obj: LbCookieStickinessPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema LbCookieStickinessPolicySpecPublishConnectionDetailsToConfigRef
@@ -4984,30 +4954,6 @@ export enum LbCookieStickinessPolicySpecProviderConfigRefPolicyResolution {
  * @schema LbCookieStickinessPolicySpecProviderConfigRefPolicyResolve
  */
 export enum LbCookieStickinessPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbCookieStickinessPolicySpecProviderRefPolicyResolution
- */
-export enum LbCookieStickinessPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbCookieStickinessPolicySpecProviderRefPolicyResolve
- */
-export enum LbCookieStickinessPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5220,7 +5166,7 @@ export function toJson_LbsslNegotiationPolicyProps(obj: LbsslNegotiationPolicyPr
  */
 export interface LbsslNegotiationPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema LbsslNegotiationPolicySpec#deletionPolicy
    */
@@ -5232,11 +5178,18 @@ export interface LbsslNegotiationPolicySpec {
   readonly forProvider: LbsslNegotiationPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema LbsslNegotiationPolicySpec#managementPolicy
+   * @schema LbsslNegotiationPolicySpec#initProvider
    */
-  readonly managementPolicy?: LbsslNegotiationPolicySpecManagementPolicy;
+  readonly initProvider?: LbsslNegotiationPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema LbsslNegotiationPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: LbsslNegotiationPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5244,13 +5197,6 @@ export interface LbsslNegotiationPolicySpec {
    * @schema LbsslNegotiationPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: LbsslNegotiationPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema LbsslNegotiationPolicySpec#providerRef
-   */
-  readonly providerRef?: LbsslNegotiationPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5277,9 +5223,9 @@ export function toJson_LbsslNegotiationPolicySpec(obj: LbsslNegotiationPolicySpe
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_LbsslNegotiationPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_LbsslNegotiationPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_LbsslNegotiationPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_LbsslNegotiationPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_LbsslNegotiationPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_LbsslNegotiationPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5289,7 +5235,7 @@ export function toJson_LbsslNegotiationPolicySpec(obj: LbsslNegotiationPolicySpe
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema LbsslNegotiationPolicySpecDeletionPolicy
  */
@@ -5384,17 +5330,76 @@ export function toJson_LbsslNegotiationPolicySpecForProvider(obj: LbsslNegotiati
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema LbsslNegotiationPolicySpecManagementPolicy
+ * @schema LbsslNegotiationPolicySpecInitProvider
  */
-export enum LbsslNegotiationPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface LbsslNegotiationPolicySpecInitProvider {
+  /**
+   * An SSL Negotiation policy attribute. Each has two properties:
+   *
+   * @schema LbsslNegotiationPolicySpecInitProvider#attribute
+   */
+  readonly attribute?: LbsslNegotiationPolicySpecInitProviderAttribute[];
+
+  /**
+   * The load balancer port to which the policy should be applied. This must be an active listener on the load balancer.
+   *
+   * @schema LbsslNegotiationPolicySpecInitProvider#lbPort
+   */
+  readonly lbPort?: number;
+
+  /**
+   * The name of the SSL negotiation policy.
+   *
+   * @schema LbsslNegotiationPolicySpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Map of arbitrary keys and values that, when changed, will trigger a redeployment.
+   *
+   * @schema LbsslNegotiationPolicySpecInitProvider#triggers
+   */
+  readonly triggers?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'LbsslNegotiationPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbsslNegotiationPolicySpecInitProvider(obj: LbsslNegotiationPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attribute': obj.attribute?.map(y => toJson_LbsslNegotiationPolicySpecInitProviderAttribute(y)),
+    'lbPort': obj.lbPort,
+    'name': obj.name,
+    'triggers': ((obj.triggers) === undefined) ? undefined : (Object.entries(obj.triggers).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema LbsslNegotiationPolicySpecManagementPolicies
+ */
+export enum LbsslNegotiationPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5428,43 +5433,6 @@ export function toJson_LbsslNegotiationPolicySpecProviderConfigRef(obj: LbsslNeg
   const result = {
     'name': obj.name,
     'policy': toJson_LbsslNegotiationPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema LbsslNegotiationPolicySpecProviderRef
- */
-export interface LbsslNegotiationPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema LbsslNegotiationPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema LbsslNegotiationPolicySpecProviderRef#policy
-   */
-  readonly policy?: LbsslNegotiationPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'LbsslNegotiationPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbsslNegotiationPolicySpecProviderRef(obj: LbsslNegotiationPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_LbsslNegotiationPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5562,14 +5530,14 @@ export interface LbsslNegotiationPolicySpecForProviderAttribute {
    *
    * @schema LbsslNegotiationPolicySpecForProviderAttribute#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The value of the attribute
    *
    * @schema LbsslNegotiationPolicySpecForProviderAttribute#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -5671,6 +5639,41 @@ export function toJson_LbsslNegotiationPolicySpecForProviderLoadBalancerSelector
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema LbsslNegotiationPolicySpecInitProviderAttribute
+ */
+export interface LbsslNegotiationPolicySpecInitProviderAttribute {
+  /**
+   * The name of the SSL negotiation policy.
+   *
+   * @schema LbsslNegotiationPolicySpecInitProviderAttribute#name
+   */
+  readonly name?: string;
+
+  /**
+   * The value of the attribute
+   *
+   * @schema LbsslNegotiationPolicySpecInitProviderAttribute#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'LbsslNegotiationPolicySpecInitProviderAttribute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_LbsslNegotiationPolicySpecInitProviderAttribute(obj: LbsslNegotiationPolicySpecInitProviderAttribute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema LbsslNegotiationPolicySpecProviderConfigRefPolicy
@@ -5697,43 +5700,6 @@ export interface LbsslNegotiationPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_LbsslNegotiationPolicySpecProviderConfigRefPolicy(obj: LbsslNegotiationPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema LbsslNegotiationPolicySpecProviderRefPolicy
- */
-export interface LbsslNegotiationPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema LbsslNegotiationPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: LbsslNegotiationPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema LbsslNegotiationPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: LbsslNegotiationPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'LbsslNegotiationPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_LbsslNegotiationPolicySpecProviderRefPolicy(obj: LbsslNegotiationPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5918,30 +5884,6 @@ export enum LbsslNegotiationPolicySpecProviderConfigRefPolicyResolution {
  * @schema LbsslNegotiationPolicySpecProviderConfigRefPolicyResolve
  */
 export enum LbsslNegotiationPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema LbsslNegotiationPolicySpecProviderRefPolicyResolution
- */
-export enum LbsslNegotiationPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema LbsslNegotiationPolicySpecProviderRefPolicyResolve
- */
-export enum LbsslNegotiationPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6154,7 +6096,7 @@ export function toJson_ListenerPolicyProps(obj: ListenerPolicyProps | undefined)
  */
 export interface ListenerPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ListenerPolicySpec#deletionPolicy
    */
@@ -6166,11 +6108,18 @@ export interface ListenerPolicySpec {
   readonly forProvider: ListenerPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ListenerPolicySpec#managementPolicy
+   * @schema ListenerPolicySpec#initProvider
    */
-  readonly managementPolicy?: ListenerPolicySpecManagementPolicy;
+  readonly initProvider?: ListenerPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ListenerPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: ListenerPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6178,13 +6127,6 @@ export interface ListenerPolicySpec {
    * @schema ListenerPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: ListenerPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ListenerPolicySpec#providerRef
-   */
-  readonly providerRef?: ListenerPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6211,9 +6153,9 @@ export function toJson_ListenerPolicySpec(obj: ListenerPolicySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ListenerPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ListenerPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ListenerPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ListenerPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ListenerPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ListenerPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6223,7 +6165,7 @@ export function toJson_ListenerPolicySpec(obj: ListenerPolicySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ListenerPolicySpecDeletionPolicy
  */
@@ -6310,17 +6252,68 @@ export function toJson_ListenerPolicySpecForProvider(obj: ListenerPolicySpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ListenerPolicySpecManagementPolicy
+ * @schema ListenerPolicySpecInitProvider
  */
-export enum ListenerPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ListenerPolicySpecInitProvider {
+  /**
+   * The load balancer listener port to apply the policy to.
+   *
+   * @schema ListenerPolicySpecInitProvider#loadBalancerPort
+   */
+  readonly loadBalancerPort?: number;
+
+  /**
+   * List of Policy Names to apply to the backend server.
+   *
+   * @schema ListenerPolicySpecInitProvider#policyNames
+   */
+  readonly policyNames?: string[];
+
+  /**
+   * Map of arbitrary keys and values that, when changed, will trigger an update.
+   *
+   * @schema ListenerPolicySpecInitProvider#triggers
+   */
+  readonly triggers?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ListenerPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ListenerPolicySpecInitProvider(obj: ListenerPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'loadBalancerPort': obj.loadBalancerPort,
+    'policyNames': obj.policyNames?.map(y => y),
+    'triggers': ((obj.triggers) === undefined) ? undefined : (Object.entries(obj.triggers).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ListenerPolicySpecManagementPolicies
+ */
+export enum ListenerPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6354,43 +6347,6 @@ export function toJson_ListenerPolicySpecProviderConfigRef(obj: ListenerPolicySp
   const result = {
     'name': obj.name,
     'policy': toJson_ListenerPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ListenerPolicySpecProviderRef
- */
-export interface ListenerPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ListenerPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ListenerPolicySpecProviderRef#policy
-   */
-  readonly policy?: ListenerPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ListenerPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ListenerPolicySpecProviderRef(obj: ListenerPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ListenerPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6599,43 +6555,6 @@ export function toJson_ListenerPolicySpecProviderConfigRefPolicy(obj: ListenerPo
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ListenerPolicySpecProviderRefPolicy
- */
-export interface ListenerPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ListenerPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ListenerPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ListenerPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ListenerPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ListenerPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ListenerPolicySpecProviderRefPolicy(obj: ListenerPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ListenerPolicySpecPublishConnectionDetailsToConfigRef
@@ -6809,30 +6728,6 @@ export enum ListenerPolicySpecProviderConfigRefPolicyResolution {
  * @schema ListenerPolicySpecProviderConfigRefPolicyResolve
  */
 export enum ListenerPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ListenerPolicySpecProviderRefPolicyResolution
- */
-export enum ListenerPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ListenerPolicySpecProviderRefPolicyResolve
- */
-export enum ListenerPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7045,7 +6940,7 @@ export function toJson_PolicyProps(obj: PolicyProps | undefined): Record<string,
  */
 export interface PolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PolicySpec#deletionPolicy
    */
@@ -7057,11 +6952,18 @@ export interface PolicySpec {
   readonly forProvider: PolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PolicySpec#managementPolicy
+   * @schema PolicySpec#initProvider
    */
-  readonly managementPolicy?: PolicySpecManagementPolicy;
+  readonly initProvider?: PolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: PolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7069,13 +6971,6 @@ export interface PolicySpec {
    * @schema PolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: PolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PolicySpec#providerRef
-   */
-  readonly providerRef?: PolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7102,9 +6997,9 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7114,7 +7009,7 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PolicySpecDeletionPolicy
  */
@@ -7201,17 +7096,68 @@ export function toJson_PolicySpecForProvider(obj: PolicySpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PolicySpecManagementPolicy
+ * @schema PolicySpecInitProvider
  */
-export enum PolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PolicySpecInitProvider {
+  /**
+   * Policy attribute to apply to the policy.
+   *
+   * @schema PolicySpecInitProvider#policyAttribute
+   */
+  readonly policyAttribute?: PolicySpecInitProviderPolicyAttribute[];
+
+  /**
+   * The name of the load balancer policy.
+   *
+   * @schema PolicySpecInitProvider#policyName
+   */
+  readonly policyName?: string;
+
+  /**
+   * The policy type.
+   *
+   * @schema PolicySpecInitProvider#policyTypeName
+   */
+  readonly policyTypeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProvider(obj: PolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policyAttribute': obj.policyAttribute?.map(y => toJson_PolicySpecInitProviderPolicyAttribute(y)),
+    'policyName': obj.policyName,
+    'policyTypeName': obj.policyTypeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PolicySpecManagementPolicies
+ */
+export enum PolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7245,43 +7191,6 @@ export function toJson_PolicySpecProviderConfigRef(obj: PolicySpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_PolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PolicySpecProviderRef
- */
-export interface PolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PolicySpecProviderRef#policy
-   */
-  readonly policy?: PolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRef(obj: PolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7500,6 +7409,31 @@ export function toJson_PolicySpecForProviderPolicyAttribute(obj: PolicySpecForPr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderPolicyAttribute
+ */
+export interface PolicySpecInitProviderPolicyAttribute {
+  /**
+   * @schema PolicySpecInitProviderPolicyAttribute#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderPolicyAttribute' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderPolicyAttribute(obj: PolicySpecInitProviderPolicyAttribute | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PolicySpecProviderConfigRefPolicy
@@ -7526,43 +7460,6 @@ export interface PolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecProviderConfigRefPolicy(obj: PolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PolicySpecProviderRefPolicy
- */
-export interface PolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRefPolicy(obj: PolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7829,30 +7726,6 @@ export enum PolicySpecProviderConfigRefPolicyResolution {
  * @schema PolicySpecProviderConfigRefPolicyResolve
  */
 export enum PolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PolicySpecProviderRefPolicyResolution
- */
-export enum PolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PolicySpecProviderRefPolicyResolve
- */
-export enum PolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8187,7 +8060,7 @@ export function toJson_ProxyProtocolPolicyProps(obj: ProxyProtocolPolicyProps | 
  */
 export interface ProxyProtocolPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ProxyProtocolPolicySpec#deletionPolicy
    */
@@ -8199,11 +8072,18 @@ export interface ProxyProtocolPolicySpec {
   readonly forProvider: ProxyProtocolPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ProxyProtocolPolicySpec#managementPolicy
+   * @schema ProxyProtocolPolicySpec#initProvider
    */
-  readonly managementPolicy?: ProxyProtocolPolicySpecManagementPolicy;
+  readonly initProvider?: ProxyProtocolPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ProxyProtocolPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: ProxyProtocolPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8211,13 +8091,6 @@ export interface ProxyProtocolPolicySpec {
    * @schema ProxyProtocolPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: ProxyProtocolPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ProxyProtocolPolicySpec#providerRef
-   */
-  readonly providerRef?: ProxyProtocolPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8244,9 +8117,9 @@ export function toJson_ProxyProtocolPolicySpec(obj: ProxyProtocolPolicySpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ProxyProtocolPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ProxyProtocolPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ProxyProtocolPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ProxyProtocolPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ProxyProtocolPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ProxyProtocolPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8256,7 +8129,7 @@ export function toJson_ProxyProtocolPolicySpec(obj: ProxyProtocolPolicySpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ProxyProtocolPolicySpecDeletionPolicy
  */
@@ -8327,17 +8200,52 @@ export function toJson_ProxyProtocolPolicySpecForProvider(obj: ProxyProtocolPoli
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ProxyProtocolPolicySpecManagementPolicy
+ * @schema ProxyProtocolPolicySpecInitProvider
  */
-export enum ProxyProtocolPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ProxyProtocolPolicySpecInitProvider {
+  /**
+   * List of instance ports to which the policy should be applied. This can be specified if the protocol is SSL or TCP.
+   *
+   * @schema ProxyProtocolPolicySpecInitProvider#instancePorts
+   */
+  readonly instancePorts?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ProxyProtocolPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ProxyProtocolPolicySpecInitProvider(obj: ProxyProtocolPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instancePorts': obj.instancePorts?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ProxyProtocolPolicySpecManagementPolicies
+ */
+export enum ProxyProtocolPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8371,43 +8279,6 @@ export function toJson_ProxyProtocolPolicySpecProviderConfigRef(obj: ProxyProtoc
   const result = {
     'name': obj.name,
     'policy': toJson_ProxyProtocolPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ProxyProtocolPolicySpecProviderRef
- */
-export interface ProxyProtocolPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ProxyProtocolPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ProxyProtocolPolicySpecProviderRef#policy
-   */
-  readonly policy?: ProxyProtocolPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ProxyProtocolPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ProxyProtocolPolicySpecProviderRef(obj: ProxyProtocolPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ProxyProtocolPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8616,43 +8487,6 @@ export function toJson_ProxyProtocolPolicySpecProviderConfigRefPolicy(obj: Proxy
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ProxyProtocolPolicySpecProviderRefPolicy
- */
-export interface ProxyProtocolPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ProxyProtocolPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ProxyProtocolPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ProxyProtocolPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ProxyProtocolPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ProxyProtocolPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ProxyProtocolPolicySpecProviderRefPolicy(obj: ProxyProtocolPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ProxyProtocolPolicySpecPublishConnectionDetailsToConfigRef
@@ -8826,30 +8660,6 @@ export enum ProxyProtocolPolicySpecProviderConfigRefPolicyResolution {
  * @schema ProxyProtocolPolicySpecProviderConfigRefPolicyResolve
  */
 export enum ProxyProtocolPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ProxyProtocolPolicySpecProviderRefPolicyResolution
- */
-export enum ProxyProtocolPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ProxyProtocolPolicySpecProviderRefPolicyResolve
- */
-export enum ProxyProtocolPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

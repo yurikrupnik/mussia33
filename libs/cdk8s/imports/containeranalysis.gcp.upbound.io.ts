@@ -99,7 +99,7 @@ export function toJson_NoteProps(obj: NoteProps | undefined): Record<string, any
  */
 export interface NoteSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NoteSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface NoteSpec {
   readonly forProvider: NoteSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NoteSpec#managementPolicy
+   * @schema NoteSpec#initProvider
    */
-  readonly managementPolicy?: NoteSpecManagementPolicy;
+  readonly initProvider?: NoteSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NoteSpec#managementPolicies
+   */
+  readonly managementPolicies?: NoteSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface NoteSpec {
    * @schema NoteSpec#providerConfigRef
    */
   readonly providerConfigRef?: NoteSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NoteSpec#providerRef
-   */
-  readonly providerRef?: NoteSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_NoteSpec(obj: NoteSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NoteSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NoteSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NoteSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NoteSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NoteSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NoteSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_NoteSpec(obj: NoteSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NoteSpecDeletionPolicy
  */
@@ -255,17 +255,100 @@ export function toJson_NoteSpecForProvider(obj: NoteSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NoteSpecManagementPolicy
+ * @schema NoteSpecInitProvider
  */
-export enum NoteSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NoteSpecInitProvider {
+  /**
+   * Note kind that represents a logical attestation "role" or "authority". For example, an organization might have one AttestationAuthority for "QA" and one for "build". This Note is intended to act strictly as a grouping mechanism for the attached Occurrences (Attestations). This grouping mechanism also provides a security boundary, since IAM ACLs gate the ability for a principle to attach an Occurrence to a given Note. It also provides a single point of lookup to find all attached Attestation Occurrences, even if they don't all live in the same project. Structure is documented below.
+   *
+   * @schema NoteSpecInitProvider#attestationAuthority
+   */
+  readonly attestationAuthority?: NoteSpecInitProviderAttestationAuthority[];
+
+  /**
+   * Time of expiration for this note. Leave empty if note does not expire.
+   *
+   * @schema NoteSpecInitProvider#expirationTime
+   */
+  readonly expirationTime?: string;
+
+  /**
+   * A detailed description of the note
+   *
+   * @schema NoteSpecInitProvider#longDescription
+   */
+  readonly longDescription?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema NoteSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Names of other notes related to this note.
+   *
+   * @schema NoteSpecInitProvider#relatedNoteNames
+   */
+  readonly relatedNoteNames?: string[];
+
+  /**
+   * URLs associated with this note and related metadata. Structure is documented below.
+   *
+   * @schema NoteSpecInitProvider#relatedUrl
+   */
+  readonly relatedUrl?: NoteSpecInitProviderRelatedUrl[];
+
+  /**
+   * A one sentence description of the note.
+   *
+   * @schema NoteSpecInitProvider#shortDescription
+   */
+  readonly shortDescription?: string;
+
+}
+
+/**
+ * Converts an object of type 'NoteSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NoteSpecInitProvider(obj: NoteSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attestationAuthority': obj.attestationAuthority?.map(y => toJson_NoteSpecInitProviderAttestationAuthority(y)),
+    'expirationTime': obj.expirationTime,
+    'longDescription': obj.longDescription,
+    'project': obj.project,
+    'relatedNoteNames': obj.relatedNoteNames?.map(y => y),
+    'relatedUrl': obj.relatedUrl?.map(y => toJson_NoteSpecInitProviderRelatedUrl(y)),
+    'shortDescription': obj.shortDescription,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NoteSpecManagementPolicies
+ */
+export enum NoteSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +382,6 @@ export function toJson_NoteSpecProviderConfigRef(obj: NoteSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_NoteSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NoteSpecProviderRef
- */
-export interface NoteSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NoteSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NoteSpecProviderRef#policy
-   */
-  readonly policy?: NoteSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NoteSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NoteSpecProviderRef(obj: NoteSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NoteSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -433,7 +479,7 @@ export interface NoteSpecForProviderAttestationAuthority {
    *
    * @schema NoteSpecForProviderAttestationAuthority#hint
    */
-  readonly hint: NoteSpecForProviderAttestationAuthorityHint[];
+  readonly hint?: NoteSpecForProviderAttestationAuthorityHint[];
 
 }
 
@@ -467,7 +513,7 @@ export interface NoteSpecForProviderRelatedUrl {
    *
    * @schema NoteSpecForProviderRelatedUrl#url
    */
-  readonly url: string;
+  readonly url?: string;
 
 }
 
@@ -476,6 +522,68 @@ export interface NoteSpecForProviderRelatedUrl {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NoteSpecForProviderRelatedUrl(obj: NoteSpecForProviderRelatedUrl | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'label': obj.label,
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NoteSpecInitProviderAttestationAuthority
+ */
+export interface NoteSpecInitProviderAttestationAuthority {
+  /**
+   * This submessage provides human-readable hints about the purpose of the AttestationAuthority. Because the name of a Note acts as its resource reference, it is important to disambiguate the canonical name of the Note (which might be a UUID for security purposes) from "readable" names more suitable for debug output. Note that these hints should NOT be used to look up AttestationAuthorities in security sensitive contexts, such as when looking up Attestations to verify. Structure is documented below.
+   *
+   * @schema NoteSpecInitProviderAttestationAuthority#hint
+   */
+  readonly hint?: NoteSpecInitProviderAttestationAuthorityHint[];
+
+}
+
+/**
+ * Converts an object of type 'NoteSpecInitProviderAttestationAuthority' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NoteSpecInitProviderAttestationAuthority(obj: NoteSpecInitProviderAttestationAuthority | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hint': obj.hint?.map(y => toJson_NoteSpecInitProviderAttestationAuthorityHint(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NoteSpecInitProviderRelatedUrl
+ */
+export interface NoteSpecInitProviderRelatedUrl {
+  /**
+   * Label to describe usage of the URL
+   *
+   * @schema NoteSpecInitProviderRelatedUrl#label
+   */
+  readonly label?: string;
+
+  /**
+   * Specific URL associated with the resource.
+   *
+   * @schema NoteSpecInitProviderRelatedUrl#url
+   */
+  readonly url?: string;
+
+}
+
+/**
+ * Converts an object of type 'NoteSpecInitProviderRelatedUrl' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NoteSpecInitProviderRelatedUrl(obj: NoteSpecInitProviderRelatedUrl | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'label': obj.label,
@@ -513,43 +621,6 @@ export interface NoteSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NoteSpecProviderConfigRefPolicy(obj: NoteSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NoteSpecProviderRefPolicy
- */
-export interface NoteSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NoteSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NoteSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NoteSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NoteSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NoteSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NoteSpecProviderRefPolicy(obj: NoteSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -651,7 +722,7 @@ export interface NoteSpecForProviderAttestationAuthorityHint {
    *
    * @schema NoteSpecForProviderAttestationAuthorityHint#humanReadableName
    */
-  readonly humanReadableName: string;
+  readonly humanReadableName?: string;
 
 }
 
@@ -660,6 +731,33 @@ export interface NoteSpecForProviderAttestationAuthorityHint {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NoteSpecForProviderAttestationAuthorityHint(obj: NoteSpecForProviderAttestationAuthorityHint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'humanReadableName': obj.humanReadableName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NoteSpecInitProviderAttestationAuthorityHint
+ */
+export interface NoteSpecInitProviderAttestationAuthorityHint {
+  /**
+   * The human readable name of this Attestation Authority, for example "qa".
+   *
+   * @schema NoteSpecInitProviderAttestationAuthorityHint#humanReadableName
+   */
+  readonly humanReadableName?: string;
+
+}
+
+/**
+ * Converts an object of type 'NoteSpecInitProviderAttestationAuthorityHint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NoteSpecInitProviderAttestationAuthorityHint(obj: NoteSpecInitProviderAttestationAuthorityHint | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'humanReadableName': obj.humanReadableName,
@@ -687,30 +785,6 @@ export enum NoteSpecProviderConfigRefPolicyResolution {
  * @schema NoteSpecProviderConfigRefPolicyResolve
  */
 export enum NoteSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NoteSpecProviderRefPolicyResolution
- */
-export enum NoteSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NoteSpecProviderRefPolicyResolve
- */
-export enum NoteSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

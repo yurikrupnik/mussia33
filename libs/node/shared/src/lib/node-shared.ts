@@ -9,7 +9,7 @@ export enum Subscriptions {
   tess = "my-topic1",
   yes = "my-topic2",
   tes = "my-nest-subscription",
-  user = "user-added",
+  user = "user-deleted",
 }
 
 export enum Subscriptions1 {

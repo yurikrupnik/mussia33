@@ -99,7 +99,7 @@ export function toJson_DomainMappingProps(obj: DomainMappingProps | undefined): 
  */
 export interface DomainMappingSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainMappingSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DomainMappingSpec {
   readonly forProvider: DomainMappingSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainMappingSpec#managementPolicy
+   * @schema DomainMappingSpec#initProvider
    */
-  readonly managementPolicy?: DomainMappingSpecManagementPolicy;
+  readonly initProvider?: DomainMappingSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainMappingSpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainMappingSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DomainMappingSpec {
    * @schema DomainMappingSpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainMappingSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainMappingSpec#providerRef
-   */
-  readonly providerRef?: DomainMappingSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DomainMappingSpec(obj: DomainMappingSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainMappingSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainMappingSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainMappingSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainMappingSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainMappingSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainMappingSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DomainMappingSpec(obj: DomainMappingSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainMappingSpecDeletionPolicy
  */
@@ -239,17 +239,84 @@ export function toJson_DomainMappingSpecForProvider(obj: DomainMappingSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainMappingSpecManagementPolicy
+ * @schema DomainMappingSpecInitProvider
  */
-export enum DomainMappingSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainMappingSpecInitProvider {
+  /**
+   * The location of the cloud run instance. eg us-central1
+   *
+   * @schema DomainMappingSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * Metadata associated with this DomainMapping. Structure is documented below.
+   *
+   * @schema DomainMappingSpecInitProvider#metadata
+   */
+  readonly metadata?: DomainMappingSpecInitProviderMetadata[];
+
+  /**
+   * Name should be a verified domain
+   *
+   * @schema DomainMappingSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema DomainMappingSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The spec for this DomainMapping. Structure is documented below.
+   *
+   * @schema DomainMappingSpecInitProvider#spec
+   */
+  readonly spec?: DomainMappingSpecInitProviderSpec[];
+
+}
+
+/**
+ * Converts an object of type 'DomainMappingSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainMappingSpecInitProvider(obj: DomainMappingSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'location': obj.location,
+    'metadata': obj.metadata?.map(y => toJson_DomainMappingSpecInitProviderMetadata(y)),
+    'name': obj.name,
+    'project': obj.project,
+    'spec': obj.spec?.map(y => toJson_DomainMappingSpecInitProviderSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainMappingSpecManagementPolicies
+ */
+export enum DomainMappingSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +350,6 @@ export function toJson_DomainMappingSpecProviderConfigRef(obj: DomainMappingSpec
   const result = {
     'name': obj.name,
     'policy': toJson_DomainMappingSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainMappingSpecProviderRef
- */
-export interface DomainMappingSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainMappingSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainMappingSpecProviderRef#policy
-   */
-  readonly policy?: DomainMappingSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainMappingSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainMappingSpecProviderRef(obj: DomainMappingSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainMappingSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -413,14 +443,14 @@ export function toJson_DomainMappingSpecWriteConnectionSecretToRef(obj: DomainMa
  */
 export interface DomainMappingSpecForProviderMetadata {
   /**
-   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field.
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field.
    *
    * @schema DomainMappingSpecForProviderMetadata#annotations
    */
   readonly annotations?: { [key: string]: string };
 
   /**
-   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and routes. More info: http://kubernetes.io/docs/user-guide/labels
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and routes. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
    *
    * @schema DomainMappingSpecForProviderMetadata#labels
    */
@@ -527,6 +557,76 @@ export function toJson_DomainMappingSpecForProviderSpec(obj: DomainMappingSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainMappingSpecInitProviderMetadata
+ */
+export interface DomainMappingSpecInitProviderMetadata {
+  /**
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field.
+   *
+   * @schema DomainMappingSpecInitProviderMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and routes. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
+   *
+   * @schema DomainMappingSpecInitProviderMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DomainMappingSpecInitProviderMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainMappingSpecInitProviderMetadata(obj: DomainMappingSpecInitProviderMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainMappingSpecInitProviderSpec
+ */
+export interface DomainMappingSpecInitProviderSpec {
+  /**
+   * The mode of the certificate. Default value is AUTOMATIC. Possible values are: NONE, AUTOMATIC.
+   *
+   * @schema DomainMappingSpecInitProviderSpec#certificateMode
+   */
+  readonly certificateMode?: string;
+
+  /**
+   * If set, the mapping will override any mapping set before this spec was set. It is recommended that the user leaves this empty to receive an error warning about a potential conflict and only set it once the respective UI has given such a warning.
+   *
+   * @schema DomainMappingSpecInitProviderSpec#forceOverride
+   */
+  readonly forceOverride?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DomainMappingSpecInitProviderSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainMappingSpecInitProviderSpec(obj: DomainMappingSpecInitProviderSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateMode': obj.certificateMode,
+    'forceOverride': obj.forceOverride,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DomainMappingSpecProviderConfigRefPolicy
@@ -553,43 +653,6 @@ export interface DomainMappingSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DomainMappingSpecProviderConfigRefPolicy(obj: DomainMappingSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DomainMappingSpecProviderRefPolicy
- */
-export interface DomainMappingSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainMappingSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainMappingSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainMappingSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainMappingSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainMappingSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainMappingSpecProviderRefPolicy(obj: DomainMappingSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -864,30 +927,6 @@ export enum DomainMappingSpecProviderConfigRefPolicyResolution {
  * @schema DomainMappingSpecProviderConfigRefPolicyResolve
  */
 export enum DomainMappingSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainMappingSpecProviderRefPolicyResolution
- */
-export enum DomainMappingSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainMappingSpecProviderRefPolicyResolve
- */
-export enum DomainMappingSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1296,7 +1335,7 @@ export function toJson_ServiceProps(obj: ServiceProps | undefined): Record<strin
  */
 export interface ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceSpec#deletionPolicy
    */
@@ -1308,11 +1347,18 @@ export interface ServiceSpec {
   readonly forProvider: ServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServiceSpec#managementPolicy
+   * @schema ServiceSpec#initProvider
    */
-  readonly managementPolicy?: ServiceSpecManagementPolicy;
+  readonly initProvider?: ServiceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1320,13 +1366,6 @@ export interface ServiceSpec {
    * @schema ServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServiceSpec#providerRef
-   */
-  readonly providerRef?: ServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1353,9 +1392,9 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1365,7 +1404,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceSpecDeletionPolicy
  */
@@ -1416,7 +1455,7 @@ export interface ServiceSpecForProvider {
   readonly template?: ServiceSpecForProviderTemplate[];
 
   /**
-   * Traffic specifies how to distribute traffic over a collection of Knative Revisions and Configurations Structure is documented below.
+   * (Output) Traffic specifies how to distribute traffic over a collection of Knative Revisions and Configurations Structure is documented below.
    *
    * @schema ServiceSpecForProvider#traffic
    */
@@ -1444,17 +1483,84 @@ export function toJson_ServiceSpecForProvider(obj: ServiceSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServiceSpecManagementPolicy
+ * @schema ServiceSpecInitProvider
  */
-export enum ServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServiceSpecInitProvider {
+  /**
+   * If set to true, the revision name (template.metadata.name) will be omitted and autogenerated by Cloud Run. This cannot be set to true while template.metadata.name is also set. (For legacy support, if template.metadata.name is unset in state while this field is set to false, the revision name will still autogenerate.)
+   *
+   * @schema ServiceSpecInitProvider#autogenerateRevisionName
+   */
+  readonly autogenerateRevisionName?: boolean;
+
+  /**
+   * Optional metadata for this Revision, including labels and annotations. Name will be generated by the Configuration. To set minimum instances for this revision, use the "autoscaling.knative.dev/minScale" annotation key. To set maximum instances for this revision, use the "autoscaling.knative.dev/maxScale" annotation key. To set Cloud SQL connections for the revision, use the "run.googleapis.com/cloudsql-instances" annotation key. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProvider#metadata
+   */
+  readonly metadata?: ServiceSpecInitProviderMetadata[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ServiceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * template holds the latest specification for the Revision to be stamped out. The template references the container image, and may also include labels and annotations that should be attached to the Revision. To correlate a Revision, and/or to force a Revision to be created when the spec doesn't otherwise change, a nonce label may be provided in the template metadata. For more details, see: https://github.com/knative/serving/blob/main/docs/client-conventions.md#associate-modifications-with-revisions Cloud Run does not currently support referencing a build that is responsible for materializing the container image from source. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProvider#template
+   */
+  readonly template?: ServiceSpecInitProviderTemplate[];
+
+  /**
+   * (Output) Traffic specifies how to distribute traffic over a collection of Knative Revisions and Configurations Structure is documented below.
+   *
+   * @schema ServiceSpecInitProvider#traffic
+   */
+  readonly traffic?: ServiceSpecInitProviderTraffic[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProvider(obj: ServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autogenerateRevisionName': obj.autogenerateRevisionName,
+    'metadata': obj.metadata?.map(y => toJson_ServiceSpecInitProviderMetadata(y)),
+    'project': obj.project,
+    'template': obj.template?.map(y => toJson_ServiceSpecInitProviderTemplate(y)),
+    'traffic': obj.traffic?.map(y => toJson_ServiceSpecInitProviderTraffic(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServiceSpecManagementPolicies
+ */
+export enum ServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1488,43 +1594,6 @@ export function toJson_ServiceSpecProviderConfigRef(obj: ServiceSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServiceSpecProviderRef
- */
-export interface ServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServiceSpecProviderRef#policy
-   */
-  readonly policy?: ServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRef(obj: ServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1618,7 +1687,7 @@ export function toJson_ServiceSpecWriteConnectionSecretToRef(obj: ServiceSpecWri
  */
 export interface ServiceSpecForProviderMetadata {
   /**
-   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
    *
    * @schema ServiceSpecForProviderMetadata#annotations
    */
@@ -1723,7 +1792,7 @@ export interface ServiceSpecForProviderTraffic {
    *
    * @schema ServiceSpecForProviderTraffic#percent
    */
-  readonly percent: number;
+  readonly percent?: number;
 
   /**
    * RevisionName of a specific revision to which to send this portion of traffic.
@@ -1746,6 +1815,127 @@ export interface ServiceSpecForProviderTraffic {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServiceSpecForProviderTraffic(obj: ServiceSpecForProviderTraffic | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'latestRevision': obj.latestRevision,
+    'percent': obj.percent,
+    'revisionName': obj.revisionName,
+    'tag': obj.tag,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderMetadata
+ */
+export interface ServiceSpecInitProviderMetadata {
+  /**
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
+   *
+   * @schema ServiceSpecInitProviderMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects.
+   *
+   * @schema ServiceSpecInitProviderMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderMetadata(obj: ServiceSpecInitProviderMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplate
+ */
+export interface ServiceSpecInitProviderTemplate {
+  /**
+   * Optional metadata for this Revision, including labels and annotations. Name will be generated by the Configuration. To set minimum instances for this revision, use the "autoscaling.knative.dev/minScale" annotation key. To set maximum instances for this revision, use the "autoscaling.knative.dev/maxScale" annotation key. To set Cloud SQL connections for the revision, use the "run.googleapis.com/cloudsql-instances" annotation key. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplate#metadata
+   */
+  readonly metadata?: ServiceSpecInitProviderTemplateMetadata[];
+
+  /**
+   * RevisionSpec holds the desired state of the Revision (from the client). Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplate#spec
+   */
+  readonly spec?: ServiceSpecInitProviderTemplateSpec[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplate(obj: ServiceSpecInitProviderTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metadata': obj.metadata?.map(y => toJson_ServiceSpecInitProviderTemplateMetadata(y)),
+    'spec': obj.spec?.map(y => toJson_ServiceSpecInitProviderTemplateSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTraffic
+ */
+export interface ServiceSpecInitProviderTraffic {
+  /**
+   * LatestRevision may be optionally provided to indicate that the latest ready Revision of the Configuration should be used for this traffic target. When provided LatestRevision must be true if RevisionName is empty; it must be false when RevisionName is non-empty.
+   *
+   * @schema ServiceSpecInitProviderTraffic#latestRevision
+   */
+  readonly latestRevision?: boolean;
+
+  /**
+   * Percent specifies percent of the traffic to this Revision or Configuration.
+   *
+   * @schema ServiceSpecInitProviderTraffic#percent
+   */
+  readonly percent?: number;
+
+  /**
+   * RevisionName of a specific revision to which to send this portion of traffic.
+   *
+   * @schema ServiceSpecInitProviderTraffic#revisionName
+   */
+  readonly revisionName?: string;
+
+  /**
+   * Tag is optionally used to expose a dedicated url for referencing this target exclusively.
+   *
+   * @schema ServiceSpecInitProviderTraffic#tag
+   */
+  readonly tag?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTraffic' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTraffic(obj: ServiceSpecInitProviderTraffic | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'latestRevision': obj.latestRevision,
@@ -1785,43 +1975,6 @@ export interface ServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServiceSpecProviderConfigRefPolicy(obj: ServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ServiceSpecProviderRefPolicy
- */
-export interface ServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRefPolicy(obj: ServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2001,7 +2154,7 @@ export function toJson_ServiceSpecForProviderMetadataNamespaceSelector(obj: Serv
  */
 export interface ServiceSpecForProviderTemplateMetadata {
   /**
-   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
    *
    * @schema ServiceSpecForProviderTemplateMetadata#annotations
    */
@@ -2059,7 +2212,7 @@ export interface ServiceSpecForProviderTemplateSpec {
   readonly containerConcurrency?: number;
 
   /**
-   * Container defines the unit of execution for this Revision. In the context of a Revision, we disallow a number of the fields of this Container, including: name, ports, and volumeMounts. Structure is documented below.
+   * Containers defines the unit of execution for this Revision. Structure is documented below.
    *
    * @schema ServiceSpecForProviderTemplateSpec#containers
    */
@@ -2108,6 +2261,117 @@ export function toJson_ServiceSpecForProviderTemplateSpec(obj: ServiceSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderTemplateMetadata
+ */
+export interface ServiceSpecInitProviderTemplateMetadata {
+  /**
+   * Annotations is a key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations Note: The Cloud Run API may add additional annotations that were not provided in your config.ignore_changes rule to the metadata.0.annotations field. Annotations with run.googleapis.com/ and autoscaling.knative.dev are restricted. Use the following annotation keys to configure features on a Revision template:
+   *
+   * @schema ServiceSpecInitProviderTemplateMetadata#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Map of string keys and values that can be used to organize and categorize (scope and select) objects.
+   *
+   * @schema ServiceSpecInitProviderTemplateMetadata#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateMetadata#name
+   */
+  readonly name?: string;
+
+  /**
+   * In Cloud Run the namespace must be equal to either the project ID or project number. It will default to the resource's project.
+   *
+   * @schema ServiceSpecInitProviderTemplateMetadata#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateMetadata(obj: ServiceSpecInitProviderTemplateMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpec
+ */
+export interface ServiceSpecInitProviderTemplateSpec {
+  /**
+   * ContainerConcurrency specifies the maximum allowed in-flight (concurrent) requests per container of the Revision. Values are:
+   *
+   * @schema ServiceSpecInitProviderTemplateSpec#containerConcurrency
+   */
+  readonly containerConcurrency?: number;
+
+  /**
+   * Containers defines the unit of execution for this Revision. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpec#containers
+   */
+  readonly containers?: ServiceSpecInitProviderTemplateSpecContainers[];
+
+  /**
+   * Email address of the IAM service account associated with the revision of the service. The service account represents the identity of the running revision, and determines what permissions the revision has. If not provided, the revision will use the project's default service account.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpec#serviceAccountName
+   */
+  readonly serviceAccountName?: string;
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   * @schema ServiceSpecInitProviderTemplateSpec#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+  /**
+   * Volume represents a named volume in a container. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpec#volumes
+   */
+  readonly volumes?: ServiceSpecInitProviderTemplateSpecVolumes[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpec(obj: ServiceSpecInitProviderTemplateSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerConcurrency': obj.containerConcurrency,
+    'containers': obj.containers?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainers(y)),
+    'serviceAccountName': obj.serviceAccountName,
+    'timeoutSeconds': obj.timeoutSeconds,
+    'volumes': obj.volumes?.map(y => toJson_ServiceSpecInitProviderTemplateSpecVolumes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ServiceSpecProviderConfigRefPolicyResolution
@@ -2125,30 +2389,6 @@ export enum ServiceSpecProviderConfigRefPolicyResolution {
  * @schema ServiceSpecProviderConfigRefPolicyResolve
  */
 export enum ServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServiceSpecProviderRefPolicyResolution
- */
-export enum ServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServiceSpecProviderRefPolicyResolve
- */
-export enum ServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2303,7 +2543,7 @@ export interface ServiceSpecForProviderTemplateSpecContainers {
    *
    * @schema ServiceSpecForProviderTemplateSpecContainers#image
    */
-  readonly image: string;
+  readonly image?: string;
 
   /**
    * Periodic probe of container liveness. Container will be restarted if the probe fails. Structure is documented below.
@@ -2311,6 +2551,13 @@ export interface ServiceSpecForProviderTemplateSpecContainers {
    * @schema ServiceSpecForProviderTemplateSpecContainers#livenessProbe
    */
   readonly livenessProbe?: ServiceSpecForProviderTemplateSpecContainersLivenessProbe[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecForProviderTemplateSpecContainers#name
+   */
+  readonly name?: string;
 
   /**
    * List of open ports in the container. Structure is documented below.
@@ -2362,6 +2609,7 @@ export function toJson_ServiceSpecForProviderTemplateSpecContainers(obj: Service
     'envFrom': obj.envFrom?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersEnvFrom(y)),
     'image': obj.image,
     'livenessProbe': obj.livenessProbe?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersLivenessProbe(y)),
+    'name': obj.name,
     'ports': obj.ports?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersPorts(y)),
     'resources': obj.resources?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersResources(y)),
     'startupProbe': obj.startupProbe?.map(y => toJson_ServiceSpecForProviderTemplateSpecContainersStartupProbe(y)),
@@ -2382,14 +2630,14 @@ export interface ServiceSpecForProviderTemplateSpecVolumes {
    *
    * @schema ServiceSpecForProviderTemplateSpecVolumes#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The secret's value will be presented as the content of a file whose name is defined in the item path. If no items are defined, the name of the file is the secret_name. Structure is documented below.
    *
    * @schema ServiceSpecForProviderTemplateSpecVolumes#secret
    */
-  readonly secret: ServiceSpecForProviderTemplateSpecVolumesSecret[];
+  readonly secret?: ServiceSpecForProviderTemplateSpecVolumesSecret[];
 
 }
 
@@ -2402,6 +2650,156 @@ export function toJson_ServiceSpecForProviderTemplateSpecVolumes(obj: ServiceSpe
   const result = {
     'name': obj.name,
     'secret': obj.secret?.map(y => toJson_ServiceSpecForProviderTemplateSpecVolumesSecret(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainers
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainers {
+  /**
+   * Arguments to the entrypoint. The docker image's CMD is used if this is not provided.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#args
+   */
+  readonly args?: string[];
+
+  /**
+   * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#command
+   */
+  readonly command?: string[];
+
+  /**
+   * List of environment variables to set in the container. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#env
+   */
+  readonly env?: ServiceSpecInitProviderTemplateSpecContainersEnv[];
+
+  /**
+   * List of sources to populate environment variables in the container. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#envFrom
+   */
+  readonly envFrom?: ServiceSpecInitProviderTemplateSpecContainersEnvFrom[];
+
+  /**
+   * Docker image name. This is most often a reference to a container located in the container registry, such as gcr.io/cloudrun/hello
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#image
+   */
+  readonly image?: string;
+
+  /**
+   * Periodic probe of container liveness. Container will be restarted if the probe fails. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#livenessProbe
+   */
+  readonly livenessProbe?: ServiceSpecInitProviderTemplateSpecContainersLivenessProbe[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#name
+   */
+  readonly name?: string;
+
+  /**
+   * List of open ports in the container. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#ports
+   */
+  readonly ports?: ServiceSpecInitProviderTemplateSpecContainersPorts[];
+
+  /**
+   * Compute Resources required by this container. Used to set values such as max memory Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#resources
+   */
+  readonly resources?: ServiceSpecInitProviderTemplateSpecContainersResources[];
+
+  /**
+   * Startup probe of application within the container. All other probes are disabled if a startup probe is provided, until it succeeds. Container will not be added to service endpoints if the probe fails. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#startupProbe
+   */
+  readonly startupProbe?: ServiceSpecInitProviderTemplateSpecContainersStartupProbe[];
+
+  /**
+   * Volume to mount into the container's filesystem. Only supports SecretVolumeSources. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#volumeMounts
+   */
+  readonly volumeMounts?: ServiceSpecInitProviderTemplateSpecContainersVolumeMounts[];
+
+  /**
+   * Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainers#workingDir
+   */
+  readonly workingDir?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainers(obj: ServiceSpecInitProviderTemplateSpecContainers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'args': obj.args?.map(y => y),
+    'command': obj.command?.map(y => y),
+    'env': obj.env?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnv(y)),
+    'envFrom': obj.envFrom?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFrom(y)),
+    'image': obj.image,
+    'livenessProbe': obj.livenessProbe?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbe(y)),
+    'name': obj.name,
+    'ports': obj.ports?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersPorts(y)),
+    'resources': obj.resources?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersResources(y)),
+    'startupProbe': obj.startupProbe?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbe(y)),
+    'volumeMounts': obj.volumeMounts?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersVolumeMounts(y)),
+    'workingDir': obj.workingDir,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecVolumes
+ */
+export interface ServiceSpecInitProviderTemplateSpecVolumes {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumes#name
+   */
+  readonly name?: string;
+
+  /**
+   * The secret's value will be presented as the content of a file whose name is defined in the item path. If no items are defined, the name of the file is the secret_name. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumes#secret
+   */
+  readonly secret?: ServiceSpecInitProviderTemplateSpecVolumesSecret[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecVolumes(obj: ServiceSpecInitProviderTemplateSpecVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'secret': obj.secret?.map(y => toJson_ServiceSpecInitProviderTemplateSpecVolumesSecret(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2805,14 +3203,14 @@ export interface ServiceSpecForProviderTemplateSpecContainersVolumeMounts {
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersVolumeMounts#mountPath
    */
-  readonly mountPath: string;
+  readonly mountPath?: string;
 
   /**
    * Volume's name.
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersVolumeMounts#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -2892,6 +3290,393 @@ export function toJson_ServiceSpecForProviderTemplateSpecVolumesSecret(obj: Serv
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnv
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnv {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnv#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnv#value
+   */
+  readonly value?: string;
+
+  /**
+   * Source for the environment variable's value. Only supports secret_key_ref. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnv#valueFrom
+   */
+  readonly valueFrom?: ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnv' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnv(obj: ServiceSpecInitProviderTemplateSpecContainersEnv | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+    'valueFrom': obj.valueFrom?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFrom
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvFrom {
+  /**
+   * The ConfigMap to select from. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFrom#configMapRef
+   */
+  readonly configMapRef?: ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef[];
+
+  /**
+   * An optional identifier to prepend to each key in the ConfigMap.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFrom#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * The Secret to select from. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFrom#secretRef
+   */
+  readonly secretRef?: ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvFrom' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFrom(obj: ServiceSpecInitProviderTemplateSpecContainersEnvFrom | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configMapRef': obj.configMapRef?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef(y)),
+    'prefix': obj.prefix,
+    'secretRef': obj.secretRef?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersLivenessProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#grpc
+   */
+  readonly grpc?: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc[];
+
+  /**
+   * HttpGet specifies the http request to perform. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#httpGet
+   */
+  readonly httpGet?: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value is 240.
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value is 240.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value is 240.
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value is 240.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersLivenessProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbe(obj: ServiceSpecInitProviderTemplateSpecContainersLivenessProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersPorts
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersPorts {
+  /**
+   * Port number the container listens on. This must be a valid port number (between 1 and 65535). Defaults to "8080".
+   *
+   * @default 8080".
+   * @schema ServiceSpecInitProviderTemplateSpecContainersPorts#containerPort
+   */
+  readonly containerPort?: number;
+
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersPorts#name
+   */
+  readonly name?: string;
+
+  /**
+   * Protocol for port. Must be "TCP". Defaults to "TCP".
+   *
+   * @default TCP".
+   * @schema ServiceSpecInitProviderTemplateSpecContainersPorts#protocol
+   */
+  readonly protocol?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersPorts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersPorts(obj: ServiceSpecInitProviderTemplateSpecContainersPorts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerPort': obj.containerPort,
+    'name': obj.name,
+    'protocol': obj.protocol,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersResources
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersResources {
+  /**
+   * Limits describes the maximum amount of compute resources allowed. The values of the map is string form of the 'quantity' k8s type: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/api/resource/quantity.go
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersResources#limits
+   */
+  readonly limits?: { [key: string]: string };
+
+  /**
+   * Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. The values of the map is string form of the 'quantity' k8s type: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/api/resource/quantity.go
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersResources#requests
+   */
+  readonly requests?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersResources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersResources(obj: ServiceSpecInitProviderTemplateSpecContainersResources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'requests': ((obj.requests) === undefined) ? undefined : (Object.entries(obj.requests).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersStartupProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#grpc
+   */
+  readonly grpc?: ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc[];
+
+  /**
+   * HttpGet specifies the http request to perform. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#httpGet
+   */
+  readonly httpGet?: ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value is 240.
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value is 240.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value is 240.
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value is 240.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TcpSocket specifies an action involving a TCP port. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#tcpSocket
+   */
+  readonly tcpSocket?: ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds.
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersStartupProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbe(obj: ServiceSpecInitProviderTemplateSpecContainersStartupProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersVolumeMounts
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersVolumeMounts {
+  /**
+   * Path within the container at which the volume should be mounted.  Must not contain ':'.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersVolumeMounts#mountPath
+   */
+  readonly mountPath?: string;
+
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersVolumeMounts#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersVolumeMounts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersVolumeMounts(obj: ServiceSpecInitProviderTemplateSpecContainersVolumeMounts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mountPath': obj.mountPath,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecVolumesSecret
+ */
+export interface ServiceSpecInitProviderTemplateSpecVolumesSecret {
+  /**
+   * Mode bits to use on created files by default. Must be a value between 0000 and 0777. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @default 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   * @schema ServiceSpecInitProviderTemplateSpecVolumesSecret#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * If unspecified, the volume will expose a file whose name is the secret_name. If specified, the key will be used as the version to fetch from Cloud Secret Manager and the path will be the name of the file exposed in the volume. When items are defined, they must specify a key and a path. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumesSecret#items
+   */
+  readonly items?: ServiceSpecInitProviderTemplateSpecVolumesSecretItems[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecVolumesSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecVolumesSecret(obj: ServiceSpecInitProviderTemplateSpecVolumesSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_ServiceSpecInitProviderTemplateSpecVolumesSecretItems(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ServiceSpecForProviderTemplateSpecContainersEnvValueFrom
  */
 export interface ServiceSpecForProviderTemplateSpecContainersEnvValueFrom {
@@ -2900,7 +3685,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersEnvValueFrom {
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersEnvValueFrom#secretKeyRef
    */
-  readonly secretKeyRef: ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretKeyRef[];
+  readonly secretKeyRef?: ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretKeyRef[];
 
 }
 
@@ -3180,7 +3965,7 @@ export interface ServiceSpecForProviderTemplateSpecVolumesSecretItems {
    *
    * @schema ServiceSpecForProviderTemplateSpecVolumesSecretItems#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Mode bits to use on this file, must be a value between 0000 and 0777. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
@@ -3194,7 +3979,7 @@ export interface ServiceSpecForProviderTemplateSpecVolumesSecretItems {
    *
    * @schema ServiceSpecForProviderTemplateSpecVolumesSecretItems#path
    */
-  readonly path: string;
+  readonly path?: string;
 
 }
 
@@ -3297,6 +4082,329 @@ export function toJson_ServiceSpecForProviderTemplateSpecVolumesSecretSecretName
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom {
+  /**
+   * Selects a key (version) of a secret in Secret Manager. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom#secretKeyRef
+   */
+  readonly secretKeyRef?: ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef[];
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom(obj: ServiceSpecInitProviderTemplateSpecContainersEnvValueFrom | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretKeyRef': obj.secretKeyRef?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef {
+  /**
+   * The Secret to select from. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef#localObjectReference
+   */
+  readonly localObjectReference?: ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference[];
+
+  /**
+   * Specify whether the Secret must be defined
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef#optional
+   */
+  readonly optional?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef(obj: ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localObjectReference': obj.localObjectReference?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference(y)),
+    'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef {
+  /**
+   * The Secret to select from. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef#localObjectReference
+   */
+  readonly localObjectReference?: ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference[];
+
+  /**
+   * Specify whether the Secret must be defined
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef#optional
+   */
+  readonly optional?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef(obj: ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localObjectReference': obj.localObjectReference?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference(y)),
+    'optional': obj.optional,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc(obj: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet(obj: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc(obj: ServiceSpecInitProviderTemplateSpecContainersStartupProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet(obj: ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket {
+  /**
+   * Port number to access on the container. Number must be in the range 1 to 65535. If not specified, defaults to the same value as container.ports[0].containerPort.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket(obj: ServiceSpecInitProviderTemplateSpecContainersStartupProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecVolumesSecretItems
+ */
+export interface ServiceSpecInitProviderTemplateSpecVolumesSecretItems {
+  /**
+   * A Cloud Secret Manager secret version. Must be 'latest' for the latest version or an integer for a specific version.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumesSecretItems#key
+   */
+  readonly key?: string;
+
+  /**
+   * Mode bits to use on this file, must be a value between 0000 and 0777. If not specified, the volume defaultMode will be used. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumesSecretItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * The relative path of the file to map the key to. May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecVolumesSecretItems#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecVolumesSecretItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecVolumesSecretItems(obj: ServiceSpecInitProviderTemplateSpecVolumesSecretItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'mode': obj.mode,
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretKeyRef
  */
 export interface ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretKeyRef {
@@ -3305,7 +4413,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretK
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersEnvValueFromSecretKeyRef#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Volume's name.
@@ -3356,7 +4464,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersEnvFromConfigMapRef
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -3383,7 +4491,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersEnvFromSecretRefLoc
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -3410,7 +4518,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGe
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value.
@@ -3445,7 +4553,7 @@ export interface ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGet
    *
    * @schema ServiceSpecForProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value.
@@ -3539,6 +4647,157 @@ export function toJson_ServiceSpecForProviderTemplateSpecVolumesSecretSecretName
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef {
+  /**
+   * A Cloud Secret Manager secret version. Must be 'latest' for the latest version or an integer for a specific version.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef#key
+   */
+  readonly key?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef(obj: ServiceSpecInitProviderTemplateSpecContainersEnvValueFromSecretKeyRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference(obj: ServiceSpecInitProviderTemplateSpecContainersEnvFromConfigMapRefLocalObjectReference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference(obj: ServiceSpecInitProviderTemplateSpecContainersEnvFromSecretRefLocalObjectReference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders(obj: ServiceSpecInitProviderTemplateSpecContainersLivenessProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders
+ */
+export interface ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value.
+   *
+   * @schema ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders(obj: ServiceSpecInitProviderTemplateSpecContainersStartupProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3894,7 +5153,7 @@ export function toJson_ServiceIamMemberProps(obj: ServiceIamMemberProps | undefi
  */
 export interface ServiceIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceIamMemberSpec#deletionPolicy
    */
@@ -3906,11 +5165,18 @@ export interface ServiceIamMemberSpec {
   readonly forProvider: ServiceIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServiceIamMemberSpec#managementPolicy
+   * @schema ServiceIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: ServiceIamMemberSpecManagementPolicy;
+  readonly initProvider?: ServiceIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServiceIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServiceIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3918,13 +5184,6 @@ export interface ServiceIamMemberSpec {
    * @schema ServiceIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServiceIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServiceIamMemberSpec#providerRef
-   */
-  readonly providerRef?: ServiceIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3951,9 +5210,9 @@ export function toJson_ServiceIamMemberSpec(obj: ServiceIamMemberSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServiceIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServiceIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServiceIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServiceIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3963,7 +5222,7 @@ export function toJson_ServiceIamMemberSpec(obj: ServiceIamMemberSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceIamMemberSpecDeletionPolicy
  */
@@ -4062,17 +5321,68 @@ export function toJson_ServiceIamMemberSpecForProvider(obj: ServiceIamMemberSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServiceIamMemberSpecManagementPolicy
+ * @schema ServiceIamMemberSpecInitProvider
  */
-export enum ServiceIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServiceIamMemberSpecInitProvider {
+  /**
+   * @schema ServiceIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: ServiceIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema ServiceIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema ServiceIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema ServiceIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceIamMemberSpecInitProvider(obj: ServiceIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_ServiceIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServiceIamMemberSpecManagementPolicies
+ */
+export enum ServiceIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4106,43 +5416,6 @@ export function toJson_ServiceIamMemberSpecProviderConfigRef(obj: ServiceIamMemb
   const result = {
     'name': obj.name,
     'policy': toJson_ServiceIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServiceIamMemberSpecProviderRef
- */
-export interface ServiceIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServiceIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServiceIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: ServiceIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServiceIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceIamMemberSpecProviderRef(obj: ServiceIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServiceIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4243,12 +5516,12 @@ export interface ServiceIamMemberSpecForProviderCondition {
   /**
    * @schema ServiceIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema ServiceIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -4433,6 +5706,43 @@ export function toJson_ServiceIamMemberSpecForProviderServiceSelector(obj: Servi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceIamMemberSpecInitProviderCondition
+ */
+export interface ServiceIamMemberSpecInitProviderCondition {
+  /**
+   * @schema ServiceIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema ServiceIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema ServiceIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceIamMemberSpecInitProviderCondition(obj: ServiceIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ServiceIamMemberSpecProviderConfigRefPolicy
@@ -4459,43 +5769,6 @@ export interface ServiceIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServiceIamMemberSpecProviderConfigRefPolicy(obj: ServiceIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ServiceIamMemberSpecProviderRefPolicy
- */
-export interface ServiceIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServiceIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServiceIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServiceIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServiceIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServiceIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceIamMemberSpecProviderRefPolicy(obj: ServiceIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4761,30 +6034,6 @@ export enum ServiceIamMemberSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServiceIamMemberSpecProviderRefPolicyResolution
- */
-export enum ServiceIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServiceIamMemberSpecProviderRefPolicyResolve
- */
-export enum ServiceIamMemberSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema ServiceIamMemberSpecPublishConnectionDetailsToConfigRefPolicy
@@ -5038,7 +6287,7 @@ export function toJson_V2JobProps(obj: V2JobProps | undefined): Record<string, a
  */
 export interface V2JobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema V2JobSpec#deletionPolicy
    */
@@ -5050,11 +6299,18 @@ export interface V2JobSpec {
   readonly forProvider: V2JobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema V2JobSpec#managementPolicy
+   * @schema V2JobSpec#initProvider
    */
-  readonly managementPolicy?: V2JobSpecManagementPolicy;
+  readonly initProvider?: V2JobSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema V2JobSpec#managementPolicies
+   */
+  readonly managementPolicies?: V2JobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5062,13 +6318,6 @@ export interface V2JobSpec {
    * @schema V2JobSpec#providerConfigRef
    */
   readonly providerConfigRef?: V2JobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema V2JobSpec#providerRef
-   */
-  readonly providerRef?: V2JobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5095,9 +6344,9 @@ export function toJson_V2JobSpec(obj: V2JobSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_V2JobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_V2JobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_V2JobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_V2JobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_V2JobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_V2JobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5107,7 +6356,7 @@ export function toJson_V2JobSpec(obj: V2JobSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema V2JobSpecDeletionPolicy
  */
@@ -5122,6 +6371,13 @@ export enum V2JobSpecDeletionPolicy {
  * @schema V2JobSpecForProvider
  */
 export interface V2JobSpecForProvider {
+  /**
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected on new resources. All system annotations in v1 now have a corresponding field in v2 Job. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2JobSpecForProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
   /**
    * Settings for the Binary Authorization feature. Structure is documented below.
    *
@@ -5144,7 +6400,7 @@ export interface V2JobSpecForProvider {
   readonly clientVersion?: string;
 
   /**
-   * KRM-style labels for the resource. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels Cloud Run will populate some labels with 'run.googleapis.com' or 'serving.knative.dev' namespaces. Those labels are read-only, and user changes will not be preserved.
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 Job.
    *
    * @schema V2JobSpecForProvider#labels
    */
@@ -5187,6 +6443,7 @@ export interface V2JobSpecForProvider {
 export function toJson_V2JobSpecForProvider(obj: V2JobSpecForProvider | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'binaryAuthorization': obj.binaryAuthorization?.map(y => toJson_V2JobSpecForProviderBinaryAuthorization(y)),
     'client': obj.client,
     'clientVersion': obj.clientVersion,
@@ -5202,17 +6459,108 @@ export function toJson_V2JobSpecForProvider(obj: V2JobSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema V2JobSpecManagementPolicy
+ * @schema V2JobSpecInitProvider
  */
-export enum V2JobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface V2JobSpecInitProvider {
+  /**
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected on new resources. All system annotations in v1 now have a corresponding field in v2 Job. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2JobSpecInitProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Settings for the Binary Authorization feature. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProvider#binaryAuthorization
+   */
+  readonly binaryAuthorization?: V2JobSpecInitProviderBinaryAuthorization[];
+
+  /**
+   * Arbitrary identifier for the API client.
+   *
+   * @schema V2JobSpecInitProvider#client
+   */
+  readonly client?: string;
+
+  /**
+   * Arbitrary version identifier for the API client.
+   *
+   * @schema V2JobSpecInitProvider#clientVersion
+   */
+  readonly clientVersion?: string;
+
+  /**
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 Job.
+   *
+   * @schema V2JobSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Set the launch stage to a preview stage on input to allow use of preview features in that stage. On read (or output), describes whether the resource uses preview features. For example, if ALPHA is provided as input, but only BETA and GA-level features are used, this field will be BETA on output. Possible values are: UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
+   *
+   * @schema V2JobSpecInitProvider#launchStage
+   */
+  readonly launchStage?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema V2JobSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The template used to create executions for this Job. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProvider#template
+   */
+  readonly template?: V2JobSpecInitProviderTemplate[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProvider(obj: V2JobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'binaryAuthorization': obj.binaryAuthorization?.map(y => toJson_V2JobSpecInitProviderBinaryAuthorization(y)),
+    'client': obj.client,
+    'clientVersion': obj.clientVersion,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'launchStage': obj.launchStage,
+    'project': obj.project,
+    'template': obj.template?.map(y => toJson_V2JobSpecInitProviderTemplate(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema V2JobSpecManagementPolicies
+ */
+export enum V2JobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5246,43 +6594,6 @@ export function toJson_V2JobSpecProviderConfigRef(obj: V2JobSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_V2JobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema V2JobSpecProviderRef
- */
-export interface V2JobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema V2JobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema V2JobSpecProviderRef#policy
-   */
-  readonly policy?: V2JobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'V2JobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_V2JobSpecProviderRef(obj: V2JobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_V2JobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5412,7 +6723,14 @@ export function toJson_V2JobSpecForProviderBinaryAuthorization(obj: V2JobSpecFor
  */
 export interface V2JobSpecForProviderTemplate {
   /**
-   * KRM-style labels for the resource.
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 ExecutionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2JobSpecForProviderTemplate#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 ExecutionTemplate.
    *
    * @schema V2JobSpecForProviderTemplate#labels
    */
@@ -5437,7 +6755,7 @@ export interface V2JobSpecForProviderTemplate {
    *
    * @schema V2JobSpecForProviderTemplate#template
    */
-  readonly template: V2JobSpecForProviderTemplateTemplate[];
+  readonly template?: V2JobSpecForProviderTemplateTemplate[];
 
 }
 
@@ -5448,10 +6766,106 @@ export interface V2JobSpecForProviderTemplate {
 export function toJson_V2JobSpecForProviderTemplate(obj: V2JobSpecForProviderTemplate | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'parallelism': obj.parallelism,
     'taskCount': obj.taskCount,
     'template': obj.template?.map(y => toJson_V2JobSpecForProviderTemplateTemplate(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderBinaryAuthorization
+ */
+export interface V2JobSpecInitProviderBinaryAuthorization {
+  /**
+   * If present, indicates to use Breakglass using this justification. If useDefault is False, then it must be empty. For more information on breakglass, see https://cloud.google.com/binary-authorization/docs/using-breakglass
+   *
+   * @default False, then it must be empty. For more information on breakglass, see https://cloud.google.com/binary-authorization/docs/using-breakglass
+   * @schema V2JobSpecInitProviderBinaryAuthorization#breakglassJustification
+   */
+  readonly breakglassJustification?: string;
+
+  /**
+   * If True, indicates to use the default project's binary authorization policy. If False, binary authorization will be disabled.
+   *
+   * @schema V2JobSpecInitProviderBinaryAuthorization#useDefault
+   */
+  readonly useDefault?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderBinaryAuthorization' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderBinaryAuthorization(obj: V2JobSpecInitProviderBinaryAuthorization | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'breakglassJustification': obj.breakglassJustification,
+    'useDefault': obj.useDefault,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplate
+ */
+export interface V2JobSpecInitProviderTemplate {
+  /**
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 ExecutionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2JobSpecInitProviderTemplate#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 ExecutionTemplate.
+   *
+   * @schema V2JobSpecInitProviderTemplate#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Specifies the maximum desired number of tasks the execution should run at given time. Must be <= taskCount. When the job is run, if this field is 0 or unset, the maximum possible value will be used for that execution. The actual number of tasks running in steady state will be less than this number when there are fewer tasks waiting to be completed remaining, i.e. when the work left to do is less than max parallelism.
+   *
+   * @schema V2JobSpecInitProviderTemplate#parallelism
+   */
+  readonly parallelism?: number;
+
+  /**
+   * Specifies the desired number of tasks the execution should run. Setting to 1 means that parallelism is limited to 1 and the success of that task signals the success of the execution. More info: https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/
+   *
+   * @schema V2JobSpecInitProviderTemplate#taskCount
+   */
+  readonly taskCount?: number;
+
+  /**
+   * Describes the task(s) that will be created when executing an execution Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplate#template
+   */
+  readonly template?: V2JobSpecInitProviderTemplateTemplate[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplate(obj: V2JobSpecInitProviderTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'parallelism': obj.parallelism,
+    'taskCount': obj.taskCount,
+    'template': obj.template?.map(y => toJson_V2JobSpecInitProviderTemplateTemplate(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5485,43 +6899,6 @@ export interface V2JobSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_V2JobSpecProviderConfigRefPolicy(obj: V2JobSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema V2JobSpecProviderRefPolicy
- */
-export interface V2JobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema V2JobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: V2JobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema V2JobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: V2JobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'V2JobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_V2JobSpecProviderRefPolicy(obj: V2JobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5698,6 +7075,89 @@ export function toJson_V2JobSpecForProviderTemplateTemplate(obj: V2JobSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2JobSpecInitProviderTemplateTemplate
+ */
+export interface V2JobSpecInitProviderTemplateTemplate {
+  /**
+   * Holds the single container that defines the unit of execution for this task. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#containers
+   */
+  readonly containers?: V2JobSpecInitProviderTemplateTemplateContainers[];
+
+  /**
+   * A reference to a customer managed encryption key (CMEK) to use to encrypt this container image. For more information, go to https://cloud.google.com/run/docs/securing/using-cmek
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The execution environment being used to host this Task. Possible values are: EXECUTION_ENVIRONMENT_GEN1, EXECUTION_ENVIRONMENT_GEN2.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#executionEnvironment
+   */
+  readonly executionEnvironment?: string;
+
+  /**
+   * Number of retries allowed per Task, before marking this Task failed.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#maxRetries
+   */
+  readonly maxRetries?: number;
+
+  /**
+   * Email address of the IAM service account associated with the Task of a Job. The service account represents the identity of the running task, and determines what permissions the task has. If not provided, the task will use the project's default service account.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * Max allowed time duration the Task may be active before the system will actively try to mark it failed and kill associated containers. This applies per attempt of a task, meaning each retry can run for the full timeout. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#timeout
+   */
+  readonly timeout?: string;
+
+  /**
+   * A list of Volumes to make available to containers. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#volumes
+   */
+  readonly volumes?: V2JobSpecInitProviderTemplateTemplateVolumes[];
+
+  /**
+   * VPC Access configuration to use for this Task. For more information, visit https://cloud.google.com/run/docs/configuring/connecting-vpc. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplate#vpcAccess
+   */
+  readonly vpcAccess?: V2JobSpecInitProviderTemplateTemplateVpcAccess[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplate(obj: V2JobSpecInitProviderTemplateTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containers': obj.containers?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainers(y)),
+    'encryptionKey': obj.encryptionKey,
+    'executionEnvironment': obj.executionEnvironment,
+    'maxRetries': obj.maxRetries,
+    'serviceAccount': obj.serviceAccount,
+    'timeout': obj.timeout,
+    'volumes': obj.volumes?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateVolumes(y)),
+    'vpcAccess': obj.vpcAccess?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateVpcAccess(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema V2JobSpecProviderConfigRefPolicyResolution
@@ -5715,30 +7175,6 @@ export enum V2JobSpecProviderConfigRefPolicyResolution {
  * @schema V2JobSpecProviderConfigRefPolicyResolve
  */
 export enum V2JobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema V2JobSpecProviderRefPolicyResolution
- */
-export enum V2JobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema V2JobSpecProviderRefPolicyResolve
- */
-export enum V2JobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5812,7 +7248,7 @@ export interface V2JobSpecForProviderTemplateTemplateContainers {
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainers#image
    */
-  readonly image: string;
+  readonly image?: string;
 
   /**
    * Periodic probe of container liveness. Container will be restarted if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes This field is not supported in Cloud Run Job currently. Structure is documented below.
@@ -5905,7 +7341,7 @@ export interface V2JobSpecForProviderTemplateTemplateVolumes {
    *
    * @schema V2JobSpecForProviderTemplateTemplateVolumes#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret Structure is documented below.
@@ -5968,6 +7404,191 @@ export function toJson_V2JobSpecForProviderTemplateTemplateVpcAccess(obj: V2JobS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainers
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainers {
+  /**
+   * Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#args
+   */
+  readonly args?: string[];
+
+  /**
+   * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#command
+   */
+  readonly command?: string[];
+
+  /**
+   * List of environment variables to set in the container. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#env
+   */
+  readonly env?: V2JobSpecInitProviderTemplateTemplateContainersEnv[];
+
+  /**
+   * URL of the Container image in Google Container Registry or Google Artifact Registry. More info: https://kubernetes.io/docs/concepts/containers/images
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#image
+   */
+  readonly image?: string;
+
+  /**
+   * Periodic probe of container liveness. Container will be restarted if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes This field is not supported in Cloud Run Job currently. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#livenessProbe
+   */
+  readonly livenessProbe?: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#name
+   */
+  readonly name?: string;
+
+  /**
+   * List of ports to expose from the container. Only a single port can be specified. The specified ports must be listening on all interfaces (0.0.0.0) within the container to be accessible. If omitted, a port number will be chosen and passed to the container through the PORT environment variable for the container to listen on Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#ports
+   */
+  readonly ports?: V2JobSpecInitProviderTemplateTemplateContainersPorts[];
+
+  /**
+   * Compute Resource requirements by this container. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#resources
+   */
+  readonly resources?: V2JobSpecInitProviderTemplateTemplateContainersResources[];
+
+  /**
+   * Startup probe of application within the container. All other probes are disabled if a startup probe is provided, until it succeeds. Container will not be added to service endpoints if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes This field is not supported in Cloud Run Job currently. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#startupProbe
+   */
+  readonly startupProbe?: V2JobSpecInitProviderTemplateTemplateContainersStartupProbe[];
+
+  /**
+   * Volume to mount into the container's filesystem. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#volumeMounts
+   */
+  readonly volumeMounts?: V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts[];
+
+  /**
+   * Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainers#workingDir
+   */
+  readonly workingDir?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainers(obj: V2JobSpecInitProviderTemplateTemplateContainers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'args': obj.args?.map(y => y),
+    'command': obj.command?.map(y => y),
+    'env': obj.env?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersEnv(y)),
+    'image': obj.image,
+    'livenessProbe': obj.livenessProbe?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe(y)),
+    'name': obj.name,
+    'ports': obj.ports?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersPorts(y)),
+    'resources': obj.resources?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersResources(y)),
+    'startupProbe': obj.startupProbe?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbe(y)),
+    'volumeMounts': obj.volumeMounts?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts(y)),
+    'workingDir': obj.workingDir,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateVolumes
+ */
+export interface V2JobSpecInitProviderTemplateTemplateVolumes {
+  /**
+   * For Cloud SQL volumes, contains the specific instances that should be mounted. Visit https://cloud.google.com/sql/docs/mysql/connect-run for more information on how to connect Cloud SQL and Cloud Run. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumes#cloudSqlInstance
+   */
+  readonly cloudSqlInstance?: V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumes#name
+   */
+  readonly name?: string;
+
+  /**
+   * Secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumes#secret
+   */
+  readonly secret?: V2JobSpecInitProviderTemplateTemplateVolumesSecret[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateVolumes(obj: V2JobSpecInitProviderTemplateTemplateVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudSqlInstance': obj.cloudSqlInstance?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance(y)),
+    'name': obj.name,
+    'secret': obj.secret?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateVolumesSecret(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateVpcAccess
+ */
+export interface V2JobSpecInitProviderTemplateTemplateVpcAccess {
+  /**
+   * VPC Access connector name. Format: projects/{project}/locations/{location}/connectors/{connector}, where {project} can be project id or number.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVpcAccess#connector
+   */
+  readonly connector?: string;
+
+  /**
+   * Traffic VPC egress settings. Possible values are: ALL_TRAFFIC, PRIVATE_RANGES_ONLY.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVpcAccess#egress
+   */
+  readonly egress?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateVpcAccess' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateVpcAccess(obj: V2JobSpecInitProviderTemplateTemplateVpcAccess | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connector': obj.connector,
+    'egress': obj.egress,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema V2JobSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -6000,7 +7621,7 @@ export interface V2JobSpecForProviderTemplateTemplateContainersEnv {
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersEnv#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -6247,14 +7868,14 @@ export interface V2JobSpecForProviderTemplateTemplateContainersVolumeMounts {
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersVolumeMounts#mountPath
    */
-  readonly mountPath: string;
+  readonly mountPath?: string;
 
   /**
    * Volume's name.
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersVolumeMounts#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -6353,6 +7974,350 @@ export function toJson_V2JobSpecForProviderTemplateTemplateVolumesSecret(obj: V2
     'secret': obj.secret,
     'secretRef': toJson_V2JobSpecForProviderTemplateTemplateVolumesSecretSecretRef(obj.secretRef),
     'secretSelector': toJson_V2JobSpecForProviderTemplateTemplateVolumesSecretSecretSelector(obj.secretSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersEnv
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersEnv {
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersEnv#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersEnv#value
+   */
+  readonly value?: string;
+
+  /**
+   * Source for the environment variable's value. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersEnv#valueSource
+   */
+  readonly valueSource?: V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersEnv' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersEnv(obj: V2JobSpecInitProviderTemplateTemplateContainersEnv | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+    'valueSource': obj.valueSource?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * HTTPGet specifies the http request to perform. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#httpGet
+   */
+  readonly httpGet?: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TCPSocket specifies an action involving a TCP port. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#tcpSocket
+   */
+  readonly tcpSocket?: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe(obj: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'httpGet': obj.httpGet?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersPorts
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersPorts {
+  /**
+   * Port number the container listens on. This must be a valid TCP port number, 0 < containerPort < 65536.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersPorts#containerPort
+   */
+  readonly containerPort?: number;
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersPorts#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersPorts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersPorts(obj: V2JobSpecInitProviderTemplateTemplateContainersPorts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerPort': obj.containerPort,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersResources
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersResources {
+  /**
+   * Only memory and CPU are supported. Note: The only supported values for CPU are '1', '2', '4', and '8'. Setting 4 CPU requires at least 2Gi of memory. The values of the map is string form of the 'quantity' k8s type: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/api/resource/quantity.go
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersResources#limits
+   */
+  readonly limits?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersResources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersResources(obj: V2JobSpecInitProviderTemplateTemplateContainersResources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersStartupProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * HTTPGet specifies the http request to perform. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#httpGet
+   */
+  readonly httpGet?: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TCPSocket specifies an action involving a TCP port. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#tcpSocket
+   */
+  readonly tcpSocket?: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersStartupProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbe(obj: V2JobSpecInitProviderTemplateTemplateContainersStartupProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'httpGet': obj.httpGet?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts {
+  /**
+   * Path within the container at which the volume should be mounted. Must not contain ':'. For Cloud SQL volumes, it can be left empty, or must otherwise be /cloudsql. All instances defined in the Volume will be available as /cloudsql/[instance]. For more information on Cloud SQL volumes, visit https://cloud.google.com/sql/docs/mysql/connect-run
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts#mountPath
+   */
+  readonly mountPath?: string;
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts(obj: V2JobSpecInitProviderTemplateTemplateContainersVolumeMounts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mountPath': obj.mountPath,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance
+ */
+export interface V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance {
+  /**
+   * The Cloud SQL instance connection names, as can be found in https://console.cloud.google.com/sql/instances. Visit https://cloud.google.com/sql/docs/mysql/connect-run for more information on how to connect Cloud SQL and Cloud Run. Format: {project}:{location}:{instance}
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance#instances
+   */
+  readonly instances?: string[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance(obj: V2JobSpecInitProviderTemplateTemplateVolumesCloudSqlInstance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instances': obj.instances?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecret
+ */
+export interface V2JobSpecInitProviderTemplateTemplateVolumesSecret {
+  /**
+   * Integer representation of mode bits to use on created files by default. Must be a value between 0000 and 0777 (octal), defaulting to 0444. Directories within the path are not affected by this setting.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecret#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * If unspecified, the volume will expose a file whose name is the secret, relative to VolumeMount.mount_path. If specified, the key will be used as the version to fetch from Cloud Secret Manager and the path will be the name of the file exposed in the volume. When items are defined, they must specify a path and a version. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecret#items
+   */
+  readonly items?: V2JobSpecInitProviderTemplateTemplateVolumesSecretItems[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateVolumesSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateVolumesSecret(obj: V2JobSpecInitProviderTemplateTemplateVolumesSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateVolumesSecretItems(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6519,21 +8484,21 @@ export interface V2JobSpecForProviderTemplateTemplateVolumesSecretItems {
    *
    * @schema V2JobSpecForProviderTemplateTemplateVolumesSecretItems#mode
    */
-  readonly mode: number;
+  readonly mode?: number;
 
   /**
    * The relative path of the secret in the container.
    *
    * @schema V2JobSpecForProviderTemplateTemplateVolumesSecretItems#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
    * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
    *
    * @schema V2JobSpecForProviderTemplateTemplateVolumesSecretItems#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -6636,6 +8601,200 @@ export function toJson_V2JobSpecForProviderTemplateTemplateVolumesSecretSecretSe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource {
+  /**
+   * Selects a secret and a specific version from Cloud Secret Manager. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource#secretKeyRef
+   */
+  readonly secretKeyRef?: V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef[];
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource(obj: V2JobSpecInitProviderTemplateTemplateContainersEnvValueSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretKeyRef': obj.secretKeyRef?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet(obj: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket(obj: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet#path
+   */
+  readonly path?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet(obj: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket(obj: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecretItems
+ */
+export interface V2JobSpecInitProviderTemplateTemplateVolumesSecretItems {
+  /**
+   * Integer octal mode bits to use on this file, must be a value between 01 and 0777 (octal). If 0 or not set, the Volume's default mode will be used.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecretItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecretItems#path
+   */
+  readonly path?: string;
+
+  /**
+   * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateVolumesSecretItems#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateVolumesSecretItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateVolumesSecretItems(obj: V2JobSpecInitProviderTemplateTemplateVolumesSecretItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+    'path': obj.path,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema V2JobSpecForProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef
  */
 export interface V2JobSpecForProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef {
@@ -6665,7 +8824,7 @@ export interface V2JobSpecForProviderTemplateTemplateContainersEnvValueSourceSec
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -6695,7 +8854,7 @@ export interface V2JobSpecForProviderTemplateTemplateContainersLivenessProbeHttp
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -6730,7 +8889,7 @@ export interface V2JobSpecForProviderTemplateTemplateContainersStartupProbeHttpG
    *
    * @schema V2JobSpecForProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -6824,6 +8983,103 @@ export function toJson_V2JobSpecForProviderTemplateTemplateVolumesSecretSecretSe
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef {
+  /**
+   * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef(obj: V2JobSpecInitProviderTemplateTemplateContainersEnvValueSourceSecretKeyRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders(obj: V2JobSpecInitProviderTemplateTemplateContainersLivenessProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders
+ */
+export interface V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders(obj: V2JobSpecInitProviderTemplateTemplateContainersStartupProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7179,7 +9435,7 @@ export function toJson_V2ServiceProps(obj: V2ServiceProps | undefined): Record<s
  */
 export interface V2ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema V2ServiceSpec#deletionPolicy
    */
@@ -7191,11 +9447,18 @@ export interface V2ServiceSpec {
   readonly forProvider: V2ServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema V2ServiceSpec#managementPolicy
+   * @schema V2ServiceSpec#initProvider
    */
-  readonly managementPolicy?: V2ServiceSpecManagementPolicy;
+  readonly initProvider?: V2ServiceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema V2ServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: V2ServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7203,13 +9466,6 @@ export interface V2ServiceSpec {
    * @schema V2ServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: V2ServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema V2ServiceSpec#providerRef
-   */
-  readonly providerRef?: V2ServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7236,9 +9492,9 @@ export function toJson_V2ServiceSpec(obj: V2ServiceSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_V2ServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_V2ServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_V2ServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_V2ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_V2ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_V2ServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7248,7 +9504,7 @@ export function toJson_V2ServiceSpec(obj: V2ServiceSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema V2ServiceSpecDeletionPolicy
  */
@@ -7264,7 +9520,7 @@ export enum V2ServiceSpecDeletionPolicy {
  */
 export interface V2ServiceSpecForProvider {
   /**
-   * KRM-style annotations for the resource.
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 RevisionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
    *
    * @schema V2ServiceSpecForProvider#annotations
    */
@@ -7306,7 +9562,7 @@ export interface V2ServiceSpecForProvider {
   readonly ingress?: string;
 
   /**
-   * KRM-style labels for the resource.
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 RevisionTemplate.
    *
    * @schema V2ServiceSpecForProvider#labels
    */
@@ -7375,17 +9631,132 @@ export function toJson_V2ServiceSpecForProvider(obj: V2ServiceSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema V2ServiceSpecManagementPolicy
+ * @schema V2ServiceSpecInitProvider
  */
-export enum V2ServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface V2ServiceSpecInitProvider {
+  /**
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 RevisionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2ServiceSpecInitProvider#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Settings for the Binary Authorization feature. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProvider#binaryAuthorization
+   */
+  readonly binaryAuthorization?: V2ServiceSpecInitProviderBinaryAuthorization[];
+
+  /**
+   * Arbitrary identifier for the API client.
+   *
+   * @schema V2ServiceSpecInitProvider#client
+   */
+  readonly client?: string;
+
+  /**
+   * Arbitrary version identifier for the API client.
+   *
+   * @schema V2ServiceSpecInitProvider#clientVersion
+   */
+  readonly clientVersion?: string;
+
+  /**
+   * User-provided description of the Service. This field currently has a 512-character limit.
+   *
+   * @schema V2ServiceSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Provides the ingress settings for this Service. On output, returns the currently observed ingress settings, or INGRESS_TRAFFIC_UNSPECIFIED if no revision is active. Possible values are: INGRESS_TRAFFIC_ALL, INGRESS_TRAFFIC_INTERNAL_ONLY, INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER.
+   *
+   * @schema V2ServiceSpecInitProvider#ingress
+   */
+  readonly ingress?: string;
+
+  /**
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 RevisionTemplate.
+   *
+   * @schema V2ServiceSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The launch stage as defined by Google Cloud Platform Launch Stages. Cloud Run supports ALPHA, BETA, and GA. If no value is specified, GA is assumed. Set the launch stage to a preview stage on input to allow use of preview features in that stage. On read (or output), describes whether the resource uses preview features. For example, if ALPHA is provided as input, but only BETA and GA-level features are used, this field will be BETA on output. Possible values are: UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
+   *
+   * @schema V2ServiceSpecInitProvider#launchStage
+   */
+  readonly launchStage?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema V2ServiceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The template used to create revisions for this Service. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProvider#template
+   */
+  readonly template?: V2ServiceSpecInitProviderTemplate[];
+
+  /**
+   * Specifies how to distribute traffic over a collection of Revisions belonging to the Service. If traffic is empty or not provided, defaults to 100% traffic to the latest Ready Revision. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProvider#traffic
+   */
+  readonly traffic?: V2ServiceSpecInitProviderTraffic[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProvider(obj: V2ServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'binaryAuthorization': obj.binaryAuthorization?.map(y => toJson_V2ServiceSpecInitProviderBinaryAuthorization(y)),
+    'client': obj.client,
+    'clientVersion': obj.clientVersion,
+    'description': obj.description,
+    'ingress': obj.ingress,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'launchStage': obj.launchStage,
+    'project': obj.project,
+    'template': obj.template?.map(y => toJson_V2ServiceSpecInitProviderTemplate(y)),
+    'traffic': obj.traffic?.map(y => toJson_V2ServiceSpecInitProviderTraffic(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema V2ServiceSpecManagementPolicies
+ */
+export enum V2ServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7419,43 +9790,6 @@ export function toJson_V2ServiceSpecProviderConfigRef(obj: V2ServiceSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_V2ServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema V2ServiceSpecProviderRef
- */
-export interface V2ServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema V2ServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema V2ServiceSpecProviderRef#policy
-   */
-  readonly policy?: V2ServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'V2ServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_V2ServiceSpecProviderRef(obj: V2ServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_V2ServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7585,7 +9919,7 @@ export function toJson_V2ServiceSpecForProviderBinaryAuthorization(obj: V2Servic
  */
 export interface V2ServiceSpecForProviderTemplate {
   /**
-   * KRM-style annotations for the resource.
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 RevisionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
    *
    * @schema V2ServiceSpecForProviderTemplate#annotations
    */
@@ -7613,7 +9947,7 @@ export interface V2ServiceSpecForProviderTemplate {
   readonly executionEnvironment?: string;
 
   /**
-   * KRM-style labels for the resource.
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 RevisionTemplate.
    *
    * @schema V2ServiceSpecForProviderTemplate#labels
    */
@@ -7755,6 +10089,216 @@ export function toJson_V2ServiceSpecForProviderTraffic(obj: V2ServiceSpecForProv
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2ServiceSpecInitProviderBinaryAuthorization
+ */
+export interface V2ServiceSpecInitProviderBinaryAuthorization {
+  /**
+   * If present, indicates to use Breakglass using this justification. If useDefault is False, then it must be empty. For more information on breakglass, see https://cloud.google.com/binary-authorization/docs/using-breakglass
+   *
+   * @default False, then it must be empty. For more information on breakglass, see https://cloud.google.com/binary-authorization/docs/using-breakglass
+   * @schema V2ServiceSpecInitProviderBinaryAuthorization#breakglassJustification
+   */
+  readonly breakglassJustification?: string;
+
+  /**
+   * If True, indicates to use the default project's binary authorization policy. If False, binary authorization will be disabled.
+   *
+   * @schema V2ServiceSpecInitProviderBinaryAuthorization#useDefault
+   */
+  readonly useDefault?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderBinaryAuthorization' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderBinaryAuthorization(obj: V2ServiceSpecInitProviderBinaryAuthorization | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'breakglassJustification': obj.breakglassJustification,
+    'useDefault': obj.useDefault,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplate
+ */
+export interface V2ServiceSpecInitProviderTemplate {
+  /**
+   * Unstructured key value map that may be set by external tools to store and arbitrary metadata. They are not queryable and should be preserved when modifying objects. Cloud Run API v2 does not support annotations with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system annotations in v1 now have a corresponding field in v2 RevisionTemplate. This field follows Kubernetes annotations' namespacing, limits, and rules.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#annotations
+   */
+  readonly annotations?: { [key: string]: string };
+
+  /**
+   * Holds the containers that define the unit of execution for this Service. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#containers
+   */
+  readonly containers?: V2ServiceSpecInitProviderTemplateContainers[];
+
+  /**
+   * A reference to a customer managed encryption key (CMEK) to use to encrypt this container image. For more information, go to https://cloud.google.com/run/docs/securing/using-cmek
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The sandbox environment to host this Revision. Possible values are: EXECUTION_ENVIRONMENT_GEN1, EXECUTION_ENVIRONMENT_GEN2.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#executionEnvironment
+   */
+  readonly executionEnvironment?: string;
+
+  /**
+   * Unstructured key value map that can be used to organize and categorize objects. User-provided labels are shared with Google's billing system, so they can be used to filter, or break down billing charges by team, component, environment, state, etc. For more information, visit https://cloud.google.com/resource-manager/docs/creating-managing-labels or https://cloud.google.com/run/docs/configuring/labels. Cloud Run API v2 does not support labels with run.googleapis.com, cloud.googleapis.com, serving.knative.dev, or autoscaling.knative.dev namespaces, and they will be rejected. All system labels in v1 now have a corresponding field in v2 RevisionTemplate.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Sets the maximum number of requests that each serving instance can receive.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#maxInstanceRequestConcurrency
+   */
+  readonly maxInstanceRequestConcurrency?: number;
+
+  /**
+   * The unique name for the revision. If this field is omitted, it will be automatically generated based on the Service name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#revision
+   */
+  readonly revision?: string;
+
+  /**
+   * Scaling settings for this Revision. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#scaling
+   */
+  readonly scaling?: V2ServiceSpecInitProviderTemplateScaling[];
+
+  /**
+   * Email address of the IAM service account associated with the revision of the service. The service account represents the identity of the running revision, and determines what permissions the revision has. If not provided, the revision will use the project's default service account.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * Enables session affinity. For more information, go to https://cloud.google.com/run/docs/configuring/session-affinity
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#sessionAffinity
+   */
+  readonly sessionAffinity?: boolean;
+
+  /**
+   * Max allowed time for an instance to respond to a request. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#timeout
+   */
+  readonly timeout?: string;
+
+  /**
+   * A list of Volumes to make available to containers. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#volumes
+   */
+  readonly volumes?: V2ServiceSpecInitProviderTemplateVolumes[];
+
+  /**
+   * VPC Access configuration to use for this Task. For more information, visit https://cloud.google.com/run/docs/configuring/connecting-vpc. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplate#vpcAccess
+   */
+  readonly vpcAccess?: V2ServiceSpecInitProviderTemplateVpcAccess[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplate(obj: V2ServiceSpecInitProviderTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'annotations': ((obj.annotations) === undefined) ? undefined : (Object.entries(obj.annotations).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'containers': obj.containers?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainers(y)),
+    'encryptionKey': obj.encryptionKey,
+    'executionEnvironment': obj.executionEnvironment,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'maxInstanceRequestConcurrency': obj.maxInstanceRequestConcurrency,
+    'revision': obj.revision,
+    'scaling': obj.scaling?.map(y => toJson_V2ServiceSpecInitProviderTemplateScaling(y)),
+    'serviceAccount': obj.serviceAccount,
+    'sessionAffinity': obj.sessionAffinity,
+    'timeout': obj.timeout,
+    'volumes': obj.volumes?.map(y => toJson_V2ServiceSpecInitProviderTemplateVolumes(y)),
+    'vpcAccess': obj.vpcAccess?.map(y => toJson_V2ServiceSpecInitProviderTemplateVpcAccess(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTraffic
+ */
+export interface V2ServiceSpecInitProviderTraffic {
+  /**
+   * Specifies percent of the traffic to this Revision. This defaults to zero if unspecified.
+   *
+   * @schema V2ServiceSpecInitProviderTraffic#percent
+   */
+  readonly percent?: number;
+
+  /**
+   * Revision to which to send this portion of traffic, if traffic allocation is by revision.
+   *
+   * @schema V2ServiceSpecInitProviderTraffic#revision
+   */
+  readonly revision?: string;
+
+  /**
+   * Indicates a string to be part of the URI to exclusively reference this target.
+   *
+   * @schema V2ServiceSpecInitProviderTraffic#tag
+   */
+  readonly tag?: string;
+
+  /**
+   * The allocation type for this traffic target. Possible values are: TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST, TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION.
+   *
+   * @schema V2ServiceSpecInitProviderTraffic#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTraffic' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTraffic(obj: V2ServiceSpecInitProviderTraffic | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'percent': obj.percent,
+    'revision': obj.revision,
+    'tag': obj.tag,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema V2ServiceSpecProviderConfigRefPolicy
@@ -7781,43 +10325,6 @@ export interface V2ServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_V2ServiceSpecProviderConfigRefPolicy(obj: V2ServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema V2ServiceSpecProviderRefPolicy
- */
-export interface V2ServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema V2ServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: V2ServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema V2ServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: V2ServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'V2ServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_V2ServiceSpecProviderRefPolicy(obj: V2ServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7940,7 +10447,7 @@ export interface V2ServiceSpecForProviderTemplateContainers {
    *
    * @schema V2ServiceSpecForProviderTemplateContainers#image
    */
-  readonly image: string;
+  readonly image?: string;
 
   /**
    * Periodic probe of container liveness. Container will be restarted if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes Structure is documented below.
@@ -8068,7 +10575,7 @@ export interface V2ServiceSpecForProviderTemplateVolumes {
    *
    * @schema V2ServiceSpecForProviderTemplateVolumes#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret Structure is documented below.
@@ -8131,6 +10638,226 @@ export function toJson_V2ServiceSpecForProviderTemplateVpcAccess(obj: V2ServiceS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2ServiceSpecInitProviderTemplateContainers
+ */
+export interface V2ServiceSpecInitProviderTemplateContainers {
+  /**
+   * Arguments to the entrypoint. The docker image's CMD is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#args
+   */
+  readonly args?: string[];
+
+  /**
+   * Entrypoint array. Not executed within a shell. The docker image's ENTRYPOINT is used if this is not provided. Variable references $(VAR_NAME) are expanded using the container's environment. If a variable cannot be resolved, the reference in the input string will be unchanged. The $(VAR_NAME) syntax can be escaped with a double $$, ie: $$(VAR_NAME). Escaped references will never be expanded, regardless of whether the variable exists or not. More info: https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#command
+   */
+  readonly command?: string[];
+
+  /**
+   * List of environment variables to set in the container. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#env
+   */
+  readonly env?: V2ServiceSpecInitProviderTemplateContainersEnv[];
+
+  /**
+   * URL of the Container image in Google Container Registry or Google Artifact Registry. More info: https://kubernetes.io/docs/concepts/containers/images
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#image
+   */
+  readonly image?: string;
+
+  /**
+   * Periodic probe of container liveness. Container will be restarted if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#livenessProbe
+   */
+  readonly livenessProbe?: V2ServiceSpecInitProviderTemplateContainersLivenessProbe[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#name
+   */
+  readonly name?: string;
+
+  /**
+   * List of ports to expose from the container. Only a single port can be specified. The specified ports must be listening on all interfaces (0.0.0.0) within the container to be accessible. If omitted, a port number will be chosen and passed to the container through the PORT environment variable for the container to listen on Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#ports
+   */
+  readonly ports?: V2ServiceSpecInitProviderTemplateContainersPorts[];
+
+  /**
+   * Compute Resource requirements by this container. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#resources
+   */
+  readonly resources?: V2ServiceSpecInitProviderTemplateContainersResources[];
+
+  /**
+   * Startup probe of application within the container. All other probes are disabled if a startup probe is provided, until it succeeds. Container will not be added to service endpoints if the probe fails. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#startupProbe
+   */
+  readonly startupProbe?: V2ServiceSpecInitProviderTemplateContainersStartupProbe[];
+
+  /**
+   * Volume to mount into the container's filesystem. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#volumeMounts
+   */
+  readonly volumeMounts?: V2ServiceSpecInitProviderTemplateContainersVolumeMounts[];
+
+  /**
+   * Container's working directory. If not specified, the container runtime's default will be used, which might be configured in the container image.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainers#workingDir
+   */
+  readonly workingDir?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainers(obj: V2ServiceSpecInitProviderTemplateContainers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'args': obj.args?.map(y => y),
+    'command': obj.command?.map(y => y),
+    'env': obj.env?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersEnv(y)),
+    'image': obj.image,
+    'livenessProbe': obj.livenessProbe?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbe(y)),
+    'name': obj.name,
+    'ports': obj.ports?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersPorts(y)),
+    'resources': obj.resources?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersResources(y)),
+    'startupProbe': obj.startupProbe?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbe(y)),
+    'volumeMounts': obj.volumeMounts?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersVolumeMounts(y)),
+    'workingDir': obj.workingDir,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateScaling
+ */
+export interface V2ServiceSpecInitProviderTemplateScaling {
+  /**
+   * Maximum number of serving instances that this resource should have.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateScaling#maxInstanceCount
+   */
+  readonly maxInstanceCount?: number;
+
+  /**
+   * Minimum number of serving instances that this resource should have.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateScaling#minInstanceCount
+   */
+  readonly minInstanceCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateScaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateScaling(obj: V2ServiceSpecInitProviderTemplateScaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxInstanceCount': obj.maxInstanceCount,
+    'minInstanceCount': obj.minInstanceCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateVolumes
+ */
+export interface V2ServiceSpecInitProviderTemplateVolumes {
+  /**
+   * For Cloud SQL volumes, contains the specific instances that should be mounted. Visit https://cloud.google.com/sql/docs/mysql/connect-run for more information on how to connect Cloud SQL and Cloud Run. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumes#cloudSqlInstance
+   */
+  readonly cloudSqlInstance?: V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance[];
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumes#name
+   */
+  readonly name?: string;
+
+  /**
+   * Secret represents a secret that should populate this volume. More info: https://kubernetes.io/docs/concepts/storage/volumes#secret Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumes#secret
+   */
+  readonly secret?: V2ServiceSpecInitProviderTemplateVolumesSecret[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateVolumes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateVolumes(obj: V2ServiceSpecInitProviderTemplateVolumes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudSqlInstance': obj.cloudSqlInstance?.map(y => toJson_V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance(y)),
+    'name': obj.name,
+    'secret': obj.secret?.map(y => toJson_V2ServiceSpecInitProviderTemplateVolumesSecret(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateVpcAccess
+ */
+export interface V2ServiceSpecInitProviderTemplateVpcAccess {
+  /**
+   * VPC Access connector name. Format: projects/{project}/locations/{location}/connectors/{connector}, where {project} can be project id or number.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVpcAccess#connector
+   */
+  readonly connector?: string;
+
+  /**
+   * Traffic VPC egress settings. Possible values are: ALL_TRAFFIC, PRIVATE_RANGES_ONLY.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVpcAccess#egress
+   */
+  readonly egress?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateVpcAccess' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateVpcAccess(obj: V2ServiceSpecInitProviderTemplateVpcAccess | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connector': obj.connector,
+    'egress': obj.egress,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema V2ServiceSpecProviderConfigRefPolicyResolution
@@ -8148,30 +10875,6 @@ export enum V2ServiceSpecProviderConfigRefPolicyResolution {
  * @schema V2ServiceSpecProviderConfigRefPolicyResolve
  */
 export enum V2ServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema V2ServiceSpecProviderRefPolicyResolution
- */
-export enum V2ServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema V2ServiceSpecProviderRefPolicyResolve
- */
-export enum V2ServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8224,7 +10927,7 @@ export interface V2ServiceSpecForProviderTemplateContainersEnv {
    *
    * @schema V2ServiceSpecForProviderTemplateContainersEnv#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -8503,14 +11206,14 @@ export interface V2ServiceSpecForProviderTemplateContainersVolumeMounts {
    *
    * @schema V2ServiceSpecForProviderTemplateContainersVolumeMounts#mountPath
    */
-  readonly mountPath: string;
+  readonly mountPath?: string;
 
   /**
    * Volume's name.
    *
    * @schema V2ServiceSpecForProviderTemplateContainersVolumeMounts#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -8609,6 +11312,382 @@ export function toJson_V2ServiceSpecForProviderTemplateVolumesSecret(obj: V2Serv
     'secret': obj.secret,
     'secretRef': toJson_V2ServiceSpecForProviderTemplateVolumesSecretSecretRef(obj.secretRef),
     'secretSelector': toJson_V2ServiceSpecForProviderTemplateVolumesSecretSecretSelector(obj.secretSelector),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersEnv
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersEnv {
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersEnv#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersEnv#value
+   */
+  readonly value?: string;
+
+  /**
+   * Source for the environment variable's value. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersEnv#valueSource
+   */
+  readonly valueSource?: V2ServiceSpecInitProviderTemplateContainersEnvValueSource[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersEnv' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersEnv(obj: V2ServiceSpecInitProviderTemplateContainersEnv | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+    'valueSource': obj.valueSource?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersEnvValueSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersLivenessProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#grpc
+   */
+  readonly grpc?: V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc[];
+
+  /**
+   * HTTPGet specifies the http request to perform. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#httpGet
+   */
+  readonly httpGet?: V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TCPSocket specifies an action involving a TCP port. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#tcpSocket
+   */
+  readonly tcpSocket?: V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersLivenessProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbe(obj: V2ServiceSpecInitProviderTemplateContainersLivenessProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersPorts
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersPorts {
+  /**
+   * Port number the container listens on. This must be a valid TCP port number, 0 < containerPort < 65536.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersPorts#containerPort
+   */
+  readonly containerPort?: number;
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersPorts#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersPorts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersPorts(obj: V2ServiceSpecInitProviderTemplateContainersPorts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerPort': obj.containerPort,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersResources
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersResources {
+  /**
+   * Determines whether CPU should be throttled or not outside of requests.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersResources#cpuIdle
+   */
+  readonly cpuIdle?: boolean;
+
+  /**
+   * Only memory and CPU are supported. Note: The only supported values for CPU are '1', '2', '4', and '8'. Setting 4 CPU requires at least 2Gi of memory. The values of the map is string form of the 'quantity' k8s type: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/api/resource/quantity.go
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersResources#limits
+   */
+  readonly limits?: { [key: string]: string };
+
+  /**
+   * Determines whether CPU should be boosted on startup of a new container instance above the requested CPU threshold, this can help reduce cold-start latency.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersResources#startupCpuBoost
+   */
+  readonly startupCpuBoost?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersResources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersResources(obj: V2ServiceSpecInitProviderTemplateContainersResources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpuIdle': obj.cpuIdle,
+    'limits': ((obj.limits) === undefined) ? undefined : (Object.entries(obj.limits).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'startupCpuBoost': obj.startupCpuBoost,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersStartupProbe {
+  /**
+   * Minimum consecutive failures for the probe to be considered failed after having succeeded. Defaults to 3. Minimum value is 1.
+   *
+   * @default 3. Minimum value is 1.
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#failureThreshold
+   */
+  readonly failureThreshold?: number;
+
+  /**
+   * GRPC specifies an action involving a GRPC port. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#grpc
+   */
+  readonly grpc?: V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc[];
+
+  /**
+   * HTTPGet specifies the http request to perform. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#httpGet
+   */
+  readonly httpGet?: V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet[];
+
+  /**
+   * Number of seconds after the container has started before the probe is initiated. Defaults to 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 0 seconds. Minimum value is 0. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#initialDelaySeconds
+   */
+  readonly initialDelaySeconds?: number;
+
+  /**
+   * How often (in seconds) to perform the probe. Default to 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   *
+   * @default 10 seconds. Minimum value is 1. Maximum value for liveness probe is 3600. Maximum value for startup probe is 240. Must be greater or equal than timeoutSeconds
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#periodSeconds
+   */
+  readonly periodSeconds?: number;
+
+  /**
+   * TCPSocket specifies an action involving a TCP port. Exactly one of HTTPGet or TCPSocket must be specified. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#tcpSocket
+   */
+  readonly tcpSocket?: V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket[];
+
+  /**
+   * Number of seconds after which the probe times out. Defaults to 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   *
+   * @default 1 second. Minimum value is 1. Maximum value is 3600. Must be smaller than periodSeconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbe#timeoutSeconds
+   */
+  readonly timeoutSeconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersStartupProbe' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbe(obj: V2ServiceSpecInitProviderTemplateContainersStartupProbe | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureThreshold': obj.failureThreshold,
+    'grpc': obj.grpc?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc(y)),
+    'httpGet': obj.httpGet?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet(y)),
+    'initialDelaySeconds': obj.initialDelaySeconds,
+    'periodSeconds': obj.periodSeconds,
+    'tcpSocket': obj.tcpSocket?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket(y)),
+    'timeoutSeconds': obj.timeoutSeconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersVolumeMounts
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersVolumeMounts {
+  /**
+   * Path within the container at which the volume should be mounted. Must not contain ':'. For Cloud SQL volumes, it can be left empty, or must otherwise be /cloudsql. All instances defined in the Volume will be available as /cloudsql/[instance]. For more information on Cloud SQL volumes, visit https://cloud.google.com/sql/docs/mysql/connect-run
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersVolumeMounts#mountPath
+   */
+  readonly mountPath?: string;
+
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersVolumeMounts#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersVolumeMounts' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersVolumeMounts(obj: V2ServiceSpecInitProviderTemplateContainersVolumeMounts | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mountPath': obj.mountPath,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance
+ */
+export interface V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance {
+  /**
+   * The Cloud SQL instance connection names, as can be found in https://console.cloud.google.com/sql/instances. Visit https://cloud.google.com/sql/docs/mysql/connect-run for more information on how to connect Cloud SQL and Cloud Run. Format: {project}:{location}:{instance}
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance#instances
+   */
+  readonly instances?: string[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance(obj: V2ServiceSpecInitProviderTemplateVolumesCloudSqlInstance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instances': obj.instances?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateVolumesSecret
+ */
+export interface V2ServiceSpecInitProviderTemplateVolumesSecret {
+  /**
+   * Integer representation of mode bits to use on created files by default. Must be a value between 0000 and 0777 (octal), defaulting to 0444. Directories within the path are not affected by this setting.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesSecret#defaultMode
+   */
+  readonly defaultMode?: number;
+
+  /**
+   * If unspecified, the volume will expose a file whose name is the secret, relative to VolumeMount.mount_path. If specified, the key will be used as the version to fetch from Cloud Secret Manager and the path will be the name of the file exposed in the volume. When items are defined, they must specify a path and a version. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesSecret#items
+   */
+  readonly items?: V2ServiceSpecInitProviderTemplateVolumesSecretItems[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateVolumesSecret' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateVolumesSecret(obj: V2ServiceSpecInitProviderTemplateVolumesSecret | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultMode': obj.defaultMode,
+    'items': obj.items?.map(y => toJson_V2ServiceSpecInitProviderTemplateVolumesSecretItems(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8885,14 +11964,14 @@ export interface V2ServiceSpecForProviderTemplateVolumesSecretItems {
    *
    * @schema V2ServiceSpecForProviderTemplateVolumesSecretItems#mode
    */
-  readonly mode: number;
+  readonly mode?: number;
 
   /**
    * The relative path of the secret in the container.
    *
    * @schema V2ServiceSpecForProviderTemplateVolumesSecretItems#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
    * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
@@ -9002,6 +12081,286 @@ export function toJson_V2ServiceSpecForProviderTemplateVolumesSecretSecretSelect
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema V2ServiceSpecInitProviderTemplateContainersEnvValueSource
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersEnvValueSource {
+  /**
+   * Selects a secret and a specific version from Cloud Secret Manager. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersEnvValueSource#secretKeyRef
+   */
+  readonly secretKeyRef?: V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef[];
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersEnvValueSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersEnvValueSource(obj: V2ServiceSpecInitProviderTemplateContainersEnvValueSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'secretKeyRef': obj.secretKeyRef?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc(obj: V2ServiceSpecInitProviderTemplateContainersLivenessProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet(obj: V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket(obj: V2ServiceSpecInitProviderTemplateContainersLivenessProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc#port
+   */
+  readonly port?: number;
+
+  /**
+   * The name of the service to place in the gRPC HealthCheckRequest (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md). If this is not specified, the default behavior is defined by gRPC.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc(obj: V2ServiceSpecInitProviderTemplateContainersStartupProbeGrpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet {
+  /**
+   * Custom headers to set in the request. HTTP allows repeated headers. Structure is documented below.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet#httpHeaders
+   */
+  readonly httpHeaders?: V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders[];
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet#path
+   */
+  readonly path?: string;
+
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet(obj: V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGet | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'httpHeaders': obj.httpHeaders?.map(y => toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders(y)),
+    'path': obj.path,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket {
+  /**
+   * Port number to access on the container. Must be in the range 1 to 65535. If not specified, defaults to 8080.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket(obj: V2ServiceSpecInitProviderTemplateContainersStartupProbeTcpSocket | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateVolumesSecretItems
+ */
+export interface V2ServiceSpecInitProviderTemplateVolumesSecretItems {
+  /**
+   * Integer octal mode bits to use on this file, must be a value between 01 and 0777 (octal). If 0 or not set, the Volume's default mode will be used.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesSecretItems#mode
+   */
+  readonly mode?: number;
+
+  /**
+   * The relative path of the secret in the container.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesSecretItems#path
+   */
+  readonly path?: string;
+
+  /**
+   * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateVolumesSecretItems#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateVolumesSecretItems' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateVolumesSecretItems(obj: V2ServiceSpecInitProviderTemplateVolumesSecretItems | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+    'path': obj.path,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema V2ServiceSpecForProviderTemplateContainersEnvValueSourceSecretKeyRef
  */
 export interface V2ServiceSpecForProviderTemplateContainersEnvValueSourceSecretKeyRef {
@@ -9061,7 +12420,7 @@ export interface V2ServiceSpecForProviderTemplateContainersLivenessProbeHttpGetH
    *
    * @schema V2ServiceSpecForProviderTemplateContainersLivenessProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -9096,7 +12455,7 @@ export interface V2ServiceSpecForProviderTemplateContainersStartupProbeHttpGetHt
    *
    * @schema V2ServiceSpecForProviderTemplateContainersStartupProbeHttpGetHttpHeaders#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * The header field value
@@ -9190,6 +12549,103 @@ export function toJson_V2ServiceSpecForProviderTemplateVolumesSecretSecretSelect
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef {
+  /**
+   * The Cloud Secret Manager secret version. Can be 'latest' for the latest value or an integer for a specific version.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef(obj: V2ServiceSpecInitProviderTemplateContainersEnvValueSourceSecretKeyRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders(obj: V2ServiceSpecInitProviderTemplateContainersLivenessProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders
+ */
+export interface V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders {
+  /**
+   * Volume's name.
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders#name
+   */
+  readonly name?: string;
+
+  /**
+   * The header field value
+   *
+   * @schema V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders(obj: V2ServiceSpecInitProviderTemplateContainersStartupProbeHttpGetHttpHeaders | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

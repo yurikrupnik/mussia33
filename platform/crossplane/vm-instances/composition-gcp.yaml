@@ -1,0 +1,117 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: gcp.compositestorages.multicloud.platformref.yurikrupnik.com
+  labels:
+    provider: GCP
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+    kind: CompositeStorage
+  resources:
+#    - base:
+#        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+#        kind: Registry
+#        metadata:
+##          name: storage-registry
+#          namespace: crossplane-system
+#        spec:
+##          id: storage-registry
+#          location: us-west1
+#          compositionSelector:
+#            matchLabels:
+#              provider: GCP
+#      name: Registry
+#      patches:
+##        - fromFieldPath: metadata.name
+##          toFieldPath: metadata.name
+#        - fromFieldPath: metadata.name
+#          toFieldPath: metadata.name
+#        - fromFieldPath: spec.id
+#          toFieldPath: metadata.annotations[crossplane.io/external-name]
+#        - fromFieldPath: spec.id
+#          toFieldPath: metadata.labels[storages.multicloud.platformref.yurikrupnik.com/storage-id]
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.forProvider.location
+    - base:
+        apiVersion: storage.gcp.upbound.io/v1beta1
+        kind: Bucket
+#        metadata:
+#          name: yuriks-bucket-via-crossplane-gcp
+        spec:
+#           todo test it!
+#          writeConnectionSecretToRef:
+#            namespace: upbound-system
+#           todo test it! and compare with writeConnectionSecretToRef
+#          publishConnectionDetailsTo:
+#            name: "yuriks-sercret-via-crossplane"
+          forProvider:
+            location: US
+            uniformBucketLevelAccess: true
+            storageClass: STANDARD
+#            tags:
+#              - key: key1
+#                value: value1
+#              - key: key2
+#                value: value2
+#            labels:
+#              - key: label1
+#                value: value1
+#              - key: label2
+#                value: value2
+      name: Bucket
+      patches:
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.annotations[crossplane.io/external-name]
+        - fromFieldPath: spec.id
+          toFieldPath: metadata.labels[storages.multicloud.platformref.yurikrupnik.com/storage-id]
+        - fromFieldPath: spec.location
+          toFieldPath: spec.forProvider.location
+        - fromFieldPath: spec.storageClass
+          toFieldPath: spec.forProvider.storageClass
+          #           todo test it!
+        - type: ToCompositeFieldPath
+          fromFieldPath: status.atProvider.selfLink
+          toFieldPath: status.shit
+#          next line does not sync
+#          toFieldPath: metadata.labels['self-link']
+        #           todo test it!
+        - type: CombineToComposite
+          combine:
+            variables:
+              - fromFieldPath: metadata.name
+              - fromFieldPath: spec.forProvider.region
+            strategy: string
+            string:
+              fmt: "https://%s.%s.com"
+          toFieldPath: status.url
+#        - fromFieldPath: spec.labels
+#          toFieldPath: spec.forProvider.labels
+#        - fromFieldPath: spec.location
+#          toFieldPath: spec.writeConnectionSecretToRef.name
+#          transforms:
+#            - type: string
+#              string:
+#                fmt: "%s-secret2"
+      connectionDetails:
+#        - fromConnectionSecretKey: requesterPays
+#          name: requesterPays
+#        - fromFieldPath: "status.atProvider.id"
+#          name: id
+#        - fromFieldPath: "status.atProvider.location"
+#          name: location
+        - fromFieldPath: "status.atProvider.selfLink"
+          name: selfLink
+        - fromFieldPath: "spec.forProvider.project"
+          name: project
+#          todo how does this work? - value is coming in same as in status.at|Provider.storageClass
+#        without passing through spec.forProvider.storageClass
+        - fromFieldPath: "spec.forProvider.storageClass"
+          name: storageClass
+        - fromFieldPath: "status.atProvider.storageClass"
+          name: class
+        - fromFieldPath: "status.atProvider.url"
+          name: url
+#        - fromConnectionSecretKey: "attribute.password"
+#          name: password

@@ -99,7 +99,7 @@ export function toJson_InstanceProps(obj: InstanceProps | undefined): Record<str
  */
 export interface InstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InstanceSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface InstanceSpec {
   readonly forProvider: InstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InstanceSpec#managementPolicy
+   * @schema InstanceSpec#initProvider
    */
-  readonly managementPolicy?: InstanceSpecManagementPolicy;
+  readonly initProvider?: InstanceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: InstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface InstanceSpec {
    * @schema InstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: InstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InstanceSpec#providerRef
-   */
-  readonly providerRef?: InstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_InstanceSpec(obj: InstanceSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InstanceSpecDeletionPolicy
  */
@@ -259,13 +259,6 @@ export interface InstanceSpecForProvider {
    * @schema InstanceSpecForProvider#maintenancePolicy
    */
   readonly maintenancePolicy?: InstanceSpecForProviderMaintenancePolicy[];
-
-  /**
-   * Upcoming maintenance schedule. Structure is documented below.
-   *
-   * @schema InstanceSpecForProvider#maintenanceSchedule
-   */
-  readonly maintenanceSchedule?: any[];
 
   /**
    * Redis memory size in GiB.
@@ -371,7 +364,6 @@ export function toJson_InstanceSpecForProvider(obj: InstanceSpecForProvider | un
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'locationId': obj.locationId,
     'maintenancePolicy': obj.maintenancePolicy?.map(y => toJson_InstanceSpecForProviderMaintenancePolicy(y)),
-    'maintenanceSchedule': obj.maintenanceSchedule?.map(y => y),
     'memorySizeGb': obj.memorySizeGb,
     'persistenceConfig': obj.persistenceConfig?.map(y => toJson_InstanceSpecForProviderPersistenceConfig(y)),
     'project': obj.project,
@@ -391,17 +383,196 @@ export function toJson_InstanceSpecForProvider(obj: InstanceSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InstanceSpecManagementPolicy
+ * @schema InstanceSpecInitProvider
  */
-export enum InstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InstanceSpecInitProvider {
+  /**
+   * Only applicable to STANDARD_HA tier which protects the instance against zonal failures by provisioning it across two zones. If provided, it must be a different zone from the one provided in [locationId].
+   *
+   * @schema InstanceSpecInitProvider#alternativeLocationId
+   */
+  readonly alternativeLocationId?: string;
+
+  /**
+   * Optional. Indicates whether OSS Redis AUTH is enabled for the instance. If set to "true" AUTH is enabled on the instance. Default value is "false" meaning AUTH is disabled.
+   *
+   * @schema InstanceSpecInitProvider#authEnabled
+   */
+  readonly authEnabled?: boolean;
+
+  /**
+   * The full name of the Google Compute Engine network to which the instance is connected. If left unspecified, the default network will be used.
+   *
+   * @schema InstanceSpecInitProvider#authorizedNetwork
+   */
+  readonly authorizedNetwork?: string;
+
+  /**
+   * The connection mode of the Redis instance. Default value is DIRECT_PEERING. Possible values are: DIRECT_PEERING, PRIVATE_SERVICE_ACCESS.
+   *
+   * @schema InstanceSpecInitProvider#connectMode
+   */
+  readonly connectMode?: string;
+
+  /**
+   * An arbitrary and optional user-provided name for the instance.
+   *
+   * @schema InstanceSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Resource labels to represent user provided metadata.
+   *
+   * @schema InstanceSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The zone where the instance will be provisioned. If not provided, the service will choose a zone for the instance. For STANDARD_HA tier, instances will be created across two zones for protection against zonal failures. If [alternativeLocationId] is also provided, it must be different from [locationId].
+   *
+   * @schema InstanceSpecInitProvider#locationId
+   */
+  readonly locationId?: string;
+
+  /**
+   * Maintenance policy for an instance. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#maintenancePolicy
+   */
+  readonly maintenancePolicy?: InstanceSpecInitProviderMaintenancePolicy[];
+
+  /**
+   * Redis memory size in GiB.
+   *
+   * @schema InstanceSpecInitProvider#memorySizeGb
+   */
+  readonly memorySizeGb?: number;
+
+  /**
+   * Persistence configuration for an instance. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProvider#persistenceConfig
+   */
+  readonly persistenceConfig?: InstanceSpecInitProviderPersistenceConfig[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema InstanceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Optional. Read replica mode. Can only be specified when trying to create the instance. If not set, Memorystore Redis backend will default to READ_REPLICAS_DISABLED.
+   *
+   * @schema InstanceSpecInitProvider#readReplicasMode
+   */
+  readonly readReplicasMode?: string;
+
+  /**
+   * Redis configuration parameters, according to http://redis.io/topics/config. Please check Memorystore documentation for the list of supported parameters: https://cloud.google.com/memorystore/docs/redis/reference/rest/v1/projects.locations.instances#Instance.FIELDS.redis_configs
+   *
+   * @schema InstanceSpecInitProvider#redisConfigs
+   */
+  readonly redisConfigs?: { [key: string]: string };
+
+  /**
+   * The version of Redis software. If not provided, latest supported version will be used. Please check the API documentation linked at the top for the latest valid values.
+   *
+   * @schema InstanceSpecInitProvider#redisVersion
+   */
+  readonly redisVersion?: string;
+
+  /**
+   * Optional. The number of replica nodes. The valid range for the Standard Tier with read replicas enabled is [1-5] and defaults to 2. If read replicas are not enabled for a Standard Tier instance, the only valid value is 1 and the default is 1. The valid value for basic tier is 0 and the default is also 0.
+   *
+   * @schema InstanceSpecInitProvider#replicaCount
+   */
+  readonly replicaCount?: number;
+
+  /**
+   * The CIDR range of internal addresses that are reserved for this instance. If not provided, the service will choose an unused /29 block, for example, 10.0.0.0/29 or 192.168.0.0/29. Ranges must be unique and non-overlapping with existing subnets in an authorized network.
+   *
+   * @schema InstanceSpecInitProvider#reservedIpRange
+   */
+  readonly reservedIpRange?: string;
+
+  /**
+   * Optional. Additional IP range for node placement. Required when enabling read replicas on an existing instance. For DIRECT_PEERING mode value must be a CIDR range of size /28, or "auto". For PRIVATE_SERVICE_ACCESS mode value must be the name of an allocated address range associated with the private service access connection, or "auto".
+   *
+   * @schema InstanceSpecInitProvider#secondaryIpRange
+   */
+  readonly secondaryIpRange?: string;
+
+  /**
+   * The service tier of the instance. Must be one of these values:
+   *
+   * @schema InstanceSpecInitProvider#tier
+   */
+  readonly tier?: string;
+
+  /**
+   * The TLS mode of the Redis instance, If not provided, TLS is disabled for the instance.
+   *
+   * @schema InstanceSpecInitProvider#transitEncryptionMode
+   */
+  readonly transitEncryptionMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProvider(obj: InstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alternativeLocationId': obj.alternativeLocationId,
+    'authEnabled': obj.authEnabled,
+    'authorizedNetwork': obj.authorizedNetwork,
+    'connectMode': obj.connectMode,
+    'displayName': obj.displayName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'locationId': obj.locationId,
+    'maintenancePolicy': obj.maintenancePolicy?.map(y => toJson_InstanceSpecInitProviderMaintenancePolicy(y)),
+    'memorySizeGb': obj.memorySizeGb,
+    'persistenceConfig': obj.persistenceConfig?.map(y => toJson_InstanceSpecInitProviderPersistenceConfig(y)),
+    'project': obj.project,
+    'readReplicasMode': obj.readReplicasMode,
+    'redisConfigs': ((obj.redisConfigs) === undefined) ? undefined : (Object.entries(obj.redisConfigs).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'redisVersion': obj.redisVersion,
+    'replicaCount': obj.replicaCount,
+    'reservedIpRange': obj.reservedIpRange,
+    'secondaryIpRange': obj.secondaryIpRange,
+    'tier': obj.tier,
+    'transitEncryptionMode': obj.transitEncryptionMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InstanceSpecManagementPolicies
+ */
+export enum InstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -435,43 +606,6 @@ export function toJson_InstanceSpecProviderConfigRef(obj: InstanceSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_InstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InstanceSpecProviderRef
- */
-export interface InstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InstanceSpecProviderRef#policy
-   */
-  readonly policy?: InstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRef(obj: InstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -721,6 +855,84 @@ export function toJson_InstanceSpecForProviderPersistenceConfig(obj: InstanceSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema InstanceSpecInitProviderMaintenancePolicy
+ */
+export interface InstanceSpecInitProviderMaintenancePolicy {
+  /**
+   * Optional. Description of what this policy is for. Create/Update methods return INVALID_ARGUMENT if the length is greater than 512.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicy#description
+   */
+  readonly description?: string;
+
+  /**
+   * Optional. Maintenance window that is applied to resources covered by this policy. Minimum 1. For the current version, the maximum number of weekly_window is expected to be one. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicy#weeklyMaintenanceWindow
+   */
+  readonly weeklyMaintenanceWindow?: InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow[];
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderMaintenancePolicy(obj: InstanceSpecInitProviderMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'weeklyMaintenanceWindow': obj.weeklyMaintenanceWindow?.map(y => toJson_InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderPersistenceConfig
+ */
+export interface InstanceSpecInitProviderPersistenceConfig {
+  /**
+   * Optional. Controls whether Persistence features are enabled. If not provided, the existing value will be used.
+   *
+   * @schema InstanceSpecInitProviderPersistenceConfig#persistenceMode
+   */
+  readonly persistenceMode?: string;
+
+  /**
+   * Optional. Available snapshot periods for scheduling.
+   *
+   * @schema InstanceSpecInitProviderPersistenceConfig#rdbSnapshotPeriod
+   */
+  readonly rdbSnapshotPeriod?: string;
+
+  /**
+   * Optional. Date and time that the first snapshot was/will be attempted, and to which future snapshots will be aligned. If not provided, the current time will be used. A timestamp in RFC3339 UTC "Zulu" format, with nanosecond resolution and up to nine fractional digits. Examples: "2014-10-02T15:01:23Z" and "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema InstanceSpecInitProviderPersistenceConfig#rdbSnapshotStartTime
+   */
+  readonly rdbSnapshotStartTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderPersistenceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderPersistenceConfig(obj: InstanceSpecInitProviderPersistenceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'persistenceMode': obj.persistenceMode,
+    'rdbSnapshotPeriod': obj.rdbSnapshotPeriod,
+    'rdbSnapshotStartTime': obj.rdbSnapshotStartTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema InstanceSpecProviderConfigRefPolicy
@@ -747,43 +959,6 @@ export interface InstanceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceSpecProviderConfigRefPolicy(obj: InstanceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InstanceSpecProviderRefPolicy
- */
-export interface InstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InstanceSpecProviderRefPolicy(obj: InstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -959,14 +1134,14 @@ export interface InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindow
    *
    * @schema InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindow#day
    */
-  readonly day: string;
+  readonly day?: string;
 
   /**
    * Required. Start time of the window in UTC time. Structure is documented below.
    *
    * @schema InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindow#startTime
    */
-  readonly startTime: InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime[];
+  readonly startTime?: InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime[];
 
 }
 
@@ -979,6 +1154,41 @@ export function toJson_InstanceSpecForProviderMaintenancePolicyWeeklyMaintenance
   const result = {
     'day': obj.day,
     'startTime': obj.startTime?.map(y => toJson_InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow
+ */
+export interface InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow {
+  /**
+   * Required. The day of week that maintenance updates occur.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow#day
+   */
+  readonly day?: string;
+
+  /**
+   * Required. Start time of the window in UTC time. Structure is documented below.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow#startTime
+   */
+  readonly startTime?: InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime[];
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow(obj: InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'day': obj.day,
+    'startTime': obj.startTime?.map(y => toJson_InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1003,30 +1213,6 @@ export enum InstanceSpecProviderConfigRefPolicyResolution {
  * @schema InstanceSpecProviderConfigRefPolicyResolve
  */
 export enum InstanceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InstanceSpecProviderRefPolicyResolution
- */
-export enum InstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InstanceSpecProviderRefPolicyResolve
- */
-export enum InstanceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1157,6 +1343,57 @@ export interface InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindow
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime(obj: InstanceSpecForProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hours': obj.hours,
+    'minutes': obj.minutes,
+    'nanos': obj.nanos,
+    'seconds': obj.seconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime
+ */
+export interface InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime {
+  /**
+   * Hours of day in 24 hour format. Should be from 0 to 23. An API may choose to allow the value "24:00:00" for scenarios like business closing time.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime#hours
+   */
+  readonly hours?: number;
+
+  /**
+   * Minutes of hour of day. Must be from 0 to 59.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime#minutes
+   */
+  readonly minutes?: number;
+
+  /**
+   * Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime#nanos
+   */
+  readonly nanos?: number;
+
+  /**
+   * Seconds of minutes of the time. Must normally be from 0 to 59. An API may allow the value 60 if it allows leap-seconds.
+   *
+   * @schema InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime#seconds
+   */
+  readonly seconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime(obj: InstanceSpecInitProviderMaintenancePolicyWeeklyMaintenanceWindowStartTime | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'hours': obj.hours,

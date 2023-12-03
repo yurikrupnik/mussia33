@@ -49,6 +49,8 @@ spec:
     kind: Network
     plural: networks
   group: multicloud.platformref.yurikrupnik.com
+  defaultCompositionRef:
+    name: gcp.compositenetworks.multicloud.platformref.yurikrupnik.com
   names:
     kind: CompositeNetwork
     plural: compositenetworks

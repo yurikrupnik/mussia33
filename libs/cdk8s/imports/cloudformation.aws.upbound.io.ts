@@ -99,7 +99,7 @@ export function toJson_StackProps(obj: StackProps | undefined): Record<string, a
  */
 export interface StackSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StackSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface StackSpec {
   readonly forProvider: StackSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StackSpec#managementPolicy
+   * @schema StackSpec#initProvider
    */
-  readonly managementPolicy?: StackSpecManagementPolicy;
+  readonly initProvider?: StackSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StackSpec#managementPolicies
+   */
+  readonly managementPolicies?: StackSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface StackSpec {
    * @schema StackSpec#providerConfigRef
    */
   readonly providerConfigRef?: StackSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StackSpec#providerRef
-   */
-  readonly providerRef?: StackSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_StackSpec(obj: StackSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StackSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StackSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StackSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StackSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StackSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StackSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_StackSpec(obj: StackSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StackSpecDeletionPolicy
  */
@@ -327,17 +327,132 @@ export function toJson_StackSpecForProvider(obj: StackSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StackSpecManagementPolicy
+ * @schema StackSpecInitProvider
  */
-export enum StackSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StackSpecInitProvider {
+  /**
+   * A list of capabilities. Valid values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, or CAPABILITY_AUTO_EXPAND
+   *
+   * @schema StackSpecInitProvider#capabilities
+   */
+  readonly capabilities?: string[];
+
+  /**
+   * Set to true to disable rollback of the stack if stack creation failed. Conflicts with on_failure.
+   *
+   * @schema StackSpecInitProvider#disableRollback
+   */
+  readonly disableRollback?: boolean;
+
+  /**
+   * A list of SNS topic ARNs to publish stack related events.
+   *
+   * @schema StackSpecInitProvider#notificationArns
+   */
+  readonly notificationArns?: string[];
+
+  /**
+   * Action to be taken if stack creation fails. This must be one of: DO_NOTHING, ROLLBACK, or DELETE. Conflicts with disable_rollback.
+   *
+   * @schema StackSpecInitProvider#onFailure
+   */
+  readonly onFailure?: string;
+
+  /**
+   * A map of Parameter structures that specify input parameters for the stack.
+   *
+   * @schema StackSpecInitProvider#parameters
+   */
+  readonly parameters?: { [key: string]: string };
+
+  /**
+   * Structure containing the stack policy body. Conflicts w/ policy_url.
+   *
+   * @schema StackSpecInitProvider#policyBody
+   */
+  readonly policyBody?: string;
+
+  /**
+   * Location of a file containing the stack policy. Conflicts w/ policy_body.
+   *
+   * @schema StackSpecInitProvider#policyUrl
+   */
+  readonly policyUrl?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StackSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Structure containing the template body (max size: 51,200 bytes).
+   *
+   * @schema StackSpecInitProvider#templateBody
+   */
+  readonly templateBody?: string;
+
+  /**
+   * Location of a file containing the template body (max size: 460,800 bytes).
+   *
+   * @schema StackSpecInitProvider#templateUrl
+   */
+  readonly templateUrl?: string;
+
+  /**
+   * The amount of time that can pass before the stack status becomes CREATE_FAILED.
+   *
+   * @schema StackSpecInitProvider#timeoutInMinutes
+   */
+  readonly timeoutInMinutes?: number;
+
+}
+
+/**
+ * Converts an object of type 'StackSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSpecInitProvider(obj: StackSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'capabilities': obj.capabilities?.map(y => y),
+    'disableRollback': obj.disableRollback,
+    'notificationArns': obj.notificationArns?.map(y => y),
+    'onFailure': obj.onFailure,
+    'parameters': ((obj.parameters) === undefined) ? undefined : (Object.entries(obj.parameters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policyBody': obj.policyBody,
+    'policyUrl': obj.policyUrl,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'templateBody': obj.templateBody,
+    'templateUrl': obj.templateUrl,
+    'timeoutInMinutes': obj.timeoutInMinutes,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StackSpecManagementPolicies
+ */
+export enum StackSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -371,43 +486,6 @@ export function toJson_StackSpecProviderConfigRef(obj: StackSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_StackSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StackSpecProviderRef
- */
-export interface StackSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StackSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StackSpecProviderRef#policy
-   */
-  readonly policy?: StackSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StackSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSpecProviderRef(obj: StackSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StackSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -616,43 +694,6 @@ export function toJson_StackSpecProviderConfigRefPolicy(obj: StackSpecProviderCo
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema StackSpecProviderRefPolicy
- */
-export interface StackSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StackSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StackSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StackSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StackSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StackSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSpecProviderRefPolicy(obj: StackSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema StackSpecPublishConnectionDetailsToConfigRef
@@ -826,30 +867,6 @@ export enum StackSpecProviderConfigRefPolicyResolution {
  * @schema StackSpecProviderConfigRefPolicyResolve
  */
 export enum StackSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StackSpecProviderRefPolicyResolution
- */
-export enum StackSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StackSpecProviderRefPolicyResolve
- */
-export enum StackSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1062,7 +1079,7 @@ export function toJson_StackSetProps(obj: StackSetProps | undefined): Record<str
  */
 export interface StackSetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StackSetSpec#deletionPolicy
    */
@@ -1074,11 +1091,18 @@ export interface StackSetSpec {
   readonly forProvider: StackSetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StackSetSpec#managementPolicy
+   * @schema StackSetSpec#initProvider
    */
-  readonly managementPolicy?: StackSetSpecManagementPolicy;
+  readonly initProvider?: StackSetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StackSetSpec#managementPolicies
+   */
+  readonly managementPolicies?: StackSetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1086,13 +1110,6 @@ export interface StackSetSpec {
    * @schema StackSetSpec#providerConfigRef
    */
   readonly providerConfigRef?: StackSetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StackSetSpec#providerRef
-   */
-  readonly providerRef?: StackSetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1119,9 +1136,9 @@ export function toJson_StackSetSpec(obj: StackSetSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StackSetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StackSetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StackSetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StackSetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StackSetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StackSetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1131,7 +1148,7 @@ export function toJson_StackSetSpec(obj: StackSetSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StackSetSpecDeletionPolicy
  */
@@ -1283,17 +1300,133 @@ export function toJson_StackSetSpecForProvider(obj: StackSetSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StackSetSpecManagementPolicy
+ * @schema StackSetSpecInitProvider
  */
-export enum StackSetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StackSetSpecInitProvider {
+  /**
+   * Configuration block containing the auto-deployment model for your StackSet. This can only be defined when using the SERVICE_MANAGED permission model.
+   *
+   * @schema StackSetSpecInitProvider#autoDeployment
+   */
+  readonly autoDeployment?: StackSetSpecInitProviderAutoDeployment[];
+
+  /**
+   * Specifies whether you are acting as an account administrator in the organization's management account or as a delegated administrator in a member account. Valid values: SELF (default), DELEGATED_ADMIN.
+   *
+   * @schema StackSetSpecInitProvider#callAs
+   */
+  readonly callAs?: string;
+
+  /**
+   * A list of capabilities. Valid values: CAPABILITY_IAM, CAPABILITY_NAMED_IAM, CAPABILITY_AUTO_EXPAND.
+   *
+   * @schema StackSetSpecInitProvider#capabilities
+   */
+  readonly capabilities?: string[];
+
+  /**
+   * Description of the StackSet.
+   *
+   * @schema StackSetSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Name of the IAM Role in all target accounts for StackSet operations. Defaults to AWSCloudFormationStackSetExecutionRole when using the SELF_MANAGED permission model. This should not be defined when using the SERVICE_MANAGED permission model.
+   *
+   * @default AWSCloudFormationStackSetExecutionRole when using the SELF_MANAGED permission model. This should not be defined when using the SERVICE_MANAGED permission model.
+   * @schema StackSetSpecInitProvider#executionRoleName
+   */
+  readonly executionRoleName?: string;
+
+  /**
+   * Preferences for how AWS CloudFormation performs a stack set update.
+   *
+   * @schema StackSetSpecInitProvider#operationPreferences
+   */
+  readonly operationPreferences?: StackSetSpecInitProviderOperationPreferences[];
+
+  /**
+   * Key-value map of input parameters for the StackSet template. All template parameters, including those with a Default, must be configured or ignored with lifecycle configuration block ignore_changes argument. All NoEcho template parameters must be ignored with the lifecycle configuration block ignore_changes argument.
+   *
+   * @schema StackSetSpecInitProvider#parameters
+   */
+  readonly parameters?: { [key: string]: string };
+
+  /**
+   * Describes how the IAM roles required for your StackSet are created. Valid values: SELF_MANAGED (default), SERVICE_MANAGED.
+   *
+   * @schema StackSetSpecInitProvider#permissionModel
+   */
+  readonly permissionModel?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StackSetSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * String containing the CloudFormation template body. Maximum size: 51,200 bytes. Conflicts with template_url.
+   *
+   * @schema StackSetSpecInitProvider#templateBody
+   */
+  readonly templateBody?: string;
+
+  /**
+   * String containing the location of a file containing the CloudFormation template body. The URL must point to a template that is located in an Amazon S3 bucket. Maximum location file size: 460,800 bytes. Conflicts with template_body.
+   *
+   * @schema StackSetSpecInitProvider#templateUrl
+   */
+  readonly templateUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'StackSetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSetSpecInitProvider(obj: StackSetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoDeployment': obj.autoDeployment?.map(y => toJson_StackSetSpecInitProviderAutoDeployment(y)),
+    'callAs': obj.callAs,
+    'capabilities': obj.capabilities?.map(y => y),
+    'description': obj.description,
+    'executionRoleName': obj.executionRoleName,
+    'operationPreferences': obj.operationPreferences?.map(y => toJson_StackSetSpecInitProviderOperationPreferences(y)),
+    'parameters': ((obj.parameters) === undefined) ? undefined : (Object.entries(obj.parameters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'permissionModel': obj.permissionModel,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'templateBody': obj.templateBody,
+    'templateUrl': obj.templateUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StackSetSpecManagementPolicies
+ */
+export enum StackSetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1327,43 +1460,6 @@ export function toJson_StackSetSpecProviderConfigRef(obj: StackSetSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_StackSetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StackSetSpecProviderRef
- */
-export interface StackSetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StackSetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StackSetSpecProviderRef#policy
-   */
-  readonly policy?: StackSetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StackSetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSetSpecProviderRef(obj: StackSetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StackSetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1637,6 +1733,108 @@ export function toJson_StackSetSpecForProviderOperationPreferences(obj: StackSet
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StackSetSpecInitProviderAutoDeployment
+ */
+export interface StackSetSpecInitProviderAutoDeployment {
+  /**
+   * Whether or not auto-deployment is enabled.
+   *
+   * @schema StackSetSpecInitProviderAutoDeployment#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Whether or not to retain stacks when the account is removed.
+   *
+   * @schema StackSetSpecInitProviderAutoDeployment#retainStacksOnAccountRemoval
+   */
+  readonly retainStacksOnAccountRemoval?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StackSetSpecInitProviderAutoDeployment' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSetSpecInitProviderAutoDeployment(obj: StackSetSpecInitProviderAutoDeployment | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'retainStacksOnAccountRemoval': obj.retainStacksOnAccountRemoval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StackSetSpecInitProviderOperationPreferences
+ */
+export interface StackSetSpecInitProviderOperationPreferences {
+  /**
+   * The number of accounts, per Region, for which this operation can fail before AWS CloudFormation stops the operation in that Region.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#failureToleranceCount
+   */
+  readonly failureToleranceCount?: number;
+
+  /**
+   * The percentage of accounts, per Region, for which this stack operation can fail before AWS CloudFormation stops the operation in that Region.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#failureTolerancePercentage
+   */
+  readonly failureTolerancePercentage?: number;
+
+  /**
+   * The maximum number of accounts in which to perform this operation at one time.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#maxConcurrentCount
+   */
+  readonly maxConcurrentCount?: number;
+
+  /**
+   * The maximum percentage of accounts in which to perform this operation at one time.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#maxConcurrentPercentage
+   */
+  readonly maxConcurrentPercentage?: number;
+
+  /**
+   * The concurrency type of deploying StackSets operations in Regions, could be in parallel or one Region at a time.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#regionConcurrencyType
+   */
+  readonly regionConcurrencyType?: string;
+
+  /**
+   * The order of the Regions in where you want to perform the stack operation.
+   *
+   * @schema StackSetSpecInitProviderOperationPreferences#regionOrder
+   */
+  readonly regionOrder?: string[];
+
+}
+
+/**
+ * Converts an object of type 'StackSetSpecInitProviderOperationPreferences' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StackSetSpecInitProviderOperationPreferences(obj: StackSetSpecInitProviderOperationPreferences | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failureToleranceCount': obj.failureToleranceCount,
+    'failureTolerancePercentage': obj.failureTolerancePercentage,
+    'maxConcurrentCount': obj.maxConcurrentCount,
+    'maxConcurrentPercentage': obj.maxConcurrentPercentage,
+    'regionConcurrencyType': obj.regionConcurrencyType,
+    'regionOrder': obj.regionOrder?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema StackSetSpecProviderConfigRefPolicy
@@ -1663,43 +1861,6 @@ export interface StackSetSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_StackSetSpecProviderConfigRefPolicy(obj: StackSetSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema StackSetSpecProviderRefPolicy
- */
-export interface StackSetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StackSetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StackSetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StackSetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StackSetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StackSetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StackSetSpecProviderRefPolicy(obj: StackSetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1884,30 +2045,6 @@ export enum StackSetSpecProviderConfigRefPolicyResolution {
  * @schema StackSetSpecProviderConfigRefPolicyResolve
  */
 export enum StackSetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StackSetSpecProviderRefPolicyResolution
- */
-export enum StackSetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StackSetSpecProviderRefPolicyResolve
- */
-export enum StackSetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_DomainProps(obj: DomainProps | undefined): Record<string,
  */
 export interface DomainSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DomainSpec {
   readonly forProvider: DomainSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainSpec#managementPolicy
+   * @schema DomainSpec#initProvider
    */
-  readonly managementPolicy?: DomainSpecManagementPolicy;
+  readonly initProvider?: DomainSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainSpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DomainSpec {
    * @schema DomainSpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainSpec#providerRef
-   */
-  readonly providerRef?: DomainSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainSpecDeletionPolicy
  */
@@ -328,17 +328,165 @@ export function toJson_DomainSpecForProvider(obj: DomainSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainSpecManagementPolicy
+ * @schema DomainSpecInitProvider
  */
-export enum DomainSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainSpecInitProvider {
+  /**
+   * IAM policy document specifying the access policies for the domain.
+   *
+   * @schema DomainSpecInitProvider#accessPolicies
+   */
+  readonly accessPolicies?: string;
+
+  /**
+   * Key-value string pairs to specify advanced configuration options.
+   *
+   * @schema DomainSpecInitProvider#advancedOptions
+   */
+  readonly advancedOptions?: { [key: string]: string };
+
+  /**
+   * Configuration block for fine-grained access control. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#advancedSecurityOptions
+   */
+  readonly advancedSecurityOptions?: DomainSpecInitProviderAdvancedSecurityOptions[];
+
+  /**
+   * Configuration block for the Auto-Tune options of the domain. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#autoTuneOptions
+   */
+  readonly autoTuneOptions?: DomainSpecInitProviderAutoTuneOptions[];
+
+  /**
+   * Configuration block for the cluster of the domain. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#clusterConfig
+   */
+  readonly clusterConfig?: DomainSpecInitProviderClusterConfig[];
+
+  /**
+   * Configuration block for authenticating Kibana with Cognito. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#cognitoOptions
+   */
+  readonly cognitoOptions?: DomainSpecInitProviderCognitoOptions[];
+
+  /**
+   * Configuration block for domain endpoint HTTP(S) related options. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#domainEndpointOptions
+   */
+  readonly domainEndpointOptions?: DomainSpecInitProviderDomainEndpointOptions[];
+
+  /**
+   * Configuration block for EBS related options, may be required based on chosen instance size. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#ebsOptions
+   */
+  readonly ebsOptions?: DomainSpecInitProviderEbsOptions[];
+
+  /**
+   * Version of Elasticsearch to deploy. Defaults to 1.5.
+   *
+   * @default 1.5.
+   * @schema DomainSpecInitProvider#elasticsearchVersion
+   */
+  readonly elasticsearchVersion?: string;
+
+  /**
+   * Configuration block for encrypt at rest options. Only available for certain instance types. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#encryptAtRest
+   */
+  readonly encryptAtRest?: DomainSpecInitProviderEncryptAtRest[];
+
+  /**
+   * Configuration block for publishing slow and application logs to CloudWatch Logs. This block can be declared multiple times, for each log_type, within the same resource. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#logPublishingOptions
+   */
+  readonly logPublishingOptions?: DomainSpecInitProviderLogPublishingOptions[];
+
+  /**
+   * Configuration block for node-to-node encryption options. Detailed below.
+   *
+   * @schema DomainSpecInitProvider#nodeToNodeEncryption
+   */
+  readonly nodeToNodeEncryption?: DomainSpecInitProviderNodeToNodeEncryption[];
+
+  /**
+   * Configuration block for snapshot related options. Detailed below. DEPRECATED. For domains running Elasticsearch 5.3 and later, Amazon ES takes hourly automated snapshots, making this setting irrelevant. For domains running earlier versions of Elasticsearch, Amazon ES takes daily automated snapshots.
+   *
+   * @schema DomainSpecInitProvider#snapshotOptions
+   */
+  readonly snapshotOptions?: DomainSpecInitProviderSnapshotOptions[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DomainSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Configuration block for VPC related options. Adding or removing this configuration forces a new resource (documentation). Detailed below.
+   *
+   * @schema DomainSpecInitProvider#vpcOptions
+   */
+  readonly vpcOptions?: DomainSpecInitProviderVpcOptions[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProvider(obj: DomainSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessPolicies': obj.accessPolicies,
+    'advancedOptions': ((obj.advancedOptions) === undefined) ? undefined : (Object.entries(obj.advancedOptions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'advancedSecurityOptions': obj.advancedSecurityOptions?.map(y => toJson_DomainSpecInitProviderAdvancedSecurityOptions(y)),
+    'autoTuneOptions': obj.autoTuneOptions?.map(y => toJson_DomainSpecInitProviderAutoTuneOptions(y)),
+    'clusterConfig': obj.clusterConfig?.map(y => toJson_DomainSpecInitProviderClusterConfig(y)),
+    'cognitoOptions': obj.cognitoOptions?.map(y => toJson_DomainSpecInitProviderCognitoOptions(y)),
+    'domainEndpointOptions': obj.domainEndpointOptions?.map(y => toJson_DomainSpecInitProviderDomainEndpointOptions(y)),
+    'ebsOptions': obj.ebsOptions?.map(y => toJson_DomainSpecInitProviderEbsOptions(y)),
+    'elasticsearchVersion': obj.elasticsearchVersion,
+    'encryptAtRest': obj.encryptAtRest?.map(y => toJson_DomainSpecInitProviderEncryptAtRest(y)),
+    'logPublishingOptions': obj.logPublishingOptions?.map(y => toJson_DomainSpecInitProviderLogPublishingOptions(y)),
+    'nodeToNodeEncryption': obj.nodeToNodeEncryption?.map(y => toJson_DomainSpecInitProviderNodeToNodeEncryption(y)),
+    'snapshotOptions': obj.snapshotOptions?.map(y => toJson_DomainSpecInitProviderSnapshotOptions(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vpcOptions': obj.vpcOptions?.map(y => toJson_DomainSpecInitProviderVpcOptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainSpecManagementPolicies
+ */
+export enum DomainSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -372,43 +520,6 @@ export function toJson_DomainSpecProviderConfigRef(obj: DomainSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_DomainSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainSpecProviderRef
- */
-export interface DomainSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainSpecProviderRef#policy
-   */
-  readonly policy?: DomainSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRef(obj: DomainSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -506,7 +617,7 @@ export interface DomainSpecForProviderAdvancedSecurityOptions {
    *
    * @schema DomainSpecForProviderAdvancedSecurityOptions#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * Whether the internal user database is enabled. If not set, defaults to false by the AWS API.
@@ -549,7 +660,7 @@ export interface DomainSpecForProviderAutoTuneOptions {
    *
    * @schema DomainSpecForProviderAutoTuneOptions#desiredState
    */
-  readonly desiredState: string;
+  readonly desiredState?: string;
 
   /**
    * Configuration block for Auto-Tune maintenance windows. Can be specified multiple times for each maintenance window. Detailed below.
@@ -706,21 +817,21 @@ export interface DomainSpecForProviderCognitoOptions {
    *
    * @schema DomainSpecForProviderCognitoOptions#identityPoolId
    */
-  readonly identityPoolId: string;
+  readonly identityPoolId?: string;
 
   /**
    * ARN of the IAM role that has the AmazonESCognitoAccess policy attached.
    *
    * @schema DomainSpecForProviderCognitoOptions#roleArn
    */
-  readonly roleArn: string;
+  readonly roleArn?: string;
 
   /**
    * ID of the Cognito User Pool to use.
    *
    * @schema DomainSpecForProviderCognitoOptions#userPoolId
    */
-  readonly userPoolId: string;
+  readonly userPoolId?: string;
 
 }
 
@@ -810,7 +921,7 @@ export interface DomainSpecForProviderEbsOptions {
    *
    * @schema DomainSpecForProviderEbsOptions#ebsEnabled
    */
-  readonly ebsEnabled: boolean;
+  readonly ebsEnabled?: boolean;
 
   /**
    * Baseline input/output (I/O) performance of EBS volumes attached to data nodes. Applicable only for the GP3 and Provisioned IOPS EBS volume types.
@@ -869,7 +980,7 @@ export interface DomainSpecForProviderEncryptAtRest {
    *
    * @schema DomainSpecForProviderEncryptAtRest#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * KMS key ARN to encrypt the Elasticsearch domain with. If not specified then it defaults to using the aws/es service KMS key. Note that KMS will accept a KMS key ID but will return the key ARN.
@@ -932,7 +1043,7 @@ export interface DomainSpecForProviderLogPublishingOptions {
    *
    * @schema DomainSpecForProviderLogPublishingOptions#logType
    */
-  readonly logType: string;
+  readonly logType?: string;
 
 }
 
@@ -963,7 +1074,7 @@ export interface DomainSpecForProviderNodeToNodeEncryption {
    *
    * @schema DomainSpecForProviderNodeToNodeEncryption#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -990,7 +1101,7 @@ export interface DomainSpecForProviderSnapshotOptions {
    *
    * @schema DomainSpecForProviderSnapshotOptions#automatedSnapshotStartHour
    */
-  readonly automatedSnapshotStartHour: number;
+  readonly automatedSnapshotStartHour?: number;
 
 }
 
@@ -1044,6 +1155,528 @@ export function toJson_DomainSpecForProviderVpcOptions(obj: DomainSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSpecInitProviderAdvancedSecurityOptions
+ */
+export interface DomainSpecInitProviderAdvancedSecurityOptions {
+  /**
+   * Whether advanced security is enabled.
+   *
+   * @schema DomainSpecInitProviderAdvancedSecurityOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Whether the internal user database is enabled. If not set, defaults to false by the AWS API.
+   *
+   * @schema DomainSpecInitProviderAdvancedSecurityOptions#internalUserDatabaseEnabled
+   */
+  readonly internalUserDatabaseEnabled?: boolean;
+
+  /**
+   * Configuration block for the main user. Detailed below.
+   *
+   * @schema DomainSpecInitProviderAdvancedSecurityOptions#masterUserOptions
+   */
+  readonly masterUserOptions?: DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderAdvancedSecurityOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderAdvancedSecurityOptions(obj: DomainSpecInitProviderAdvancedSecurityOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'internalUserDatabaseEnabled': obj.internalUserDatabaseEnabled,
+    'masterUserOptions': obj.masterUserOptions?.map(y => toJson_DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderAutoTuneOptions
+ */
+export interface DomainSpecInitProviderAutoTuneOptions {
+  /**
+   * The Auto-Tune desired state for the domain. Valid values: ENABLED or DISABLED.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptions#desiredState
+   */
+  readonly desiredState?: string;
+
+  /**
+   * Configuration block for Auto-Tune maintenance windows. Can be specified multiple times for each maintenance window. Detailed below.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptions#maintenanceSchedule
+   */
+  readonly maintenanceSchedule?: DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule[];
+
+  /**
+   * Whether to roll back to default Auto-Tune settings when disabling Auto-Tune. Valid values: DEFAULT_ROLLBACK or NO_ROLLBACK.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptions#rollbackOnDisable
+   */
+  readonly rollbackOnDisable?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderAutoTuneOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderAutoTuneOptions(obj: DomainSpecInitProviderAutoTuneOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'desiredState': obj.desiredState,
+    'maintenanceSchedule': obj.maintenanceSchedule?.map(y => toJson_DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule(y)),
+    'rollbackOnDisable': obj.rollbackOnDisable,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderClusterConfig
+ */
+export interface DomainSpecInitProviderClusterConfig {
+  /**
+   * Configuration block containing cold storage configuration. Detailed below.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#coldStorageOptions
+   */
+  readonly coldStorageOptions?: DomainSpecInitProviderClusterConfigColdStorageOptions[];
+
+  /**
+   * Number of dedicated main nodes in the cluster.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#dedicatedMasterCount
+   */
+  readonly dedicatedMasterCount?: number;
+
+  /**
+   * Whether dedicated main nodes are enabled for the cluster.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#dedicatedMasterEnabled
+   */
+  readonly dedicatedMasterEnabled?: boolean;
+
+  /**
+   * Instance type of the dedicated main nodes in the cluster.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#dedicatedMasterType
+   */
+  readonly dedicatedMasterType?: string;
+
+  /**
+   * Number of instances in the cluster.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#instanceCount
+   */
+  readonly instanceCount?: number;
+
+  /**
+   * Instance type of data nodes in the cluster.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * Number of warm nodes in the cluster. Valid values are between 2 and 150. warm_count can be only and must be set when warm_enabled is set to true.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#warmCount
+   */
+  readonly warmCount?: number;
+
+  /**
+   * Whether to enable warm storage.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#warmEnabled
+   */
+  readonly warmEnabled?: boolean;
+
+  /**
+   * Instance type for the Elasticsearch cluster's warm nodes. Valid values are ultrawarm1.medium.elasticsearch, ultrawarm1.large.elasticsearch and ultrawarm1.xlarge.elasticsearch. warm_type can be only and must be set when warm_enabled is set to true.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#warmType
+   */
+  readonly warmType?: string;
+
+  /**
+   * Configuration block containing zone awareness settings. Detailed below.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#zoneAwarenessConfig
+   */
+  readonly zoneAwarenessConfig?: DomainSpecInitProviderClusterConfigZoneAwarenessConfig[];
+
+  /**
+   * Whether zone awareness is enabled, set to true for multi-az deployment. To enable awareness with three Availability Zones, the availability_zone_count within the zone_awareness_config must be set to 3.
+   *
+   * @schema DomainSpecInitProviderClusterConfig#zoneAwarenessEnabled
+   */
+  readonly zoneAwarenessEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderClusterConfig(obj: DomainSpecInitProviderClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'coldStorageOptions': obj.coldStorageOptions?.map(y => toJson_DomainSpecInitProviderClusterConfigColdStorageOptions(y)),
+    'dedicatedMasterCount': obj.dedicatedMasterCount,
+    'dedicatedMasterEnabled': obj.dedicatedMasterEnabled,
+    'dedicatedMasterType': obj.dedicatedMasterType,
+    'instanceCount': obj.instanceCount,
+    'instanceType': obj.instanceType,
+    'warmCount': obj.warmCount,
+    'warmEnabled': obj.warmEnabled,
+    'warmType': obj.warmType,
+    'zoneAwarenessConfig': obj.zoneAwarenessConfig?.map(y => toJson_DomainSpecInitProviderClusterConfigZoneAwarenessConfig(y)),
+    'zoneAwarenessEnabled': obj.zoneAwarenessEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderCognitoOptions
+ */
+export interface DomainSpecInitProviderCognitoOptions {
+  /**
+   * Whether Amazon Cognito authentication with Kibana is enabled or not.
+   *
+   * @schema DomainSpecInitProviderCognitoOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * ID of the Cognito Identity Pool to use.
+   *
+   * @schema DomainSpecInitProviderCognitoOptions#identityPoolId
+   */
+  readonly identityPoolId?: string;
+
+  /**
+   * ARN of the IAM role that has the AmazonESCognitoAccess policy attached.
+   *
+   * @schema DomainSpecInitProviderCognitoOptions#roleArn
+   */
+  readonly roleArn?: string;
+
+  /**
+   * ID of the Cognito User Pool to use.
+   *
+   * @schema DomainSpecInitProviderCognitoOptions#userPoolId
+   */
+  readonly userPoolId?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderCognitoOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderCognitoOptions(obj: DomainSpecInitProviderCognitoOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'identityPoolId': obj.identityPoolId,
+    'roleArn': obj.roleArn,
+    'userPoolId': obj.userPoolId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDomainEndpointOptions
+ */
+export interface DomainSpecInitProviderDomainEndpointOptions {
+  /**
+   * Fully qualified domain for your custom endpoint.
+   *
+   * @schema DomainSpecInitProviderDomainEndpointOptions#customEndpoint
+   */
+  readonly customEndpoint?: string;
+
+  /**
+   * ACM certificate ARN for your custom endpoint.
+   *
+   * @schema DomainSpecInitProviderDomainEndpointOptions#customEndpointCertificateArn
+   */
+  readonly customEndpointCertificateArn?: string;
+
+  /**
+   * Whether to enable custom endpoint for the Elasticsearch domain.
+   *
+   * @schema DomainSpecInitProviderDomainEndpointOptions#customEndpointEnabled
+   */
+  readonly customEndpointEnabled?: boolean;
+
+  /**
+   * Whether or not to require HTTPS. Defaults to true.
+   *
+   * @default true.
+   * @schema DomainSpecInitProviderDomainEndpointOptions#enforceHttps
+   */
+  readonly enforceHttps?: boolean;
+
+  /**
+   * Name of the TLS security policy that needs to be applied to the HTTPS endpoint. Valid values:  Policy-Min-TLS-1-0-2019-07 and Policy-Min-TLS-1-2-2019-07.
+   *
+   * @schema DomainSpecInitProviderDomainEndpointOptions#tlsSecurityPolicy
+   */
+  readonly tlsSecurityPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDomainEndpointOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDomainEndpointOptions(obj: DomainSpecInitProviderDomainEndpointOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customEndpoint': obj.customEndpoint,
+    'customEndpointCertificateArn': obj.customEndpointCertificateArn,
+    'customEndpointEnabled': obj.customEndpointEnabled,
+    'enforceHttps': obj.enforceHttps,
+    'tlsSecurityPolicy': obj.tlsSecurityPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderEbsOptions
+ */
+export interface DomainSpecInitProviderEbsOptions {
+  /**
+   * Whether EBS volumes are attached to data nodes in the domain.
+   *
+   * @schema DomainSpecInitProviderEbsOptions#ebsEnabled
+   */
+  readonly ebsEnabled?: boolean;
+
+  /**
+   * Baseline input/output (I/O) performance of EBS volumes attached to data nodes. Applicable only for the GP3 and Provisioned IOPS EBS volume types.
+   *
+   * @schema DomainSpecInitProviderEbsOptions#iops
+   */
+  readonly iops?: number;
+
+  /**
+   * Specifies the throughput (in MiB/s) of the EBS volumes attached to data nodes. Applicable only for the gp3 volume type.
+   *
+   * @schema DomainSpecInitProviderEbsOptions#throughput
+   */
+  readonly throughput?: number;
+
+  /**
+   * Size of EBS volumes attached to data nodes (in GiB).
+   *
+   * @schema DomainSpecInitProviderEbsOptions#volumeSize
+   */
+  readonly volumeSize?: number;
+
+  /**
+   * Type of EBS volumes attached to data nodes.
+   *
+   * @schema DomainSpecInitProviderEbsOptions#volumeType
+   */
+  readonly volumeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderEbsOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderEbsOptions(obj: DomainSpecInitProviderEbsOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ebsEnabled': obj.ebsEnabled,
+    'iops': obj.iops,
+    'throughput': obj.throughput,
+    'volumeSize': obj.volumeSize,
+    'volumeType': obj.volumeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderEncryptAtRest
+ */
+export interface DomainSpecInitProviderEncryptAtRest {
+  /**
+   * Whether to enable encryption at rest. If the encrypt_at_rest block is not provided then this defaults to false. Enabling encryption on new domains requires elasticsearch_version 5.1 or greater.
+   *
+   * @schema DomainSpecInitProviderEncryptAtRest#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * KMS key ARN to encrypt the Elasticsearch domain with. If not specified then it defaults to using the aws/es service KMS key. Note that KMS will accept a KMS key ID but will return the key ARN.
+   *
+   * @schema DomainSpecInitProviderEncryptAtRest#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderEncryptAtRest' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderEncryptAtRest(obj: DomainSpecInitProviderEncryptAtRest | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderLogPublishingOptions
+ */
+export interface DomainSpecInitProviderLogPublishingOptions {
+  /**
+   * Whether given log publishing option is enabled or not.
+   *
+   * @schema DomainSpecInitProviderLogPublishingOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Type of Elasticsearch log. Valid values: INDEX_SLOW_LOGS, SEARCH_SLOW_LOGS, ES_APPLICATION_LOGS, AUDIT_LOGS.
+   *
+   * @schema DomainSpecInitProviderLogPublishingOptions#logType
+   */
+  readonly logType?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderLogPublishingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderLogPublishingOptions(obj: DomainSpecInitProviderLogPublishingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'logType': obj.logType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderNodeToNodeEncryption
+ */
+export interface DomainSpecInitProviderNodeToNodeEncryption {
+  /**
+   * Whether to enable node-to-node encryption. If the node_to_node_encryption block is not provided then this defaults to false. Enabling node-to-node encryption of a new domain requires an elasticsearch_version of 6.0 or greater.
+   *
+   * @schema DomainSpecInitProviderNodeToNodeEncryption#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderNodeToNodeEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderNodeToNodeEncryption(obj: DomainSpecInitProviderNodeToNodeEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderSnapshotOptions
+ */
+export interface DomainSpecInitProviderSnapshotOptions {
+  /**
+   * Hour during which the service takes an automated daily snapshot of the indices in the domain.
+   *
+   * @schema DomainSpecInitProviderSnapshotOptions#automatedSnapshotStartHour
+   */
+  readonly automatedSnapshotStartHour?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderSnapshotOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderSnapshotOptions(obj: DomainSpecInitProviderSnapshotOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'automatedSnapshotStartHour': obj.automatedSnapshotStartHour,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderVpcOptions
+ */
+export interface DomainSpecInitProviderVpcOptions {
+  /**
+   * List of VPC Security Group IDs to be applied to the Elasticsearch domain endpoints. If omitted, the default Security Group for the VPC will be used.
+   *
+   * @schema DomainSpecInitProviderVpcOptions#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * List of VPC Subnet IDs for the Elasticsearch domain endpoints to be created in.
+   *
+   * @schema DomainSpecInitProviderVpcOptions#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderVpcOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderVpcOptions(obj: DomainSpecInitProviderVpcOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DomainSpecProviderConfigRefPolicy
@@ -1070,43 +1703,6 @@ export interface DomainSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DomainSpecProviderConfigRefPolicy(obj: DomainSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DomainSpecProviderRefPolicy
- */
-export interface DomainSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRefPolicy(obj: DomainSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1251,21 +1847,21 @@ export interface DomainSpecForProviderAutoTuneOptionsMaintenanceSchedule {
    *
    * @schema DomainSpecForProviderAutoTuneOptionsMaintenanceSchedule#cronExpressionForRecurrence
    */
-  readonly cronExpressionForRecurrence: string;
+  readonly cronExpressionForRecurrence?: string;
 
   /**
    * Configuration block for the duration of the Auto-Tune maintenance window. Detailed below.
    *
    * @schema DomainSpecForProviderAutoTuneOptionsMaintenanceSchedule#duration
    */
-  readonly duration: DomainSpecForProviderAutoTuneOptionsMaintenanceScheduleDuration[];
+  readonly duration?: DomainSpecForProviderAutoTuneOptionsMaintenanceScheduleDuration[];
 
   /**
    * Date and time at which to start the Auto-Tune maintenance schedule in RFC3339 format.
    *
    * @schema DomainSpecForProviderAutoTuneOptionsMaintenanceSchedule#startAt
    */
-  readonly startAt: string;
+  readonly startAt?: string;
 
 }
 
@@ -1424,6 +2020,140 @@ export function toJson_DomainSpecForProviderLogPublishingOptionsCloudwatchLogGro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions
+ */
+export interface DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions {
+  /**
+   * ARN for the main user. Only specify if internal_user_database_enabled is not set or set to false.
+   *
+   * @schema DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions#masterUserArn
+   */
+  readonly masterUserArn?: string;
+
+  /**
+   * Main user's username, which is stored in the Amazon Elasticsearch Service domain's internal database. Only specify if internal_user_database_enabled is set to true.
+   *
+   * @schema DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions#masterUserName
+   */
+  readonly masterUserName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions(obj: DomainSpecInitProviderAdvancedSecurityOptionsMasterUserOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'masterUserArn': obj.masterUserArn,
+    'masterUserName': obj.masterUserName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule
+ */
+export interface DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule {
+  /**
+   * A cron expression specifying the recurrence pattern for an Auto-Tune maintenance schedule.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule#cronExpressionForRecurrence
+   */
+  readonly cronExpressionForRecurrence?: string;
+
+  /**
+   * Configuration block for the duration of the Auto-Tune maintenance window. Detailed below.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule#duration
+   */
+  readonly duration?: DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration[];
+
+  /**
+   * Date and time at which to start the Auto-Tune maintenance schedule in RFC3339 format.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule#startAt
+   */
+  readonly startAt?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule(obj: DomainSpecInitProviderAutoTuneOptionsMaintenanceSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cronExpressionForRecurrence': obj.cronExpressionForRecurrence,
+    'duration': obj.duration?.map(y => toJson_DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration(y)),
+    'startAt': obj.startAt,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderClusterConfigColdStorageOptions
+ */
+export interface DomainSpecInitProviderClusterConfigColdStorageOptions {
+  /**
+   * Boolean to enable cold storage for an Elasticsearch domain. Defaults to false. Master and ultrawarm nodes must be enabled for cold storage.
+   *
+   * @default false. Master and ultrawarm nodes must be enabled for cold storage.
+   * @schema DomainSpecInitProviderClusterConfigColdStorageOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderClusterConfigColdStorageOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderClusterConfigColdStorageOptions(obj: DomainSpecInitProviderClusterConfigColdStorageOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderClusterConfigZoneAwarenessConfig
+ */
+export interface DomainSpecInitProviderClusterConfigZoneAwarenessConfig {
+  /**
+   * Number of Availability Zones for the domain to use with zone_awareness_enabled. Defaults to 2. Valid values: 2 or 3.
+   *
+   * @default 2. Valid values: 2 or 3.
+   * @schema DomainSpecInitProviderClusterConfigZoneAwarenessConfig#availabilityZoneCount
+   */
+  readonly availabilityZoneCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderClusterConfigZoneAwarenessConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderClusterConfigZoneAwarenessConfig(obj: DomainSpecInitProviderClusterConfigZoneAwarenessConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availabilityZoneCount': obj.availabilityZoneCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DomainSpecProviderConfigRefPolicyResolution
@@ -1441,30 +2171,6 @@ export enum DomainSpecProviderConfigRefPolicyResolution {
  * @schema DomainSpecProviderConfigRefPolicyResolve
  */
 export enum DomainSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainSpecProviderRefPolicyResolution
- */
-export enum DomainSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainSpecProviderRefPolicyResolve
- */
-export enum DomainSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1562,14 +2268,14 @@ export interface DomainSpecForProviderAutoTuneOptionsMaintenanceScheduleDuration
    *
    * @schema DomainSpecForProviderAutoTuneOptionsMaintenanceScheduleDuration#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
   /**
    * An integer specifying the value of the duration of an Auto-Tune maintenance window.
    *
    * @schema DomainSpecForProviderAutoTuneOptionsMaintenanceScheduleDuration#value
    */
-  readonly value: number;
+  readonly value?: number;
 
 }
 
@@ -1656,6 +2362,41 @@ export function toJson_DomainSpecForProviderLogPublishingOptionsCloudwatchLogGro
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration
+ */
+export interface DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration {
+  /**
+   * The unit of time specifying the duration of an Auto-Tune maintenance window. Valid values: HOURS.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * An integer specifying the value of the duration of an Auto-Tune maintenance window.
+   *
+   * @schema DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration#value
+   */
+  readonly value?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration(obj: DomainSpecInitProviderAutoTuneOptionsMaintenanceScheduleDuration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'unit': obj.unit,
+    'value': obj.value,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1831,7 +2572,7 @@ export function toJson_DomainPolicyProps(obj: DomainPolicyProps | undefined): Re
  */
 export interface DomainPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainPolicySpec#deletionPolicy
    */
@@ -1843,11 +2584,18 @@ export interface DomainPolicySpec {
   readonly forProvider: DomainPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainPolicySpec#managementPolicy
+   * @schema DomainPolicySpec#initProvider
    */
-  readonly managementPolicy?: DomainPolicySpecManagementPolicy;
+  readonly initProvider?: DomainPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1855,13 +2603,6 @@ export interface DomainPolicySpec {
    * @schema DomainPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainPolicySpec#providerRef
-   */
-  readonly providerRef?: DomainPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1888,9 +2629,9 @@ export function toJson_DomainPolicySpec(obj: DomainPolicySpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1900,7 +2641,7 @@ export function toJson_DomainPolicySpec(obj: DomainPolicySpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainPolicySpecDeletionPolicy
  */
@@ -1971,17 +2712,52 @@ export function toJson_DomainPolicySpecForProvider(obj: DomainPolicySpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainPolicySpecManagementPolicy
+ * @schema DomainPolicySpecInitProvider
  */
-export enum DomainPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainPolicySpecInitProvider {
+  /**
+   * IAM policy document specifying the access policies for the domain
+   *
+   * @schema DomainPolicySpecInitProvider#accessPolicies
+   */
+  readonly accessPolicies?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainPolicySpecInitProvider(obj: DomainPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessPolicies': obj.accessPolicies,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainPolicySpecManagementPolicies
+ */
+export enum DomainPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2015,43 +2791,6 @@ export function toJson_DomainPolicySpecProviderConfigRef(obj: DomainPolicySpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_DomainPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainPolicySpecProviderRef
- */
-export interface DomainPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainPolicySpecProviderRef#policy
-   */
-  readonly policy?: DomainPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainPolicySpecProviderRef(obj: DomainPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2260,43 +2999,6 @@ export function toJson_DomainPolicySpecProviderConfigRefPolicy(obj: DomainPolicy
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DomainPolicySpecProviderRefPolicy
- */
-export interface DomainPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainPolicySpecProviderRefPolicy(obj: DomainPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DomainPolicySpecPublishConnectionDetailsToConfigRef
@@ -2470,30 +3172,6 @@ export enum DomainPolicySpecProviderConfigRefPolicyResolution {
  * @schema DomainPolicySpecProviderConfigRefPolicyResolve
  */
 export enum DomainPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainPolicySpecProviderRefPolicyResolution
- */
-export enum DomainPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainPolicySpecProviderRefPolicyResolve
- */
-export enum DomainPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2706,7 +3384,7 @@ export function toJson_DomainSamlOptionsProps(obj: DomainSamlOptionsProps | unde
  */
 export interface DomainSamlOptionsSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainSamlOptionsSpec#deletionPolicy
    */
@@ -2718,11 +3396,18 @@ export interface DomainSamlOptionsSpec {
   readonly forProvider: DomainSamlOptionsSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainSamlOptionsSpec#managementPolicy
+   * @schema DomainSamlOptionsSpec#initProvider
    */
-  readonly managementPolicy?: DomainSamlOptionsSpecManagementPolicy;
+  readonly initProvider?: DomainSamlOptionsSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainSamlOptionsSpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainSamlOptionsSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2730,13 +3415,6 @@ export interface DomainSamlOptionsSpec {
    * @schema DomainSamlOptionsSpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainSamlOptionsSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainSamlOptionsSpec#providerRef
-   */
-  readonly providerRef?: DomainSamlOptionsSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2763,9 +3441,9 @@ export function toJson_DomainSamlOptionsSpec(obj: DomainSamlOptionsSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainSamlOptionsSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainSamlOptionsSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainSamlOptionsSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainSamlOptionsSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainSamlOptionsSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainSamlOptionsSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2775,7 +3453,7 @@ export function toJson_DomainSamlOptionsSpec(obj: DomainSamlOptionsSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainSamlOptionsSpecDeletionPolicy
  */
@@ -2822,17 +3500,52 @@ export function toJson_DomainSamlOptionsSpecForProvider(obj: DomainSamlOptionsSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainSamlOptionsSpecManagementPolicy
+ * @schema DomainSamlOptionsSpecInitProvider
  */
-export enum DomainSamlOptionsSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainSamlOptionsSpecInitProvider {
+  /**
+   * The SAML authentication options for an AWS Elasticsearch Domain.
+   *
+   * @schema DomainSamlOptionsSpecInitProvider#samlOptions
+   */
+  readonly samlOptions?: DomainSamlOptionsSpecInitProviderSamlOptions[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSamlOptionsSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSamlOptionsSpecInitProvider(obj: DomainSamlOptionsSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'samlOptions': obj.samlOptions?.map(y => toJson_DomainSamlOptionsSpecInitProviderSamlOptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainSamlOptionsSpecManagementPolicies
+ */
+export enum DomainSamlOptionsSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2866,43 +3579,6 @@ export function toJson_DomainSamlOptionsSpecProviderConfigRef(obj: DomainSamlOpt
   const result = {
     'name': obj.name,
     'policy': toJson_DomainSamlOptionsSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainSamlOptionsSpecProviderRef
- */
-export interface DomainSamlOptionsSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainSamlOptionsSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainSamlOptionsSpecProviderRef#policy
-   */
-  readonly policy?: DomainSamlOptionsSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainSamlOptionsSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSamlOptionsSpecProviderRef(obj: DomainSamlOptionsSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainSamlOptionsSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3070,6 +3746,76 @@ export function toJson_DomainSamlOptionsSpecForProviderSamlOptions(obj: DomainSa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSamlOptionsSpecInitProviderSamlOptions
+ */
+export interface DomainSamlOptionsSpecInitProviderSamlOptions {
+  /**
+   * Whether SAML authentication is enabled.
+   *
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Information from your identity provider.
+   *
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#idp
+   */
+  readonly idp?: DomainSamlOptionsSpecInitProviderSamlOptionsIdp[];
+
+  /**
+   * This backend role from the SAML IdP receives full permissions to the cluster, equivalent to a new master user.
+   *
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#masterBackendRole
+   */
+  readonly masterBackendRole?: string;
+
+  /**
+   * Element of the SAML assertion to use for backend roles. Default is roles.
+   *
+   * @default roles.
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#rolesKey
+   */
+  readonly rolesKey?: string;
+
+  /**
+   * Duration of a session in minutes after a user logs in. Default is 60. Maximum value is 1,440.
+   *
+   * @default 60. Maximum value is 1,440.
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#sessionTimeoutMinutes
+   */
+  readonly sessionTimeoutMinutes?: number;
+
+  /**
+   * Custom SAML attribute to use for user names. Default is an empty string - "". This will cause Elasticsearch to use the NameID element of the Subject, which is the default location for name identifiers in the SAML specification.
+   *
+   * @default an empty string - "". This will cause Elasticsearch to use the NameID element of the Subject, which is the default location for name identifiers in the SAML specification.
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptions#subjectKey
+   */
+  readonly subjectKey?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSamlOptionsSpecInitProviderSamlOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSamlOptionsSpecInitProviderSamlOptions(obj: DomainSamlOptionsSpecInitProviderSamlOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'idp': obj.idp?.map(y => toJson_DomainSamlOptionsSpecInitProviderSamlOptionsIdp(y)),
+    'masterBackendRole': obj.masterBackendRole,
+    'rolesKey': obj.rolesKey,
+    'sessionTimeoutMinutes': obj.sessionTimeoutMinutes,
+    'subjectKey': obj.subjectKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DomainSamlOptionsSpecProviderConfigRefPolicy
@@ -3096,43 +3842,6 @@ export interface DomainSamlOptionsSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DomainSamlOptionsSpecProviderConfigRefPolicy(obj: DomainSamlOptionsSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DomainSamlOptionsSpecProviderRefPolicy
- */
-export interface DomainSamlOptionsSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainSamlOptionsSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainSamlOptionsSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainSamlOptionsSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainSamlOptionsSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainSamlOptionsSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSamlOptionsSpecProviderRefPolicy(obj: DomainSamlOptionsSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3234,14 +3943,14 @@ export interface DomainSamlOptionsSpecForProviderSamlOptionsIdp {
    *
    * @schema DomainSamlOptionsSpecForProviderSamlOptionsIdp#entityId
    */
-  readonly entityId: string;
+  readonly entityId?: string;
 
   /**
    * The Metadata of the SAML application in xml format.
    *
    * @schema DomainSamlOptionsSpecForProviderSamlOptionsIdp#metadataContent
    */
-  readonly metadataContent: string;
+  readonly metadataContent?: string;
 
 }
 
@@ -3306,6 +4015,41 @@ export function toJson_DomainSamlOptionsSpecForProviderSamlOptionsMasterUserName
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSamlOptionsSpecInitProviderSamlOptionsIdp
+ */
+export interface DomainSamlOptionsSpecInitProviderSamlOptionsIdp {
+  /**
+   * The unique Entity ID of the application in SAML Identity Provider.
+   *
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptionsIdp#entityId
+   */
+  readonly entityId?: string;
+
+  /**
+   * The Metadata of the SAML application in xml format.
+   *
+   * @schema DomainSamlOptionsSpecInitProviderSamlOptionsIdp#metadataContent
+   */
+  readonly metadataContent?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSamlOptionsSpecInitProviderSamlOptionsIdp' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSamlOptionsSpecInitProviderSamlOptionsIdp(obj: DomainSamlOptionsSpecInitProviderSamlOptionsIdp | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'entityId': obj.entityId,
+    'metadataContent': obj.metadataContent,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DomainSamlOptionsSpecProviderConfigRefPolicyResolution
@@ -3323,30 +4067,6 @@ export enum DomainSamlOptionsSpecProviderConfigRefPolicyResolution {
  * @schema DomainSamlOptionsSpecProviderConfigRefPolicyResolve
  */
 export enum DomainSamlOptionsSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainSamlOptionsSpecProviderRefPolicyResolution
- */
-export enum DomainSamlOptionsSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainSamlOptionsSpecProviderRefPolicyResolve
- */
-export enum DomainSamlOptionsSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

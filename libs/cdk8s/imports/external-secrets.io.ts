@@ -124,10 +124,17 @@ export interface ClusterExternalSecretSpec {
    *
    * @schema ClusterExternalSecretSpec#namespaceSelector
    */
-  readonly namespaceSelector: ClusterExternalSecretSpecNamespaceSelector;
+  readonly namespaceSelector?: ClusterExternalSecretSpecNamespaceSelector;
 
   /**
-   * The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+   * Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+   *
+   * @schema ClusterExternalSecretSpec#namespaces
+   */
+  readonly namespaces?: string[];
+
+  /**
+   * The time in which the controller should reconcile its objects and recheck namespaces for labels.
    *
    * @schema ClusterExternalSecretSpec#refreshTime
    */
@@ -146,6 +153,7 @@ export function toJson_ClusterExternalSecretSpec(obj: ClusterExternalSecretSpec 
     'externalSecretName': obj.externalSecretName,
     'externalSecretSpec': toJson_ClusterExternalSecretSpecExternalSecretSpec(obj.externalSecretSpec),
     'namespaceSelector': toJson_ClusterExternalSecretSpecNamespaceSelector(obj.namespaceSelector),
+    'namespaces': obj.namespaces?.map(y => y),
     'refreshTime': obj.refreshTime,
   };
   // filter undefined values
@@ -539,14 +547,14 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef {
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefDecodingStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -561,7 +569,7 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef {
    * @default None
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef#metadataPolicy
    */
-  readonly metadataPolicy?: string;
+  readonly metadataPolicy?: ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefMetadataPolicy;
 
   /**
    * Used to select a specific property of the Provider value (if a map), if supported
@@ -605,7 +613,8 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataRemoteRef(
  */
 export interface ClusterExternalSecretSpecExternalSecretSpecDataSourceRef {
   /**
-   * GeneratorRef points to a generator custom resource in
+   * GeneratorRef points to a generator custom resource.
+   * Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1.
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataSourceRef#generatorRef
    */
@@ -646,14 +655,14 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataFromExtract {
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtract#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataFromExtractConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtract#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataFromExtractDecodingStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -668,7 +677,7 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataFromExtract {
    * @default None
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtract#metadataPolicy
    */
-  readonly metadataPolicy?: string;
+  readonly metadataPolicy?: ClusterExternalSecretSpecExternalSecretSpecDataFromExtractMetadataPolicy;
 
   /**
    * Used to select a specific property of the Provider value (if a map), if supported
@@ -716,14 +725,14 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataFromFind {
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromFind#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataFromFindConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromFind#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ClusterExternalSecretSpecExternalSecretSpecDataFromFindDecodingStrategy;
 
   /**
    * Finds secrets based on the name.
@@ -777,6 +786,13 @@ export interface ClusterExternalSecretSpecExternalSecretSpecDataFromRewrite {
    */
   readonly regexp?: ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteRegexp;
 
+  /**
+   * Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+   *
+   * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromRewrite#transform
+   */
+  readonly transform?: ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform;
+
 }
 
 /**
@@ -787,6 +803,7 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewrit
   if (obj === undefined) { return undefined; }
   const result = {
     'regexp': toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteRegexp(obj.regexp),
+    'transform': toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform(obj.transform),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -800,7 +817,7 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewrit
  */
 export interface ClusterExternalSecretSpecExternalSecretSpecDataFromSourceRef {
   /**
-   * GeneratorRef points to a generator custom resource in
+   * GeneratorRef points to a generator custom resource.
    *
    * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromSourceRef#generatorRef
    */
@@ -874,14 +891,16 @@ export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplate {
   readonly data?: { [key: string]: string };
 
   /**
+   * EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+   *
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplate#engineVersion
    */
-  readonly engineVersion?: string;
+  readonly engineVersion?: ClusterExternalSecretSpecExternalSecretSpecTargetTemplateEngineVersion;
 
   /**
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplate#mergePolicy
    */
-  readonly mergePolicy?: string;
+  readonly mergePolicy?: ClusterExternalSecretSpecExternalSecretSpecTargetTemplateMergePolicy;
 
   /**
    * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -922,7 +941,49 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplate
 /* eslint-enable max-len, quote-props */
 
 /**
- * GeneratorRef points to a generator custom resource in
+ * Used to define a conversion Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefConversionStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefDecodingStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
+ * Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+ *
+ * @default None
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefMetadataPolicy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataRemoteRefMetadataPolicy {
+  /** None */
+  NONE = "None",
+  /** Fetch */
+  FETCH = "Fetch",
+}
+
+/**
+ * GeneratorRef points to a generator custom resource.
+ * Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1.
  *
  * @schema ClusterExternalSecretSpecExternalSecretSpecDataSourceRefGeneratorRef
  */
@@ -1005,6 +1066,75 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataSourceRefS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Used to define a conversion Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtractConversionStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataFromExtractConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtractDecodingStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataFromExtractDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
+ * Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+ *
+ * @default None
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromExtractMetadataPolicy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataFromExtractMetadataPolicy {
+  /** None */
+  NONE = "None",
+  /** Fetch */
+  FETCH = "Fetch",
+}
+
+/**
+ * Used to define a conversion Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromFindConversionStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataFromFindConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromFindDecodingStrategy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecDataFromFindDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
  * Finds secrets based on the name.
  *
  * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromFindName
@@ -1071,7 +1201,36 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewrit
 /* eslint-enable max-len, quote-props */
 
 /**
- * GeneratorRef points to a generator custom resource in
+ * Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform
+ */
+export interface ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform {
+  /**
+   * Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+   *
+   * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform#template
+   */
+  readonly template: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform(obj: ClusterExternalSecretSpecExternalSecretSpecDataFromRewriteTransform | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'template': obj.template,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * GeneratorRef points to a generator custom resource.
  *
  * @schema ClusterExternalSecretSpecExternalSecretSpecDataFromSourceRefGeneratorRef
  */
@@ -1154,6 +1313,28 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecDataFromSource
 /* eslint-enable max-len, quote-props */
 
 /**
+ * EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+ *
+ * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateEngineVersion
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecTargetTemplateEngineVersion {
+  /** v1 */
+  V1 = "v1",
+  /** v2 */
+  V2 = "v2",
+}
+
+/**
+ * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateMergePolicy
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecTargetTemplateMergePolicy {
+  /** Replace */
+  REPLACE = "Replace",
+  /** Merge */
+  MERGE = "Merge",
+}
+
+/**
  * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
  *
  * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateMetadata
@@ -1208,7 +1389,7 @@ export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTempla
   /**
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFrom#target
    */
-  readonly target?: string;
+  readonly target?: ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromTarget;
 
 }
 
@@ -1292,6 +1473,18 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplate
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromTarget
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromTarget {
+  /** Data */
+  DATA = "Data",
+  /** Annotations */
+  ANNOTATIONS = "Annotations",
+  /** Labels */
+  LABELS = "Labels",
+}
+
+/**
  * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItems
  */
 export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItems {
@@ -1303,7 +1496,7 @@ export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTempla
   /**
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItems#templateAs
    */
-  readonly templateAs?: string;
+  readonly templateAs?: ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItemsTemplateAs;
 
 }
 
@@ -1334,7 +1527,7 @@ export interface ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTempla
   /**
    * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromSecretItems#templateAs
    */
-  readonly templateAs?: string;
+  readonly templateAs?: ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromSecretItemsTemplateAs;
 
 }
 
@@ -1352,6 +1545,26 @@ export function toJson_ClusterExternalSecretSpecExternalSecretSpecTargetTemplate
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItemsTemplateAs
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromConfigMapItemsTemplateAs {
+  /** Values */
+  VALUES = "Values",
+  /** KeysAndValues */
+  KEYS_AND_VALUES = "KeysAndValues",
+}
+
+/**
+ * @schema ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromSecretItemsTemplateAs
+ */
+export enum ClusterExternalSecretSpecExternalSecretSpecTargetTemplateTemplateFromSecretItemsTemplateAs {
+  /** Values */
+  VALUES = "Values",
+  /** KeysAndValues */
+  KEYS_AND_VALUES = "KeysAndValues",
+}
 
 
 /**
@@ -2057,11 +2270,32 @@ export function toJson_ClusterSecretStoreSpecProviderKubernetes(obj: ClusterSecr
  */
 export interface ClusterSecretStoreSpecProviderOracle {
   /**
-   * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+   * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
    *
    * @schema ClusterSecretStoreSpecProviderOracle#auth
    */
   readonly auth?: ClusterSecretStoreSpecProviderOracleAuth;
+
+  /**
+   * Compartment is the vault compartment OCID. Required for PushSecret
+   *
+   * @schema ClusterSecretStoreSpecProviderOracle#compartment
+   */
+  readonly compartment?: string;
+
+  /**
+   * EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+   *
+   * @schema ClusterSecretStoreSpecProviderOracle#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+   *
+   * @schema ClusterSecretStoreSpecProviderOracle#principalType
+   */
+  readonly principalType?: string;
 
   /**
    * Region is the region where vault is located.
@@ -2069,6 +2303,13 @@ export interface ClusterSecretStoreSpecProviderOracle {
    * @schema ClusterSecretStoreSpecProviderOracle#region
    */
   readonly region: string;
+
+  /**
+   * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+   *
+   * @schema ClusterSecretStoreSpecProviderOracle#serviceAccountRef
+   */
+  readonly serviceAccountRef?: ClusterSecretStoreSpecProviderOracleServiceAccountRef;
 
   /**
    * Vault is the vault's OCID of the specific vault where secret is located.
@@ -2087,7 +2328,11 @@ export function toJson_ClusterSecretStoreSpecProviderOracle(obj: ClusterSecretSt
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_ClusterSecretStoreSpecProviderOracleAuth(obj.auth),
+    'compartment': obj.compartment,
+    'encryptionKey': obj.encryptionKey,
+    'principalType': obj.principalType,
     'region': obj.region,
+    'serviceAccountRef': toJson_ClusterSecretStoreSpecProviderOracleServiceAccountRef(obj.serviceAccountRef),
     'vault': obj.vault,
   };
   // filter undefined values
@@ -2819,7 +3064,7 @@ export function toJson_ClusterSecretStoreSpecProviderKubernetesServer(obj: Clust
 /* eslint-enable max-len, quote-props */
 
 /**
- * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+ * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
  *
  * @schema ClusterSecretStoreSpecProviderOracleAuth
  */
@@ -2857,6 +3102,51 @@ export function toJson_ClusterSecretStoreSpecProviderOracleAuth(obj: ClusterSecr
     'secretRef': toJson_ClusterSecretStoreSpecProviderOracleAuthSecretRef(obj.secretRef),
     'tenancy': obj.tenancy,
     'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+ *
+ * @schema ClusterSecretStoreSpecProviderOracleServiceAccountRef
+ */
+export interface ClusterSecretStoreSpecProviderOracleServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema ClusterSecretStoreSpecProviderOracleServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema ClusterSecretStoreSpecProviderOracleServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreSpecProviderOracleServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreSpecProviderOracleServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreSpecProviderOracleServiceAccountRef(obj: ClusterSecretStoreSpecProviderOracleServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6303,6 +6593,13 @@ export interface ClusterSecretStoreV1Beta1SpecProviderConjur {
   readonly caBundle?: string;
 
   /**
+   * Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjur#caProvider
+   */
+  readonly caProvider?: ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider;
+
+  /**
    * @schema ClusterSecretStoreV1Beta1SpecProviderConjur#url
    */
   readonly url: string;
@@ -6318,6 +6615,7 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjur(obj: ClusterS
   const result = {
     'auth': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuth(obj.auth),
     'caBundle': obj.caBundle,
+    'caProvider': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider(obj.caProvider),
     'url': obj.url,
   };
   // filter undefined values
@@ -6757,11 +7055,39 @@ export interface ClusterSecretStoreV1Beta1SpecProviderOracle {
   readonly auth?: ClusterSecretStoreV1Beta1SpecProviderOracleAuth;
 
   /**
+   * Compartment is the vault compartment OCID. Required for PushSecret
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracle#compartment
+   */
+  readonly compartment?: string;
+
+  /**
+   * EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracle#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracle#principalType
+   */
+  readonly principalType?: string;
+
+  /**
    * Region is the region where vault is located.
    *
    * @schema ClusterSecretStoreV1Beta1SpecProviderOracle#region
    */
   readonly region: string;
+
+  /**
+   * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracle#serviceAccountRef
+   */
+  readonly serviceAccountRef?: ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef;
 
   /**
    * Vault is the vault's OCID of the specific vault where secret is located.
@@ -6780,7 +7106,11 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderOracle(obj: ClusterS
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_ClusterSecretStoreV1Beta1SpecProviderOracleAuth(obj.auth),
+    'compartment': obj.compartment,
+    'encryptionKey': obj.encryptionKey,
+    'principalType': obj.principalType,
     'region': obj.region,
+    'serviceAccountRef': toJson_ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef(obj.serviceAccountRef),
     'vault': obj.vault,
   };
   // filter undefined values
@@ -7550,7 +7880,12 @@ export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuth {
   /**
    * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuth#apikey
    */
-  readonly apikey: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey;
+  readonly apikey?: ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey;
+
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuth#jwt
+   */
+  readonly jwt?: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt;
 
 }
 
@@ -7562,6 +7897,60 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuth(obj: Clus
   if (obj === undefined) { return undefined; }
   const result = {
     'apikey': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey(obj.apikey),
+    'jwt': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt(obj.jwt),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider {
+  /**
+   * The key where the CA certificate can be found in the Secret or ConfigMap.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the object located at the provider type.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider#name
+   */
+  readonly name: string;
+
+  /**
+   * The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * The type of provider to use such as "Secret", or "ConfigMap".
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider#type
+   */
+  readonly type: ClusterSecretStoreV1Beta1SpecProviderConjurCaProviderType;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider(obj: ClusterSecretStoreV1Beta1SpecProviderConjurCaProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+    'type': obj.type,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8048,6 +8437,51 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderOracleAuth(obj: Clus
     'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderOracleAuthSecretRef(obj.secretRef),
     'tenancy': obj.tenancy,
     'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef(obj: ClusterSecretStoreV1Beta1SpecProviderOracleServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8942,6 +9376,67 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikey(obj
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt {
+  /**
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt#account
+   */
+  readonly account: string;
+
+  /**
+   * Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt#secretRef
+   */
+  readonly secretRef?: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef;
+
+  /**
+   * Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt#serviceAccountRef
+   */
+  readonly serviceAccountRef?: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef;
+
+  /**
+   * The conjur authn jwt webservice id
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt#serviceID
+   */
+  readonly serviceId: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'account': obj.account,
+    'secretRef': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef(obj.secretRef),
+    'serviceAccountRef': toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef(obj.serviceAccountRef),
+    'serviceID': obj.serviceId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The type of provider to use such as "Secret", or "ConfigMap".
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurCaProviderType
+ */
+export enum ClusterSecretStoreV1Beta1SpecProviderConjurCaProviderType {
+  /** Secret */
+  SECRET = "Secret",
+  /** ConfigMap */
+  CONFIG_MAP = "ConfigMap",
+}
 
 /**
  * SecretRef references a key in a secret that will be used as value.
@@ -10845,6 +11340,96 @@ export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthApikeyUser
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+ *
+ * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef
+ */
+export interface ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef(obj: ClusterSecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * The DopplerToken is used for authentication. See https://docs.doppler.com/reference/api#authentication for auth token types. The Key attribute defaults to dopplerToken if not specified.
  *
  * @schema ClusterSecretStoreV1Beta1SpecProviderDopplerAuthSecretRefDopplerToken
@@ -12300,7 +12885,7 @@ export interface ExternalSecretSpecDataFrom {
    *
    * @schema ExternalSecretSpecDataFrom#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ExternalSecretSpecDataFromConversionStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -12392,7 +12977,7 @@ export interface ExternalSecretSpecTarget {
    * @default Owner'
    * @schema ExternalSecretSpecTarget#creationPolicy
    */
-  readonly creationPolicy?: string;
+  readonly creationPolicy?: ExternalSecretSpecTargetCreationPolicy;
 
   /**
    * Immutable defines if the final secret will be immutable
@@ -12446,7 +13031,7 @@ export interface ExternalSecretSpecDataRemoteRef {
    *
    * @schema ExternalSecretSpecDataRemoteRef#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ExternalSecretSpecDataRemoteRefConversionStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -12489,6 +13074,33 @@ export function toJson_ExternalSecretSpecDataRemoteRef(obj: ExternalSecretSpecDa
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Used to define a conversion Strategy
+ *
+ * @schema ExternalSecretSpecDataFromConversionStrategy
+ */
+export enum ExternalSecretSpecDataFromConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+ *
+ * @default Owner'
+ * @schema ExternalSecretSpecTargetCreationPolicy
+ */
+export enum ExternalSecretSpecTargetCreationPolicy {
+  /** Owner */
+  OWNER = "Owner",
+  /** Merge */
+  MERGE = "Merge",
+  /** None */
+  NONE = "None",
+}
+
+/**
  * Template defines a blueprint for the created Secret resource.
  *
  * @schema ExternalSecretSpecTargetTemplate
@@ -12504,7 +13116,7 @@ export interface ExternalSecretSpecTargetTemplate {
    *
    * @schema ExternalSecretSpecTargetTemplate#engineVersion
    */
-  readonly engineVersion?: string;
+  readonly engineVersion?: ExternalSecretSpecTargetTemplateEngineVersion;
 
   /**
    * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -12542,6 +13154,30 @@ export function toJson_ExternalSecretSpecTargetTemplate(obj: ExternalSecretSpecT
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Used to define a conversion Strategy
+ *
+ * @schema ExternalSecretSpecDataRemoteRefConversionStrategy
+ */
+export enum ExternalSecretSpecDataRemoteRefConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+ *
+ * @schema ExternalSecretSpecTargetTemplateEngineVersion
+ */
+export enum ExternalSecretSpecTargetTemplateEngineVersion {
+  /** v1 */
+  V1 = "v1",
+  /** v2 */
+  V2 = "v2",
+}
 
 /**
  * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -13080,14 +13716,14 @@ export interface ExternalSecretV1Beta1SpecDataRemoteRef {
    *
    * @schema ExternalSecretV1Beta1SpecDataRemoteRef#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ExternalSecretV1Beta1SpecDataRemoteRefConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ExternalSecretV1Beta1SpecDataRemoteRef#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ExternalSecretV1Beta1SpecDataRemoteRefDecodingStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -13102,7 +13738,7 @@ export interface ExternalSecretV1Beta1SpecDataRemoteRef {
    * @default None
    * @schema ExternalSecretV1Beta1SpecDataRemoteRef#metadataPolicy
    */
-  readonly metadataPolicy?: string;
+  readonly metadataPolicy?: ExternalSecretV1Beta1SpecDataRemoteRefMetadataPolicy;
 
   /**
    * Used to select a specific property of the Provider value (if a map), if supported
@@ -13146,7 +13782,8 @@ export function toJson_ExternalSecretV1Beta1SpecDataRemoteRef(obj: ExternalSecre
  */
 export interface ExternalSecretV1Beta1SpecDataSourceRef {
   /**
-   * GeneratorRef points to a generator custom resource in
+   * GeneratorRef points to a generator custom resource.
+   * Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1.
    *
    * @schema ExternalSecretV1Beta1SpecDataSourceRef#generatorRef
    */
@@ -13187,14 +13824,14 @@ export interface ExternalSecretV1Beta1SpecDataFromExtract {
    *
    * @schema ExternalSecretV1Beta1SpecDataFromExtract#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ExternalSecretV1Beta1SpecDataFromExtractConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ExternalSecretV1Beta1SpecDataFromExtract#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ExternalSecretV1Beta1SpecDataFromExtractDecodingStrategy;
 
   /**
    * Key is the key used in the Provider, mandatory
@@ -13209,7 +13846,7 @@ export interface ExternalSecretV1Beta1SpecDataFromExtract {
    * @default None
    * @schema ExternalSecretV1Beta1SpecDataFromExtract#metadataPolicy
    */
-  readonly metadataPolicy?: string;
+  readonly metadataPolicy?: ExternalSecretV1Beta1SpecDataFromExtractMetadataPolicy;
 
   /**
    * Used to select a specific property of the Provider value (if a map), if supported
@@ -13257,14 +13894,14 @@ export interface ExternalSecretV1Beta1SpecDataFromFind {
    *
    * @schema ExternalSecretV1Beta1SpecDataFromFind#conversionStrategy
    */
-  readonly conversionStrategy?: string;
+  readonly conversionStrategy?: ExternalSecretV1Beta1SpecDataFromFindConversionStrategy;
 
   /**
    * Used to define a decoding Strategy
    *
    * @schema ExternalSecretV1Beta1SpecDataFromFind#decodingStrategy
    */
-  readonly decodingStrategy?: string;
+  readonly decodingStrategy?: ExternalSecretV1Beta1SpecDataFromFindDecodingStrategy;
 
   /**
    * Finds secrets based on the name.
@@ -13318,6 +13955,13 @@ export interface ExternalSecretV1Beta1SpecDataFromRewrite {
    */
   readonly regexp?: ExternalSecretV1Beta1SpecDataFromRewriteRegexp;
 
+  /**
+   * Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+   *
+   * @schema ExternalSecretV1Beta1SpecDataFromRewrite#transform
+   */
+  readonly transform?: ExternalSecretV1Beta1SpecDataFromRewriteTransform;
+
 }
 
 /**
@@ -13328,6 +13972,7 @@ export function toJson_ExternalSecretV1Beta1SpecDataFromRewrite(obj: ExternalSec
   if (obj === undefined) { return undefined; }
   const result = {
     'regexp': toJson_ExternalSecretV1Beta1SpecDataFromRewriteRegexp(obj.regexp),
+    'transform': toJson_ExternalSecretV1Beta1SpecDataFromRewriteTransform(obj.transform),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13341,7 +13986,7 @@ export function toJson_ExternalSecretV1Beta1SpecDataFromRewrite(obj: ExternalSec
  */
 export interface ExternalSecretV1Beta1SpecDataFromSourceRef {
   /**
-   * GeneratorRef points to a generator custom resource in
+   * GeneratorRef points to a generator custom resource.
    *
    * @schema ExternalSecretV1Beta1SpecDataFromSourceRef#generatorRef
    */
@@ -13415,14 +14060,16 @@ export interface ExternalSecretV1Beta1SpecTargetTemplate {
   readonly data?: { [key: string]: string };
 
   /**
+   * EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+   *
    * @schema ExternalSecretV1Beta1SpecTargetTemplate#engineVersion
    */
-  readonly engineVersion?: string;
+  readonly engineVersion?: ExternalSecretV1Beta1SpecTargetTemplateEngineVersion;
 
   /**
    * @schema ExternalSecretV1Beta1SpecTargetTemplate#mergePolicy
    */
-  readonly mergePolicy?: string;
+  readonly mergePolicy?: ExternalSecretV1Beta1SpecTargetTemplateMergePolicy;
 
   /**
    * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -13463,7 +14110,49 @@ export function toJson_ExternalSecretV1Beta1SpecTargetTemplate(obj: ExternalSecr
 /* eslint-enable max-len, quote-props */
 
 /**
- * GeneratorRef points to a generator custom resource in
+ * Used to define a conversion Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataRemoteRefConversionStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataRemoteRefConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataRemoteRefDecodingStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataRemoteRefDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
+ * Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+ *
+ * @default None
+ * @schema ExternalSecretV1Beta1SpecDataRemoteRefMetadataPolicy
+ */
+export enum ExternalSecretV1Beta1SpecDataRemoteRefMetadataPolicy {
+  /** None */
+  NONE = "None",
+  /** Fetch */
+  FETCH = "Fetch",
+}
+
+/**
+ * GeneratorRef points to a generator custom resource.
+ * Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1.
  *
  * @schema ExternalSecretV1Beta1SpecDataSourceRefGeneratorRef
  */
@@ -13546,6 +14235,75 @@ export function toJson_ExternalSecretV1Beta1SpecDataSourceRefStoreRef(obj: Exter
 /* eslint-enable max-len, quote-props */
 
 /**
+ * Used to define a conversion Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataFromExtractConversionStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataFromExtractConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataFromExtractDecodingStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataFromExtractDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
+ * Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+ *
+ * @default None
+ * @schema ExternalSecretV1Beta1SpecDataFromExtractMetadataPolicy
+ */
+export enum ExternalSecretV1Beta1SpecDataFromExtractMetadataPolicy {
+  /** None */
+  NONE = "None",
+  /** Fetch */
+  FETCH = "Fetch",
+}
+
+/**
+ * Used to define a conversion Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataFromFindConversionStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataFromFindConversionStrategy {
+  /** Default */
+  DEFAULT = "Default",
+  /** Unicode */
+  UNICODE = "Unicode",
+}
+
+/**
+ * Used to define a decoding Strategy
+ *
+ * @schema ExternalSecretV1Beta1SpecDataFromFindDecodingStrategy
+ */
+export enum ExternalSecretV1Beta1SpecDataFromFindDecodingStrategy {
+  /** Auto */
+  AUTO = "Auto",
+  /** Base64 */
+  BASE64 = "Base64",
+  /** Base64URL */
+  BASE64_URL = "Base64URL",
+  /** None */
+  NONE = "None",
+}
+
+/**
  * Finds secrets based on the name.
  *
  * @schema ExternalSecretV1Beta1SpecDataFromFindName
@@ -13612,7 +14370,36 @@ export function toJson_ExternalSecretV1Beta1SpecDataFromRewriteRegexp(obj: Exter
 /* eslint-enable max-len, quote-props */
 
 /**
- * GeneratorRef points to a generator custom resource in
+ * Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+ *
+ * @schema ExternalSecretV1Beta1SpecDataFromRewriteTransform
+ */
+export interface ExternalSecretV1Beta1SpecDataFromRewriteTransform {
+  /**
+   * Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+   *
+   * @schema ExternalSecretV1Beta1SpecDataFromRewriteTransform#template
+   */
+  readonly template: string;
+
+}
+
+/**
+ * Converts an object of type 'ExternalSecretV1Beta1SpecDataFromRewriteTransform' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ExternalSecretV1Beta1SpecDataFromRewriteTransform(obj: ExternalSecretV1Beta1SpecDataFromRewriteTransform | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'template': obj.template,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * GeneratorRef points to a generator custom resource.
  *
  * @schema ExternalSecretV1Beta1SpecDataFromSourceRefGeneratorRef
  */
@@ -13695,6 +14482,28 @@ export function toJson_ExternalSecretV1Beta1SpecDataFromSourceRefStoreRef(obj: E
 /* eslint-enable max-len, quote-props */
 
 /**
+ * EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+ *
+ * @schema ExternalSecretV1Beta1SpecTargetTemplateEngineVersion
+ */
+export enum ExternalSecretV1Beta1SpecTargetTemplateEngineVersion {
+  /** v1 */
+  V1 = "v1",
+  /** v2 */
+  V2 = "v2",
+}
+
+/**
+ * @schema ExternalSecretV1Beta1SpecTargetTemplateMergePolicy
+ */
+export enum ExternalSecretV1Beta1SpecTargetTemplateMergePolicy {
+  /** Replace */
+  REPLACE = "Replace",
+  /** Merge */
+  MERGE = "Merge",
+}
+
+/**
  * ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
  *
  * @schema ExternalSecretV1Beta1SpecTargetTemplateMetadata
@@ -13749,7 +14558,7 @@ export interface ExternalSecretV1Beta1SpecTargetTemplateTemplateFrom {
   /**
    * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFrom#target
    */
-  readonly target?: string;
+  readonly target?: ExternalSecretV1Beta1SpecTargetTemplateTemplateFromTarget;
 
 }
 
@@ -13833,6 +14642,18 @@ export function toJson_ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecret
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromTarget
+ */
+export enum ExternalSecretV1Beta1SpecTargetTemplateTemplateFromTarget {
+  /** Data */
+  DATA = "Data",
+  /** Annotations */
+  ANNOTATIONS = "Annotations",
+  /** Labels */
+  LABELS = "Labels",
+}
+
+/**
  * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItems
  */
 export interface ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItems {
@@ -13844,7 +14665,7 @@ export interface ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapIte
   /**
    * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItems#templateAs
    */
-  readonly templateAs?: string;
+  readonly templateAs?: ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItemsTemplateAs;
 
 }
 
@@ -13875,7 +14696,7 @@ export interface ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecretItems 
   /**
    * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecretItems#templateAs
    */
-  readonly templateAs?: string;
+  readonly templateAs?: ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecretItemsTemplateAs;
 
 }
 
@@ -13893,6 +14714,26 @@ export function toJson_ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecret
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItemsTemplateAs
+ */
+export enum ExternalSecretV1Beta1SpecTargetTemplateTemplateFromConfigMapItemsTemplateAs {
+  /** Values */
+  VALUES = "Values",
+  /** KeysAndValues */
+  KEYS_AND_VALUES = "KeysAndValues",
+}
+
+/**
+ * @schema ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecretItemsTemplateAs
+ */
+export enum ExternalSecretV1Beta1SpecTargetTemplateTemplateFromSecretItemsTemplateAs {
+  /** Values */
+  VALUES = "Values",
+  /** KeysAndValues */
+  KEYS_AND_VALUES = "KeysAndValues",
+}
 
 
 /**
@@ -14001,7 +14842,7 @@ export interface PushSecretSpec {
    * @default None".
    * @schema PushSecretSpec#deletionPolicy
    */
-  readonly deletionPolicy?: string;
+  readonly deletionPolicy?: PushSecretSpecDeletionPolicy;
 
   /**
    * The Interval to which External Secrets will try to push a secret definition
@@ -14053,6 +14894,13 @@ export interface PushSecretSpecData {
    */
   readonly match: PushSecretSpecDataMatch;
 
+  /**
+   * Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+   *
+   * @schema PushSecretSpecData#metadata
+   */
+  readonly metadata?: any;
+
 }
 
 /**
@@ -14063,11 +14911,25 @@ export function toJson_PushSecretSpecData(obj: PushSecretSpecData | undefined): 
   if (obj === undefined) { return undefined; }
   const result = {
     'match': toJson_PushSecretSpecDataMatch(obj.match),
+    'metadata': obj.metadata,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
+ *
+ * @default None".
+ * @schema PushSecretSpecDeletionPolicy
+ */
+export enum PushSecretSpecDeletionPolicy {
+  /** Delete */
+  DELETE = "Delete",
+  /** None */
+  NONE = "None",
+}
 
 /**
  * @schema PushSecretSpecSecretStoreRefs
@@ -15031,11 +15893,32 @@ export function toJson_SecretStoreSpecProviderKubernetes(obj: SecretStoreSpecPro
  */
 export interface SecretStoreSpecProviderOracle {
   /**
-   * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+   * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
    *
    * @schema SecretStoreSpecProviderOracle#auth
    */
   readonly auth?: SecretStoreSpecProviderOracleAuth;
+
+  /**
+   * Compartment is the vault compartment OCID. Required for PushSecret
+   *
+   * @schema SecretStoreSpecProviderOracle#compartment
+   */
+  readonly compartment?: string;
+
+  /**
+   * EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+   *
+   * @schema SecretStoreSpecProviderOracle#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+   *
+   * @schema SecretStoreSpecProviderOracle#principalType
+   */
+  readonly principalType?: string;
 
   /**
    * Region is the region where vault is located.
@@ -15043,6 +15926,13 @@ export interface SecretStoreSpecProviderOracle {
    * @schema SecretStoreSpecProviderOracle#region
    */
   readonly region: string;
+
+  /**
+   * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+   *
+   * @schema SecretStoreSpecProviderOracle#serviceAccountRef
+   */
+  readonly serviceAccountRef?: SecretStoreSpecProviderOracleServiceAccountRef;
 
   /**
    * Vault is the vault's OCID of the specific vault where secret is located.
@@ -15061,7 +15951,11 @@ export function toJson_SecretStoreSpecProviderOracle(obj: SecretStoreSpecProvide
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_SecretStoreSpecProviderOracleAuth(obj.auth),
+    'compartment': obj.compartment,
+    'encryptionKey': obj.encryptionKey,
+    'principalType': obj.principalType,
     'region': obj.region,
+    'serviceAccountRef': toJson_SecretStoreSpecProviderOracleServiceAccountRef(obj.serviceAccountRef),
     'vault': obj.vault,
   };
   // filter undefined values
@@ -15793,7 +16687,7 @@ export function toJson_SecretStoreSpecProviderKubernetesServer(obj: SecretStoreS
 /* eslint-enable max-len, quote-props */
 
 /**
- * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+ * Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
  *
  * @schema SecretStoreSpecProviderOracleAuth
  */
@@ -15831,6 +16725,51 @@ export function toJson_SecretStoreSpecProviderOracleAuth(obj: SecretStoreSpecPro
     'secretRef': toJson_SecretStoreSpecProviderOracleAuthSecretRef(obj.secretRef),
     'tenancy': obj.tenancy,
     'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+ *
+ * @schema SecretStoreSpecProviderOracleServiceAccountRef
+ */
+export interface SecretStoreSpecProviderOracleServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema SecretStoreSpecProviderOracleServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema SecretStoreSpecProviderOracleServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreSpecProviderOracleServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreSpecProviderOracleServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreSpecProviderOracleServiceAccountRef(obj: SecretStoreSpecProviderOracleServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -19277,6 +20216,13 @@ export interface SecretStoreV1Beta1SpecProviderConjur {
   readonly caBundle?: string;
 
   /**
+   * Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjur#caProvider
+   */
+  readonly caProvider?: SecretStoreV1Beta1SpecProviderConjurCaProvider;
+
+  /**
    * @schema SecretStoreV1Beta1SpecProviderConjur#url
    */
   readonly url: string;
@@ -19292,6 +20238,7 @@ export function toJson_SecretStoreV1Beta1SpecProviderConjur(obj: SecretStoreV1Be
   const result = {
     'auth': toJson_SecretStoreV1Beta1SpecProviderConjurAuth(obj.auth),
     'caBundle': obj.caBundle,
+    'caProvider': toJson_SecretStoreV1Beta1SpecProviderConjurCaProvider(obj.caProvider),
     'url': obj.url,
   };
   // filter undefined values
@@ -19731,11 +20678,39 @@ export interface SecretStoreV1Beta1SpecProviderOracle {
   readonly auth?: SecretStoreV1Beta1SpecProviderOracleAuth;
 
   /**
+   * Compartment is the vault compartment OCID. Required for PushSecret
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracle#compartment
+   */
+  readonly compartment?: string;
+
+  /**
+   * EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracle#encryptionKey
+   */
+  readonly encryptionKey?: string;
+
+  /**
+   * The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracle#principalType
+   */
+  readonly principalType?: string;
+
+  /**
    * Region is the region where vault is located.
    *
    * @schema SecretStoreV1Beta1SpecProviderOracle#region
    */
   readonly region: string;
+
+  /**
+   * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracle#serviceAccountRef
+   */
+  readonly serviceAccountRef?: SecretStoreV1Beta1SpecProviderOracleServiceAccountRef;
 
   /**
    * Vault is the vault's OCID of the specific vault where secret is located.
@@ -19754,7 +20729,11 @@ export function toJson_SecretStoreV1Beta1SpecProviderOracle(obj: SecretStoreV1Be
   if (obj === undefined) { return undefined; }
   const result = {
     'auth': toJson_SecretStoreV1Beta1SpecProviderOracleAuth(obj.auth),
+    'compartment': obj.compartment,
+    'encryptionKey': obj.encryptionKey,
+    'principalType': obj.principalType,
     'region': obj.region,
+    'serviceAccountRef': toJson_SecretStoreV1Beta1SpecProviderOracleServiceAccountRef(obj.serviceAccountRef),
     'vault': obj.vault,
   };
   // filter undefined values
@@ -20524,7 +21503,12 @@ export interface SecretStoreV1Beta1SpecProviderConjurAuth {
   /**
    * @schema SecretStoreV1Beta1SpecProviderConjurAuth#apikey
    */
-  readonly apikey: SecretStoreV1Beta1SpecProviderConjurAuthApikey;
+  readonly apikey?: SecretStoreV1Beta1SpecProviderConjurAuthApikey;
+
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuth#jwt
+   */
+  readonly jwt?: SecretStoreV1Beta1SpecProviderConjurAuthJwt;
 
 }
 
@@ -20536,6 +21520,60 @@ export function toJson_SecretStoreV1Beta1SpecProviderConjurAuth(obj: SecretStore
   if (obj === undefined) { return undefined; }
   const result = {
     'apikey': toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikey(obj.apikey),
+    'jwt': toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwt(obj.jwt),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurCaProvider
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurCaProvider {
+  /**
+   * The key where the CA certificate can be found in the Secret or ConfigMap.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurCaProvider#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the object located at the provider type.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurCaProvider#name
+   */
+  readonly name: string;
+
+  /**
+   * The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurCaProvider#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * The type of provider to use such as "Secret", or "ConfigMap".
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurCaProvider#type
+   */
+  readonly type: SecretStoreV1Beta1SpecProviderConjurCaProviderType;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurCaProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurCaProvider(obj: SecretStoreV1Beta1SpecProviderConjurCaProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+    'type': obj.type,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21022,6 +22060,51 @@ export function toJson_SecretStoreV1Beta1SpecProviderOracleAuth(obj: SecretStore
     'secretRef': toJson_SecretStoreV1Beta1SpecProviderOracleAuthSecretRef(obj.secretRef),
     'tenancy': obj.tenancy,
     'user': obj.user,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderOracleServiceAccountRef
+ */
+export interface SecretStoreV1Beta1SpecProviderOracleServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracleServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracleServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderOracleServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderOracleServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderOracleServiceAccountRef(obj: SecretStoreV1Beta1SpecProviderOracleServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
+    'name': obj.name,
+    'namespace': obj.namespace,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21916,6 +22999,67 @@ export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikey(obj: Secre
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwt
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthJwt {
+  /**
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwt#account
+   */
+  readonly account: string;
+
+  /**
+   * Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwt#secretRef
+   */
+  readonly secretRef?: SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef;
+
+  /**
+   * Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwt#serviceAccountRef
+   */
+  readonly serviceAccountRef?: SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef;
+
+  /**
+   * The conjur authn jwt webservice id
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwt#serviceID
+   */
+  readonly serviceId: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthJwt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwt(obj: SecretStoreV1Beta1SpecProviderConjurAuthJwt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'account': obj.account,
+    'secretRef': toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef(obj.secretRef),
+    'serviceAccountRef': toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef(obj.serviceAccountRef),
+    'serviceID': obj.serviceId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * The type of provider to use such as "Secret", or "ConfigMap".
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurCaProviderType
+ */
+export enum SecretStoreV1Beta1SpecProviderConjurCaProviderType {
+  /** Secret */
+  SECRET = "Secret",
+  /** ConfigMap */
+  CONFIG_MAP = "ConfigMap",
+}
 
 /**
  * SecretRef references a key in a secret that will be used as value.
@@ -23810,6 +24954,96 @@ export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthApikeyUserRef(obj
   if (obj === undefined) { return undefined; }
   const result = {
     'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef {
+  /**
+   * The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#key
+   */
+  readonly key?: string;
+
+  /**
+   * The name of the Secret resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#name
+   */
+  readonly name?: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef(obj: SecretStoreV1Beta1SpecProviderConjurAuthJwtSecretRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'name': obj.name,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+ *
+ * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef
+ */
+export interface SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef {
+  /**
+   * Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#audiences
+   */
+  readonly audiences?: string[];
+
+  /**
+   * The name of the ServiceAccount resource being referred to.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#name
+   */
+  readonly name: string;
+
+  /**
+   * Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+   *
+   * @schema SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef(obj: SecretStoreV1Beta1SpecProviderConjurAuthJwtServiceAccountRef | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audiences': obj.audiences?.map(y => y),
     'name': obj.name,
     'namespace': obj.namespace,
   };

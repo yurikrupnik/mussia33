@@ -99,7 +99,7 @@ export function toJson_ReportDefinitionProps(obj: ReportDefinitionProps | undefi
  */
 export interface ReportDefinitionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ReportDefinitionSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ReportDefinitionSpec {
   readonly forProvider: ReportDefinitionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ReportDefinitionSpec#managementPolicy
+   * @schema ReportDefinitionSpec#initProvider
    */
-  readonly managementPolicy?: ReportDefinitionSpecManagementPolicy;
+  readonly initProvider?: ReportDefinitionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ReportDefinitionSpec#managementPolicies
+   */
+  readonly managementPolicies?: ReportDefinitionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ReportDefinitionSpec {
    * @schema ReportDefinitionSpec#providerConfigRef
    */
   readonly providerConfigRef?: ReportDefinitionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ReportDefinitionSpec#providerRef
-   */
-  readonly providerRef?: ReportDefinitionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ReportDefinitionSpec(obj: ReportDefinitionSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ReportDefinitionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ReportDefinitionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ReportDefinitionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ReportDefinitionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ReportDefinitionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ReportDefinitionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ReportDefinitionSpec(obj: ReportDefinitionSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ReportDefinitionSpecDeletionPolicy
  */
@@ -303,17 +303,116 @@ export function toJson_ReportDefinitionSpecForProvider(obj: ReportDefinitionSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ReportDefinitionSpecManagementPolicy
+ * @schema ReportDefinitionSpecInitProvider
  */
-export enum ReportDefinitionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ReportDefinitionSpecInitProvider {
+  /**
+   * A list of additional artifacts. Valid values are: REDSHIFT, QUICKSIGHT, ATHENA. When ATHENA exists within additional_artifacts, no other artifact type can be declared and report_versioning must be OVERWRITE_REPORT.
+   *
+   * @schema ReportDefinitionSpecInitProvider#additionalArtifacts
+   */
+  readonly additionalArtifacts?: string[];
+
+  /**
+   * A list of schema elements. Valid values are: RESOURCES.
+   *
+   * @schema ReportDefinitionSpecInitProvider#additionalSchemaElements
+   */
+  readonly additionalSchemaElements?: string[];
+
+  /**
+   * Compression format for report. Valid values are: GZIP, ZIP, Parquet. If Parquet is used, then format must also be Parquet.
+   *
+   * @schema ReportDefinitionSpecInitProvider#compression
+   */
+  readonly compression?: string;
+
+  /**
+   * Format for report. Valid values are: textORcsv, Parquet. If Parquet is used, then Compression must also be Parquet.
+   *
+   * @schema ReportDefinitionSpecInitProvider#format
+   */
+  readonly format?: string;
+
+  /**
+   * Set to true to update your reports after they have been finalized if AWS detects charges related to previous months.
+   *
+   * @schema ReportDefinitionSpecInitProvider#refreshClosedReports
+   */
+  readonly refreshClosedReports?: boolean;
+
+  /**
+   * Overwrite the previous version of each report or to deliver the report in addition to the previous versions. Valid values are: CREATE_NEW_REPORT and OVERWRITE_REPORT.
+   *
+   * @schema ReportDefinitionSpecInitProvider#reportVersioning
+   */
+  readonly reportVersioning?: string;
+
+  /**
+   * Report path prefix. Limited to 256 characters.
+   *
+   * @schema ReportDefinitionSpecInitProvider#s3Prefix
+   */
+  readonly s3Prefix?: string;
+
+  /**
+   * Region of the existing S3 bucket to hold generated reports.
+   *
+   * @schema ReportDefinitionSpecInitProvider#s3Region
+   */
+  readonly s3Region?: string;
+
+  /**
+   * The frequency on which report data are measured and displayed.  Valid values are: DAILY, HOURLY, MONTHLY.
+   *
+   * @schema ReportDefinitionSpecInitProvider#timeUnit
+   */
+  readonly timeUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'ReportDefinitionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ReportDefinitionSpecInitProvider(obj: ReportDefinitionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalArtifacts': obj.additionalArtifacts?.map(y => y),
+    'additionalSchemaElements': obj.additionalSchemaElements?.map(y => y),
+    'compression': obj.compression,
+    'format': obj.format,
+    'refreshClosedReports': obj.refreshClosedReports,
+    'reportVersioning': obj.reportVersioning,
+    's3Prefix': obj.s3Prefix,
+    's3Region': obj.s3Region,
+    'timeUnit': obj.timeUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ReportDefinitionSpecManagementPolicies
+ */
+export enum ReportDefinitionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -347,43 +446,6 @@ export function toJson_ReportDefinitionSpecProviderConfigRef(obj: ReportDefiniti
   const result = {
     'name': obj.name,
     'policy': toJson_ReportDefinitionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ReportDefinitionSpecProviderRef
- */
-export interface ReportDefinitionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ReportDefinitionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ReportDefinitionSpecProviderRef#policy
-   */
-  readonly policy?: ReportDefinitionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ReportDefinitionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ReportDefinitionSpecProviderRef(obj: ReportDefinitionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ReportDefinitionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -592,43 +654,6 @@ export function toJson_ReportDefinitionSpecProviderConfigRefPolicy(obj: ReportDe
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ReportDefinitionSpecProviderRefPolicy
- */
-export interface ReportDefinitionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ReportDefinitionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ReportDefinitionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ReportDefinitionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ReportDefinitionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ReportDefinitionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ReportDefinitionSpecProviderRefPolicy(obj: ReportDefinitionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ReportDefinitionSpecPublishConnectionDetailsToConfigRef
@@ -802,30 +827,6 @@ export enum ReportDefinitionSpecProviderConfigRefPolicyResolution {
  * @schema ReportDefinitionSpecProviderConfigRefPolicyResolve
  */
 export enum ReportDefinitionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ReportDefinitionSpecProviderRefPolicyResolution
- */
-export enum ReportDefinitionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ReportDefinitionSpecProviderRefPolicyResolve
- */
-export enum ReportDefinitionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

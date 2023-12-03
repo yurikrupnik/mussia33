@@ -99,7 +99,7 @@ export function toJson_ChannelProps(obj: ChannelProps | undefined): Record<strin
  */
 export interface ChannelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ChannelSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ChannelSpec {
   readonly forProvider: ChannelSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ChannelSpec#managementPolicy
+   * @schema ChannelSpec#initProvider
    */
-  readonly managementPolicy?: ChannelSpecManagementPolicy;
+  readonly initProvider?: ChannelSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ChannelSpec#managementPolicies
+   */
+  readonly managementPolicies?: ChannelSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ChannelSpec {
    * @schema ChannelSpec#providerConfigRef
    */
   readonly providerConfigRef?: ChannelSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ChannelSpec#providerRef
-   */
-  readonly providerRef?: ChannelSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ChannelSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ChannelSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ChannelSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ChannelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ChannelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ChannelSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ChannelSpecDeletionPolicy
  */
@@ -231,17 +231,68 @@ export function toJson_ChannelSpecForProvider(obj: ChannelSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ChannelSpecManagementPolicy
+ * @schema ChannelSpecInitProvider
  */
-export enum ChannelSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ChannelSpecInitProvider {
+  /**
+   * Optional. Resource name of a KMS crypto key (managed by the user) used to encrypt/decrypt their event data. It must match the pattern projects/_/locations/_/keyRings/_/cryptoKeys/*.
+   *
+   * @schema ChannelSpecInitProvider#cryptoKeyName
+   */
+  readonly cryptoKeyName?: string;
+
+  /**
+   * The project for the resource
+   *
+   * @schema ChannelSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The name of the event provider (e.g. Eventarc SaaS partner) associated with the channel. This provider will be granted permissions to publish events to the channel. Format: projects/{project}/locations/{location}/providers/{provider_id}.
+   *
+   * @schema ChannelSpecInitProvider#thirdPartyProvider
+   */
+  readonly thirdPartyProvider?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProvider(obj: ChannelSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cryptoKeyName': obj.cryptoKeyName,
+    'project': obj.project,
+    'thirdPartyProvider': obj.thirdPartyProvider,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ChannelSpecManagementPolicies
+ */
+export enum ChannelSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +326,6 @@ export function toJson_ChannelSpecProviderConfigRef(obj: ChannelSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ChannelSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ChannelSpecProviderRef
- */
-export interface ChannelSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ChannelSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ChannelSpecProviderRef#policy
-   */
-  readonly policy?: ChannelSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ChannelSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ChannelSpecProviderRef(obj: ChannelSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ChannelSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,43 +452,6 @@ export function toJson_ChannelSpecProviderConfigRefPolicy(obj: ChannelSpecProvid
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ChannelSpecProviderRefPolicy
- */
-export interface ChannelSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ChannelSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ChannelSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ChannelSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ChannelSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ChannelSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ChannelSpecProviderRefPolicy(obj: ChannelSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ChannelSpecPublishConnectionDetailsToConfigRef
@@ -574,30 +551,6 @@ export enum ChannelSpecProviderConfigRefPolicyResolution {
  * @schema ChannelSpecProviderConfigRefPolicyResolve
  */
 export enum ChannelSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ChannelSpecProviderRefPolicyResolution
- */
-export enum ChannelSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ChannelSpecProviderRefPolicyResolve
- */
-export enum ChannelSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -762,7 +715,7 @@ export function toJson_GoogleChannelConfigProps(obj: GoogleChannelConfigProps | 
  */
 export interface GoogleChannelConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GoogleChannelConfigSpec#deletionPolicy
    */
@@ -774,11 +727,18 @@ export interface GoogleChannelConfigSpec {
   readonly forProvider: GoogleChannelConfigSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema GoogleChannelConfigSpec#managementPolicy
+   * @schema GoogleChannelConfigSpec#initProvider
    */
-  readonly managementPolicy?: GoogleChannelConfigSpecManagementPolicy;
+  readonly initProvider?: GoogleChannelConfigSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema GoogleChannelConfigSpec#managementPolicies
+   */
+  readonly managementPolicies?: GoogleChannelConfigSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -786,13 +746,6 @@ export interface GoogleChannelConfigSpec {
    * @schema GoogleChannelConfigSpec#providerConfigRef
    */
   readonly providerConfigRef?: GoogleChannelConfigSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema GoogleChannelConfigSpec#providerRef
-   */
-  readonly providerRef?: GoogleChannelConfigSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -819,9 +772,9 @@ export function toJson_GoogleChannelConfigSpec(obj: GoogleChannelConfigSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GoogleChannelConfigSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_GoogleChannelConfigSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_GoogleChannelConfigSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_GoogleChannelConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GoogleChannelConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_GoogleChannelConfigSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -831,7 +784,7 @@ export function toJson_GoogleChannelConfigSpec(obj: GoogleChannelConfigSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GoogleChannelConfigSpecDeletionPolicy
  */
@@ -886,17 +839,60 @@ export function toJson_GoogleChannelConfigSpecForProvider(obj: GoogleChannelConf
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema GoogleChannelConfigSpecManagementPolicy
+ * @schema GoogleChannelConfigSpecInitProvider
  */
-export enum GoogleChannelConfigSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface GoogleChannelConfigSpecInitProvider {
+  /**
+   * Optional. Resource name of a KMS crypto key (managed by the user) used to encrypt/decrypt their event data. It must match the pattern projects/_/locations/_/keyRings/_/cryptoKeys/*.
+   *
+   * @schema GoogleChannelConfigSpecInitProvider#cryptoKeyName
+   */
+  readonly cryptoKeyName?: string;
+
+  /**
+   * The project for the resource
+   *
+   * @schema GoogleChannelConfigSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'GoogleChannelConfigSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GoogleChannelConfigSpecInitProvider(obj: GoogleChannelConfigSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cryptoKeyName': obj.cryptoKeyName,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema GoogleChannelConfigSpecManagementPolicies
+ */
+export enum GoogleChannelConfigSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -930,43 +926,6 @@ export function toJson_GoogleChannelConfigSpecProviderConfigRef(obj: GoogleChann
   const result = {
     'name': obj.name,
     'policy': toJson_GoogleChannelConfigSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema GoogleChannelConfigSpecProviderRef
- */
-export interface GoogleChannelConfigSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema GoogleChannelConfigSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema GoogleChannelConfigSpecProviderRef#policy
-   */
-  readonly policy?: GoogleChannelConfigSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'GoogleChannelConfigSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GoogleChannelConfigSpecProviderRef(obj: GoogleChannelConfigSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_GoogleChannelConfigSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1093,43 +1052,6 @@ export function toJson_GoogleChannelConfigSpecProviderConfigRefPolicy(obj: Googl
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema GoogleChannelConfigSpecProviderRefPolicy
- */
-export interface GoogleChannelConfigSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema GoogleChannelConfigSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: GoogleChannelConfigSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema GoogleChannelConfigSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: GoogleChannelConfigSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'GoogleChannelConfigSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GoogleChannelConfigSpecProviderRefPolicy(obj: GoogleChannelConfigSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema GoogleChannelConfigSpecPublishConnectionDetailsToConfigRef
@@ -1229,30 +1151,6 @@ export enum GoogleChannelConfigSpecProviderConfigRefPolicyResolution {
  * @schema GoogleChannelConfigSpecProviderConfigRefPolicyResolve
  */
 export enum GoogleChannelConfigSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema GoogleChannelConfigSpecProviderRefPolicyResolution
- */
-export enum GoogleChannelConfigSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema GoogleChannelConfigSpecProviderRefPolicyResolve
- */
-export enum GoogleChannelConfigSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1417,7 +1315,7 @@ export function toJson_TriggerProps(obj: TriggerProps | undefined): Record<strin
  */
 export interface TriggerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TriggerSpec#deletionPolicy
    */
@@ -1429,11 +1327,18 @@ export interface TriggerSpec {
   readonly forProvider: TriggerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TriggerSpec#managementPolicy
+   * @schema TriggerSpec#initProvider
    */
-  readonly managementPolicy?: TriggerSpecManagementPolicy;
+  readonly initProvider?: TriggerSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TriggerSpec#managementPolicies
+   */
+  readonly managementPolicies?: TriggerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1441,13 +1346,6 @@ export interface TriggerSpec {
    * @schema TriggerSpec#providerConfigRef
    */
   readonly providerConfigRef?: TriggerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TriggerSpec#providerRef
-   */
-  readonly providerRef?: TriggerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1474,9 +1372,9 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TriggerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TriggerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TriggerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TriggerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TriggerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TriggerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1486,7 +1384,7 @@ export function toJson_TriggerSpec(obj: TriggerSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TriggerSpecDeletionPolicy
  */
@@ -1514,6 +1412,11 @@ export interface TriggerSpecForProvider {
    * @schema TriggerSpecForProvider#destination
    */
   readonly destination?: TriggerSpecForProviderDestination[];
+
+  /**
+   * @schema TriggerSpecForProvider#eventDataContentType
+   */
+  readonly eventDataContentType?: string;
 
   /**
    * Optional. User labels attached to the triggers that can be used to group resources.
@@ -1568,6 +1471,7 @@ export function toJson_TriggerSpecForProvider(obj: TriggerSpecForProvider | unde
   const result = {
     'channel': obj.channel,
     'destination': obj.destination?.map(y => toJson_TriggerSpecForProviderDestination(y)),
+    'eventDataContentType': obj.eventDataContentType,
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'location': obj.location,
     'matchingCriteria': obj.matchingCriteria?.map(y => toJson_TriggerSpecForProviderMatchingCriteria(y)),
@@ -1581,17 +1485,106 @@ export function toJson_TriggerSpecForProvider(obj: TriggerSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TriggerSpecManagementPolicy
+ * @schema TriggerSpecInitProvider
  */
-export enum TriggerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TriggerSpecInitProvider {
+  /**
+   * Optional. The name of the channel associated with the trigger in projects/{project}/locations/{location}/channels/{channel} format. You must provide a channel to receive events from Eventarc SaaS partners.
+   *
+   * @schema TriggerSpecInitProvider#channel
+   */
+  readonly channel?: string;
+
+  /**
+   * Required. Destination specifies where the events should be sent to.
+   *
+   * @schema TriggerSpecInitProvider#destination
+   */
+  readonly destination?: TriggerSpecInitProviderDestination[];
+
+  /**
+   * @schema TriggerSpecInitProvider#eventDataContentType
+   */
+  readonly eventDataContentType?: string;
+
+  /**
+   * Optional. User labels attached to the triggers that can be used to group resources.
+   *
+   * @schema TriggerSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Required. null The list of filters that applies to event attributes. Only events that match all the provided filters will be sent to the destination.
+   *
+   * @schema TriggerSpecInitProvider#matchingCriteria
+   */
+  readonly matchingCriteria?: TriggerSpecInitProviderMatchingCriteria[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema TriggerSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Optional. The IAM service account email associated with the trigger. The service account represents the identity of the trigger. The principal who calls this API must have iam.serviceAccounts.actAs permission in the service account. See https://cloud.google.com/iam/docs/understanding-service-accounts#sa_common for more information. For Cloud Run destinations, this service account is used to generate identity tokens when invoking the service. See https://cloud.google.com/run/docs/triggering/pubsub-push#create-service-account for information on how to invoke authenticated Cloud Run services. In order to create Audit Log triggers, the service account should also have roles/eventarc.eventReceiver IAM role.
+   *
+   * @schema TriggerSpecInitProvider#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * Optional. In order to deliver messages, Eventarc may use other GCP products as transport intermediary. This field contains a reference to that transport intermediary. This information can be used for debugging purposes.
+   *
+   * @schema TriggerSpecInitProvider#transport
+   */
+  readonly transport?: TriggerSpecInitProviderTransport[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProvider(obj: TriggerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'channel': obj.channel,
+    'destination': obj.destination?.map(y => toJson_TriggerSpecInitProviderDestination(y)),
+    'eventDataContentType': obj.eventDataContentType,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'matchingCriteria': obj.matchingCriteria?.map(y => toJson_TriggerSpecInitProviderMatchingCriteria(y)),
+    'project': obj.project,
+    'serviceAccount': obj.serviceAccount,
+    'transport': obj.transport?.map(y => toJson_TriggerSpecInitProviderTransport(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TriggerSpecManagementPolicies
+ */
+export enum TriggerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1625,43 +1618,6 @@ export function toJson_TriggerSpecProviderConfigRef(obj: TriggerSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_TriggerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TriggerSpecProviderRef
- */
-export interface TriggerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TriggerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TriggerSpecProviderRef#policy
-   */
-  readonly policy?: TriggerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TriggerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TriggerSpecProviderRef(obj: TriggerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TriggerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1810,7 +1766,7 @@ export interface TriggerSpecForProviderMatchingCriteria {
    *
    * @schema TriggerSpecForProviderMatchingCriteria#attribute
    */
-  readonly attribute: string;
+  readonly attribute?: string;
 
   /**
    * Optional. The operator used for matching the events with the value of the filter. If not specified, only events that have an exact key-value pair specified in the filter are matched. The only allowed value is match-path-pattern.
@@ -1824,7 +1780,7 @@ export interface TriggerSpecForProviderMatchingCriteria {
    *
    * @schema TriggerSpecForProviderMatchingCriteria#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1872,6 +1828,127 @@ export function toJson_TriggerSpecForProviderTransport(obj: TriggerSpecForProvid
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TriggerSpecInitProviderDestination
+ */
+export interface TriggerSpecInitProviderDestination {
+  /**
+   * [WARNING] Configuring a Cloud Function in Trigger is not supported as of today. The Cloud Function resource name. Format: projects/{project}/locations/{location}/functions/{function}
+   *
+   * @schema TriggerSpecInitProviderDestination#cloudFunction
+   */
+  readonly cloudFunction?: string;
+
+  /**
+   * Cloud Run fully-managed service that receives the events. The service should be running in the same project of the trigger.
+   *
+   * @schema TriggerSpecInitProviderDestination#cloudRunService
+   */
+  readonly cloudRunService?: TriggerSpecInitProviderDestinationCloudRunService[];
+
+  /**
+   * A GKE service capable of receiving events. The service should be running in the same project as the trigger.
+   *
+   * @schema TriggerSpecInitProviderDestination#gke
+   */
+  readonly gke?: TriggerSpecInitProviderDestinationGke[];
+
+  /**
+   * The resource name of the Workflow whose Executions are triggered by the events. The Workflow resource should be deployed in the same project as the trigger. Format: projects/{project}/locations/{location}/workflows/{workflow}
+   *
+   * @schema TriggerSpecInitProviderDestination#workflow
+   */
+  readonly workflow?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderDestination(obj: TriggerSpecInitProviderDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudFunction': obj.cloudFunction,
+    'cloudRunService': obj.cloudRunService?.map(y => toJson_TriggerSpecInitProviderDestinationCloudRunService(y)),
+    'gke': obj.gke?.map(y => toJson_TriggerSpecInitProviderDestinationGke(y)),
+    'workflow': obj.workflow,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderMatchingCriteria
+ */
+export interface TriggerSpecInitProviderMatchingCriteria {
+  /**
+   * Required. The name of a CloudEvents attribute. Currently, only a subset of attributes are supported for filtering. All triggers MUST provide a filter for the 'type' attribute.
+   *
+   * @schema TriggerSpecInitProviderMatchingCriteria#attribute
+   */
+  readonly attribute?: string;
+
+  /**
+   * Optional. The operator used for matching the events with the value of the filter. If not specified, only events that have an exact key-value pair specified in the filter are matched. The only allowed value is match-path-pattern.
+   *
+   * @schema TriggerSpecInitProviderMatchingCriteria#operator
+   */
+  readonly operator?: string;
+
+  /**
+   * Required. The value for the attribute. See https://cloud.google.com/eventarc/docs/creating-triggers#trigger-gcloud for available values.
+   *
+   * @schema TriggerSpecInitProviderMatchingCriteria#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderMatchingCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderMatchingCriteria(obj: TriggerSpecInitProviderMatchingCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attribute': obj.attribute,
+    'operator': obj.operator,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderTransport
+ */
+export interface TriggerSpecInitProviderTransport {
+  /**
+   * The Pub/Sub topic and subscription used by Eventarc as delivery intermediary.
+   *
+   * @schema TriggerSpecInitProviderTransport#pubsub
+   */
+  readonly pubsub?: TriggerSpecInitProviderTransportPubsub[];
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderTransport' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderTransport(obj: TriggerSpecInitProviderTransport | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pubsub': obj.pubsub?.map(y => toJson_TriggerSpecInitProviderTransportPubsub(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema TriggerSpecProviderConfigRefPolicy
@@ -1898,43 +1975,6 @@ export interface TriggerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_TriggerSpecProviderConfigRefPolicy(obj: TriggerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema TriggerSpecProviderRefPolicy
- */
-export interface TriggerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TriggerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TriggerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TriggerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TriggerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TriggerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TriggerSpecProviderRefPolicy(obj: TriggerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2095,7 +2135,7 @@ export interface TriggerSpecForProviderDestinationGke {
    *
    * @schema TriggerSpecForProviderDestinationGke#cluster
    */
-  readonly cluster: string;
+  readonly cluster?: string;
 
   /**
    * The location for the resource
@@ -2109,7 +2149,7 @@ export interface TriggerSpecForProviderDestinationGke {
    *
    * @schema TriggerSpecForProviderDestinationGke#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
   /**
    * Optional. The relative path on the GKE service the events should be sent to. The value must conform to the definition of a URI path segment (section 3.3 of RFC2396). Examples: "/route", "route", "route/subroute".
@@ -2123,7 +2163,7 @@ export interface TriggerSpecForProviderDestinationGke {
    *
    * @schema TriggerSpecForProviderDestinationGke#service
    */
-  readonly service: string;
+  readonly service?: string;
 
 }
 
@@ -2173,6 +2213,119 @@ export function toJson_TriggerSpecForProviderTransportPubsub(obj: TriggerSpecFor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema TriggerSpecInitProviderDestinationCloudRunService
+ */
+export interface TriggerSpecInitProviderDestinationCloudRunService {
+  /**
+   * Optional. The relative path on the GKE service the events should be sent to. The value must conform to the definition of a URI path segment (section 3.3 of RFC2396). Examples: "/route", "route", "route/subroute".
+   *
+   * @schema TriggerSpecInitProviderDestinationCloudRunService#path
+   */
+  readonly path?: string;
+
+  /**
+   * Required. The region the Cloud Run service is deployed in.
+   *
+   * @schema TriggerSpecInitProviderDestinationCloudRunService#region
+   */
+  readonly region?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderDestinationCloudRunService' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderDestinationCloudRunService(obj: TriggerSpecInitProviderDestinationCloudRunService | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'path': obj.path,
+    'region': obj.region,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderDestinationGke
+ */
+export interface TriggerSpecInitProviderDestinationGke {
+  /**
+   * Required. The name of the cluster the GKE service is running in. The cluster must be running in the same project as the trigger being created.
+   *
+   * @schema TriggerSpecInitProviderDestinationGke#cluster
+   */
+  readonly cluster?: string;
+
+  /**
+   * Required. The namespace the GKE service is running in.
+   *
+   * @schema TriggerSpecInitProviderDestinationGke#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Optional. The relative path on the GKE service the events should be sent to. The value must conform to the definition of a URI path segment (section 3.3 of RFC2396). Examples: "/route", "route", "route/subroute".
+   *
+   * @schema TriggerSpecInitProviderDestinationGke#path
+   */
+  readonly path?: string;
+
+  /**
+   * Required. Name of the GKE service.
+   *
+   * @schema TriggerSpecInitProviderDestinationGke#service
+   */
+  readonly service?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderDestinationGke' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderDestinationGke(obj: TriggerSpecInitProviderDestinationGke | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cluster': obj.cluster,
+    'namespace': obj.namespace,
+    'path': obj.path,
+    'service': obj.service,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema TriggerSpecInitProviderTransportPubsub
+ */
+export interface TriggerSpecInitProviderTransportPubsub {
+  /**
+   * Optional. The name of the Pub/Sub topic created and managed by Eventarc system as a transport for the event delivery. Format: projects/{PROJECT_ID}/topics/{TOPIC_NAME}. You may set an existing topic for triggers of the type google.cloud.pubsub.topic.v1.messagePublished only. The topic you provide here will not be deleted by Eventarc at trigger deletion.
+   *
+   * @schema TriggerSpecInitProviderTransportPubsub#topic
+   */
+  readonly topic?: string;
+
+}
+
+/**
+ * Converts an object of type 'TriggerSpecInitProviderTransportPubsub' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TriggerSpecInitProviderTransportPubsub(obj: TriggerSpecInitProviderTransportPubsub | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'topic': obj.topic,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema TriggerSpecProviderConfigRefPolicyResolution
@@ -2190,30 +2343,6 @@ export enum TriggerSpecProviderConfigRefPolicyResolution {
  * @schema TriggerSpecProviderConfigRefPolicyResolve
  */
 export enum TriggerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TriggerSpecProviderRefPolicyResolution
- */
-export enum TriggerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TriggerSpecProviderRefPolicyResolve
- */
-export enum TriggerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

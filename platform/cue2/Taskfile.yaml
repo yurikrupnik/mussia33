@@ -1,0 +1,30 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+  install-package: # installs go packages at root
+    cmds:
+      - go get github.com/upbound/provider-gcp/apis/cloudrun/v1beta1
+      - cue get go github.com/upbound/provider-gcp/apis/cloudrun/v1beta1
+      - go get github.com/crossplane-contrib/provider-helm/apis/release/v1beta1
+      - cue get go github.com/crossplane-contrib/provider-helm/apis/release/v1beta1
+      - go get github.com/crossplane-contrib/provider-kubernetes/apis/object/v1alpha1
+      - cue get go github.com/crossplane-contrib/provider-kubernetes/apis/object/v1alpha1
+      - go get github.com/coopnorge/provider-github/apis/actions/v1alpha1
+      - cue get go github.com/coopnorge/provider-github/apis/actions/v1alpha1
+      - go get github.com/coopnorge/provider-github/apis/repo/v1alpha1
+      - cue get go github.com/coopnorge/provider-github/apis/repo/v1alpha1
+  build-timoni:
+    cmds:
+      - timoni build dot-kubernetes timoni-first-test/
+  eval-cue:
+    cmds:
+      - cue eval stam/info.cue

@@ -99,7 +99,7 @@ export function toJson_CaPoolProps(obj: CaPoolProps | undefined): Record<string,
  */
 export interface CaPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CaPoolSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface CaPoolSpec {
   readonly forProvider: CaPoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CaPoolSpec#managementPolicy
+   * @schema CaPoolSpec#initProvider
    */
-  readonly managementPolicy?: CaPoolSpecManagementPolicy;
+  readonly initProvider?: CaPoolSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CaPoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: CaPoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface CaPoolSpec {
    * @schema CaPoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: CaPoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CaPoolSpec#providerRef
-   */
-  readonly providerRef?: CaPoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_CaPoolSpec(obj: CaPoolSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CaPoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CaPoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CaPoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CaPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CaPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CaPoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_CaPoolSpec(obj: CaPoolSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CaPoolSpecDeletionPolicy
  */
@@ -247,17 +247,84 @@ export function toJson_CaPoolSpecForProvider(obj: CaPoolSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CaPoolSpecManagementPolicy
+ * @schema CaPoolSpecInitProvider
  */
-export enum CaPoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CaPoolSpecInitProvider {
+  /**
+   * The IssuancePolicy to control how Certificates will be issued from this CaPool. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProvider#issuancePolicy
+   */
+  readonly issuancePolicy?: CaPoolSpecInitProviderIssuancePolicy[];
+
+  /**
+   * Labels with user-defined metadata. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema CaPoolSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema CaPoolSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The PublishingOptions to follow when issuing Certificates from any CertificateAuthority in this CaPool. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProvider#publishingOptions
+   */
+  readonly publishingOptions?: CaPoolSpecInitProviderPublishingOptions[];
+
+  /**
+   * The Tier of this CaPool. Possible values are: ENTERPRISE, DEVOPS.
+   *
+   * @schema CaPoolSpecInitProvider#tier
+   */
+  readonly tier?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProvider(obj: CaPoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'issuancePolicy': obj.issuancePolicy?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicy(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'publishingOptions': obj.publishingOptions?.map(y => toJson_CaPoolSpecInitProviderPublishingOptions(y)),
+    'tier': obj.tier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CaPoolSpecManagementPolicies
+ */
+export enum CaPoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -291,43 +358,6 @@ export function toJson_CaPoolSpecProviderConfigRef(obj: CaPoolSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_CaPoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CaPoolSpecProviderRef
- */
-export interface CaPoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CaPoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CaPoolSpecProviderRef#policy
-   */
-  readonly policy?: CaPoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CaPoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CaPoolSpecProviderRef(obj: CaPoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CaPoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -480,18 +510,25 @@ export function toJson_CaPoolSpecForProviderIssuancePolicy(obj: CaPoolSpecForPro
  */
 export interface CaPoolSpecForProviderPublishingOptions {
   /**
+   * Specifies the encoding format of each CertificateAuthority's CA certificate and CRLs. If this is omitted, CA certificates and CRLs will be published in PEM. Possible values are: PEM, DER.
+   *
+   * @schema CaPoolSpecForProviderPublishingOptions#encodingFormat
+   */
+  readonly encodingFormat?: string;
+
+  /**
    * When true, publishes each CertificateAuthority's CA certificate and includes its URL in the "Authority Information Access" X.509 extension in all issued Certificates. If this is false, the CA certificate will not be published and the corresponding X.509 extension will not be written in issued certificates.
    *
    * @schema CaPoolSpecForProviderPublishingOptions#publishCaCert
    */
-  readonly publishCaCert: boolean;
+  readonly publishCaCert?: boolean;
 
   /**
    * When true, publishes each CertificateAuthority's CRL and includes its URL in the "CRL Distribution Points" X.509 extension in all issued Certificates. If this is false, CRLs will not be published and the corresponding X.509 extension will not be written in issued certificates. CRLs will expire 7 days from their creation. However, we will rebuild daily. CRLs are also rebuilt shortly after a certificate is revoked.
    *
    * @schema CaPoolSpecForProviderPublishingOptions#publishCrl
    */
-  readonly publishCrl: boolean;
+  readonly publishCrl?: boolean;
 
 }
 
@@ -502,6 +539,109 @@ export interface CaPoolSpecForProviderPublishingOptions {
 export function toJson_CaPoolSpecForProviderPublishingOptions(obj: CaPoolSpecForProviderPublishingOptions | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'encodingFormat': obj.encodingFormat,
+    'publishCaCert': obj.publishCaCert,
+    'publishCrl': obj.publishCrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicy
+ */
+export interface CaPoolSpecInitProviderIssuancePolicy {
+  /**
+   * IssuanceModes specifies the allowed ways in which Certificates may be requested from this CaPool. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicy#allowedIssuanceModes
+   */
+  readonly allowedIssuanceModes?: CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes[];
+
+  /**
+   * If any AllowedKeyType is specified, then the certificate request's public key must match one of the key types listed here. Otherwise, any key may be used. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicy#allowedKeyTypes
+   */
+  readonly allowedKeyTypes?: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes[];
+
+  /**
+   * A set of X.509 values that will be applied to all certificates issued through this CaPool. If a certificate request includes conflicting values for the same properties, they will be overwritten by the values defined here. If a certificate request uses a CertificateTemplate that defines conflicting predefinedValues for the same properties, the certificate issuance request will fail. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicy#baselineValues
+   */
+  readonly baselineValues?: CaPoolSpecInitProviderIssuancePolicyBaselineValues[];
+
+  /**
+   * Describes constraints on identities that may appear in Certificates issued through this CaPool. If this is omitted, then this CaPool will not add restrictions on a certificate's identity. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicy#identityConstraints
+   */
+  readonly identityConstraints?: CaPoolSpecInitProviderIssuancePolicyIdentityConstraints[];
+
+  /**
+   * The maximum lifetime allowed for issued Certificates. Note that if the issuing CertificateAuthority expires before a Certificate's requested maximumLifetime, the effective lifetime will be explicitly truncated to match it.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicy#maximumLifetime
+   */
+  readonly maximumLifetime?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicy(obj: CaPoolSpecInitProviderIssuancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedIssuanceModes': obj.allowedIssuanceModes?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes(y)),
+    'allowedKeyTypes': obj.allowedKeyTypes?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes(y)),
+    'baselineValues': obj.baselineValues?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValues(y)),
+    'identityConstraints': obj.identityConstraints?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyIdentityConstraints(y)),
+    'maximumLifetime': obj.maximumLifetime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderPublishingOptions
+ */
+export interface CaPoolSpecInitProviderPublishingOptions {
+  /**
+   * Specifies the encoding format of each CertificateAuthority's CA certificate and CRLs. If this is omitted, CA certificates and CRLs will be published in PEM. Possible values are: PEM, DER.
+   *
+   * @schema CaPoolSpecInitProviderPublishingOptions#encodingFormat
+   */
+  readonly encodingFormat?: string;
+
+  /**
+   * When true, publishes each CertificateAuthority's CA certificate and includes its URL in the "Authority Information Access" X.509 extension in all issued Certificates. If this is false, the CA certificate will not be published and the corresponding X.509 extension will not be written in issued certificates.
+   *
+   * @schema CaPoolSpecInitProviderPublishingOptions#publishCaCert
+   */
+  readonly publishCaCert?: boolean;
+
+  /**
+   * When true, publishes each CertificateAuthority's CRL and includes its URL in the "CRL Distribution Points" X.509 extension in all issued Certificates. If this is false, CRLs will not be published and the corresponding X.509 extension will not be written in issued certificates. CRLs will expire 7 days from their creation. However, we will rebuild daily. CRLs are also rebuilt shortly after a certificate is revoked.
+   *
+   * @schema CaPoolSpecInitProviderPublishingOptions#publishCrl
+   */
+  readonly publishCrl?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderPublishingOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderPublishingOptions(obj: CaPoolSpecInitProviderPublishingOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'encodingFormat': obj.encodingFormat,
     'publishCaCert': obj.publishCaCert,
     'publishCrl': obj.publishCrl,
   };
@@ -537,43 +677,6 @@ export interface CaPoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CaPoolSpecProviderConfigRefPolicy(obj: CaPoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CaPoolSpecProviderRefPolicy
- */
-export interface CaPoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CaPoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CaPoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CaPoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CaPoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CaPoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CaPoolSpecProviderRefPolicy(obj: CaPoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -675,14 +778,14 @@ export interface CaPoolSpecForProviderIssuancePolicyAllowedIssuanceModes {
    *
    * @schema CaPoolSpecForProviderIssuancePolicyAllowedIssuanceModes#allowConfigBasedIssuance
    */
-  readonly allowConfigBasedIssuance: boolean;
+  readonly allowConfigBasedIssuance?: boolean;
 
   /**
    * When true, allows callers to create Certificates by specifying a CSR.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyAllowedIssuanceModes#allowCsrBasedIssuance
    */
-  readonly allowCsrBasedIssuance: boolean;
+  readonly allowCsrBasedIssuance?: boolean;
 
 }
 
@@ -759,14 +862,14 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValues {
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValues#caOptions
    */
-  readonly caOptions: CaPoolSpecForProviderIssuancePolicyBaselineValuesCaOptions[];
+  readonly caOptions?: CaPoolSpecForProviderIssuancePolicyBaselineValuesCaOptions[];
 
   /**
    * Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValues#keyUsage
    */
-  readonly keyUsage: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage[];
+  readonly keyUsage?: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage[];
 
   /**
    * Describes the X.509 name constraints extension. Structure is documented below.
@@ -812,14 +915,14 @@ export interface CaPoolSpecForProviderIssuancePolicyIdentityConstraints {
    *
    * @schema CaPoolSpecForProviderIssuancePolicyIdentityConstraints#allowSubjectAltNamesPassthrough
    */
-  readonly allowSubjectAltNamesPassthrough: boolean;
+  readonly allowSubjectAltNamesPassthrough?: boolean;
 
   /**
    * If this is set, the Subject field may be copied from a certificate request into the signed certificate. Otherwise, the requested Subject will be discarded.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyIdentityConstraints#allowSubjectPassthrough
    */
-  readonly allowSubjectPassthrough: boolean;
+  readonly allowSubjectPassthrough?: boolean;
 
   /**
    * A CEL expression that may be used to validate the resolved X.509 Subject and/or Subject Alternative Name before a certificate is signed. To see the full allowed syntax and some examples, see https://cloud.google.com/certificate-authority-service/docs/cel-guide Structure is documented below.
@@ -847,6 +950,186 @@ export function toJson_CaPoolSpecForProviderIssuancePolicyIdentityConstraints(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes {
+  /**
+   * When true, allows callers to create Certificates by specifying a CertificateConfig.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes#allowConfigBasedIssuance
+   */
+  readonly allowConfigBasedIssuance?: boolean;
+
+  /**
+   * When true, allows callers to create Certificates by specifying a CSR.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes#allowCsrBasedIssuance
+   */
+  readonly allowCsrBasedIssuance?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes(obj: CaPoolSpecInitProviderIssuancePolicyAllowedIssuanceModes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowConfigBasedIssuance': obj.allowConfigBasedIssuance,
+    'allowCsrBasedIssuance': obj.allowCsrBasedIssuance,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes {
+  /**
+   * Represents an allowed Elliptic Curve key type. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes#ellipticCurve
+   */
+  readonly ellipticCurve?: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve[];
+
+  /**
+   * Describes an RSA key that may be used in a Certificate issued from a CaPool. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes#rsa
+   */
+  readonly rsa?: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes(obj: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ellipticCurve': obj.ellipticCurve?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve(y)),
+    'rsa': obj.rsa?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValues {
+  /**
+   * Specifies an X.509 extension, which may be used in different parts of X.509 objects like certificates, CSRs, and CRLs. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#additionalExtensions
+   */
+  readonly additionalExtensions?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions[];
+
+  /**
+   * Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#aiaOcspServers
+   */
+  readonly aiaOcspServers?: string[];
+
+  /**
+   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#caOptions
+   */
+  readonly caOptions?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions[];
+
+  /**
+   * Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#keyUsage
+   */
+  readonly keyUsage?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage[];
+
+  /**
+   * Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#nameConstraints
+   */
+  readonly nameConstraints?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints[];
+
+  /**
+   * Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValues#policyIds
+   */
+  readonly policyIds?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValues(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExtensions': obj.additionalExtensions?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions(y)),
+    'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
+    'caOptions': obj.caOptions?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions(y)),
+    'keyUsage': obj.keyUsage?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints(y)),
+    'policyIds': obj.policyIds?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraints
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyIdentityConstraints {
+  /**
+   * If this is set, the SubjectAltNames extension may be copied from a certificate request into the signed certificate. Otherwise, the requested SubjectAltNames will be discarded.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraints#allowSubjectAltNamesPassthrough
+   */
+  readonly allowSubjectAltNamesPassthrough?: boolean;
+
+  /**
+   * If this is set, the Subject field may be copied from a certificate request into the signed certificate. Otherwise, the requested Subject will be discarded.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraints#allowSubjectPassthrough
+   */
+  readonly allowSubjectPassthrough?: boolean;
+
+  /**
+   * A CEL expression that may be used to validate the resolved X.509 Subject and/or Subject Alternative Name before a certificate is signed. To see the full allowed syntax and some examples, see https://cloud.google.com/certificate-authority-service/docs/cel-guide Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraints#celExpression
+   */
+  readonly celExpression?: CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyIdentityConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyIdentityConstraints(obj: CaPoolSpecInitProviderIssuancePolicyIdentityConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowSubjectAltNamesPassthrough': obj.allowSubjectAltNamesPassthrough,
+    'allowSubjectPassthrough': obj.allowSubjectPassthrough,
+    'celExpression': obj.celExpression?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CaPoolSpecProviderConfigRefPolicyResolution
@@ -864,30 +1147,6 @@ export enum CaPoolSpecProviderConfigRefPolicyResolution {
  * @schema CaPoolSpecProviderConfigRefPolicyResolve
  */
 export enum CaPoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CaPoolSpecProviderRefPolicyResolution
- */
-export enum CaPoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CaPoolSpecProviderRefPolicyResolve
- */
-export enum CaPoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -940,7 +1199,7 @@ export interface CaPoolSpecForProviderIssuancePolicyAllowedKeyTypesEllipticCurve
    *
    * @schema CaPoolSpecForProviderIssuancePolicyAllowedKeyTypesEllipticCurve#signatureAlgorithm
    */
-  readonly signatureAlgorithm: string;
+  readonly signatureAlgorithm?: string;
 
 }
 
@@ -1002,21 +1261,21 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExte
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensions#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Describes values that are relevant in a CA certificate. Structure is documented below.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensions#objectId
    */
-  readonly objectId: CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId[];
+  readonly objectId?: CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId[];
 
   /**
    * The value of this X.509 extension. A base64-encoded string.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1096,14 +1355,14 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage {
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage#baseKeyUsage
    */
-  readonly baseKeyUsage: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage[];
+  readonly baseKeyUsage?: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage[];
 
   /**
    * Describes high-level ways in which a key may be used. Structure is documented below.
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsage#extendedKeyUsage
    */
-  readonly extendedKeyUsage: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage[];
+  readonly extendedKeyUsage?: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage[];
 
   /**
    * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
@@ -1139,7 +1398,7 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraint
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesNameConstraints#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
@@ -1230,7 +1489,7 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesPolicyIds {
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesPolicyIds#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -1264,7 +1523,7 @@ export interface CaPoolSpecForProviderIssuancePolicyIdentityConstraintsCelExpres
    *
    * @schema CaPoolSpecForProviderIssuancePolicyIdentityConstraintsCelExpression#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * Location of the CaPool. A full list of valid locations can be found by running gcloud privateca locations list.
@@ -1292,6 +1551,366 @@ export function toJson_CaPoolSpecForProviderIssuancePolicyIdentityConstraintsCel
     'description': obj.description,
     'expression': obj.expression,
     'location': obj.location,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve {
+  /**
+   * The algorithm used. Possible values are: ECDSA_P256, ECDSA_P384, EDDSA_25519.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve#signatureAlgorithm
+   */
+  readonly signatureAlgorithm?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve(obj: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesEllipticCurve | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'signatureAlgorithm': obj.signatureAlgorithm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa {
+  /**
+   * The maximum allowed RSA modulus size, in bits. If this is not set, or if set to zero, the service will not enforce an explicit upper bound on RSA modulus sizes.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa#maxModulusSize
+   */
+  readonly maxModulusSize?: string;
+
+  /**
+   * The minimum allowed RSA modulus size, in bits. If this is not set, or if set to zero, the service-level min RSA modulus size will continue to apply.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa#minModulusSize
+   */
+  readonly minModulusSize?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa(obj: CaPoolSpecInitProviderIssuancePolicyAllowedKeyTypesRsa | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxModulusSize': obj.maxModulusSize,
+    'minModulusSize': obj.minModulusSize,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions#objectId
+   */
+  readonly objectId?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId[];
+
+  /**
+   * The value of this X.509 extension. A base64-encoded string.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'objectId': obj.objectId?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId(y)),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions {
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to true.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions#isCa
+   */
+  readonly isCa?: boolean;
+
+  /**
+   * Refers to the "path length constraint" in Basic Constraints extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions#maxIssuerPathLength
+   */
+  readonly maxIssuerPathLength?: number;
+
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to false. If both is_ca and non_ca are unset, the extension will be omitted from the CA certificate.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions#nonCa
+   */
+  readonly nonCa?: boolean;
+
+  /**
+   * When true, the "path length constraint" in Basic Constraints extension will be set to 0. if both max_issuer_path_length and zero_max_issuer_path_length are unset, the max path length will be omitted from the CA certificate.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions#zeroMaxIssuerPathLength
+   */
+  readonly zeroMaxIssuerPathLength?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesCaOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'isCa': obj.isCa,
+    'maxIssuerPathLength': obj.maxIssuerPathLength,
+    'nonCa': obj.nonCa,
+    'zeroMaxIssuerPathLength': obj.zeroMaxIssuerPathLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage {
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage#baseKeyUsage
+   */
+  readonly baseKeyUsage?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage[];
+
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage#extendedKeyUsage
+   */
+  readonly extendedKeyUsage?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage[];
+
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage#unknownExtendedKeyUsages
+   */
+  readonly unknownExtendedKeyUsages?: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage(y)),
+    'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage(y)),
+    'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesPolicyIds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression {
+  /**
+   * Description of the expression. This is a longer text which describes the expression, e.g. when hovered over it in a UI.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression#description
+   */
+  readonly description?: string;
+
+  /**
+   * Textual representation of an expression in Common Expression Language syntax.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * Title for the expression, i.e. a short string describing its purpose. This can be used e.g. in UIs which allow to enter the expression.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression(obj: CaPoolSpecInitProviderIssuancePolicyIdentityConstraintsCelExpression | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
     'title': obj.title,
   };
   // filter undefined values
@@ -1332,7 +1951,7 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExte
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -1517,7 +2136,7 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknow
    *
    * @schema CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -1526,6 +2145,218 @@ export interface CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknow
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages(obj: CaPoolSpecForProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesAdditionalExtensionsObjectId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage {
+  /**
+   * The key may be used to sign certificates.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#certSign
+   */
+  readonly certSign?: boolean;
+
+  /**
+   * The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#contentCommitment
+   */
+  readonly contentCommitment?: boolean;
+
+  /**
+   * The key may be used sign certificate revocation lists.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#crlSign
+   */
+  readonly crlSign?: boolean;
+
+  /**
+   * The key may be used to encipher data.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#dataEncipherment
+   */
+  readonly dataEncipherment?: boolean;
+
+  /**
+   * The key may be used to decipher only.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#decipherOnly
+   */
+  readonly decipherOnly?: boolean;
+
+  /**
+   * The key may be used for digital signatures.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#digitalSignature
+   */
+  readonly digitalSignature?: boolean;
+
+  /**
+   * The key may be used to encipher only.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#encipherOnly
+   */
+  readonly encipherOnly?: boolean;
+
+  /**
+   * The key may be used in a key agreement protocol.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#keyAgreement
+   */
+  readonly keyAgreement?: boolean;
+
+  /**
+   * The key may be used to encipher other keys.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage#keyEncipherment
+   */
+  readonly keyEncipherment?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageBaseKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certSign': obj.certSign,
+    'contentCommitment': obj.contentCommitment,
+    'crlSign': obj.crlSign,
+    'dataEncipherment': obj.dataEncipherment,
+    'decipherOnly': obj.decipherOnly,
+    'digitalSignature': obj.digitalSignature,
+    'encipherOnly': obj.encipherOnly,
+    'keyAgreement': obj.keyAgreement,
+    'keyEncipherment': obj.keyEncipherment,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage {
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.2. Officially described as "TLS WWW client authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#clientAuth
+   */
+  readonly clientAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.3. Officially described as "Signing of downloadable executable code client authentication".
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#codeSigning
+   */
+  readonly codeSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.4. Officially described as "Email protection".
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#emailProtection
+   */
+  readonly emailProtection?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.9. Officially described as "Signing OCSP responses".
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#ocspSigning
+   */
+  readonly ocspSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.1. Officially described as "TLS WWW server authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#serverAuth
+   */
+  readonly serverAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.8. Officially described as "Binding the hash of an object to a time".
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage#timeStamping
+   */
+  readonly timeStamping?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageExtendedKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuth': obj.clientAuth,
+    'codeSigning': obj.codeSigning,
+    'emailProtection': obj.emailProtection,
+    'ocspSigning': obj.ocspSigning,
+    'serverAuth': obj.serverAuth,
+    'timeStamping': obj.timeStamping,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages
+ */
+export interface CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages(obj: CaPoolSpecInitProviderIssuancePolicyBaselineValuesKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'objectIdPath': obj.objectIdPath?.map(y => y),
@@ -1632,7 +2463,7 @@ export function toJson_CaPoolIamMemberProps(obj: CaPoolIamMemberProps | undefine
  */
 export interface CaPoolIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CaPoolIamMemberSpec#deletionPolicy
    */
@@ -1644,11 +2475,18 @@ export interface CaPoolIamMemberSpec {
   readonly forProvider: CaPoolIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CaPoolIamMemberSpec#managementPolicy
+   * @schema CaPoolIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: CaPoolIamMemberSpecManagementPolicy;
+  readonly initProvider?: CaPoolIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CaPoolIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: CaPoolIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1656,13 +2494,6 @@ export interface CaPoolIamMemberSpec {
    * @schema CaPoolIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: CaPoolIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CaPoolIamMemberSpec#providerRef
-   */
-  readonly providerRef?: CaPoolIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1689,9 +2520,9 @@ export function toJson_CaPoolIamMemberSpec(obj: CaPoolIamMemberSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CaPoolIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CaPoolIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CaPoolIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CaPoolIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CaPoolIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CaPoolIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1701,7 +2532,7 @@ export function toJson_CaPoolIamMemberSpec(obj: CaPoolIamMemberSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CaPoolIamMemberSpecDeletionPolicy
  */
@@ -1784,17 +2615,74 @@ export function toJson_CaPoolIamMemberSpecForProvider(obj: CaPoolIamMemberSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CaPoolIamMemberSpecManagementPolicy
+ * @schema CaPoolIamMemberSpecInitProvider
  */
-export enum CaPoolIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CaPoolIamMemberSpecInitProvider {
+  /**
+   * @schema CaPoolIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: CaPoolIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolIamMemberSpecInitProvider(obj: CaPoolIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_CaPoolIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CaPoolIamMemberSpecManagementPolicies
+ */
+export enum CaPoolIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1828,43 +2716,6 @@ export function toJson_CaPoolIamMemberSpecProviderConfigRef(obj: CaPoolIamMember
   const result = {
     'name': obj.name,
     'policy': toJson_CaPoolIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CaPoolIamMemberSpecProviderRef
- */
-export interface CaPoolIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CaPoolIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CaPoolIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: CaPoolIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CaPoolIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CaPoolIamMemberSpecProviderRef(obj: CaPoolIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CaPoolIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2047,12 +2898,12 @@ export interface CaPoolIamMemberSpecForProviderCondition {
   /**
    * @schema CaPoolIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema CaPoolIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -2061,6 +2912,43 @@ export interface CaPoolIamMemberSpecForProviderCondition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CaPoolIamMemberSpecForProviderCondition(obj: CaPoolIamMemberSpecForProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CaPoolIamMemberSpecInitProviderCondition
+ */
+export interface CaPoolIamMemberSpecInitProviderCondition {
+  /**
+   * @schema CaPoolIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema CaPoolIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'CaPoolIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CaPoolIamMemberSpecInitProviderCondition(obj: CaPoolIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -2099,43 +2987,6 @@ export interface CaPoolIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CaPoolIamMemberSpecProviderConfigRefPolicy(obj: CaPoolIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CaPoolIamMemberSpecProviderRefPolicy
- */
-export interface CaPoolIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CaPoolIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CaPoolIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CaPoolIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CaPoolIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CaPoolIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CaPoolIamMemberSpecProviderRefPolicy(obj: CaPoolIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2320,30 +3171,6 @@ export enum CaPoolIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema CaPoolIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum CaPoolIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CaPoolIamMemberSpecProviderRefPolicyResolution
- */
-export enum CaPoolIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CaPoolIamMemberSpecProviderRefPolicyResolve
- */
-export enum CaPoolIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2556,7 +3383,7 @@ export function toJson_CertificateProps(obj: CertificateProps | undefined): Reco
  */
 export interface CertificateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateSpec#deletionPolicy
    */
@@ -2568,11 +3395,18 @@ export interface CertificateSpec {
   readonly forProvider: CertificateSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateSpec#managementPolicy
+   * @schema CertificateSpec#initProvider
    */
-  readonly managementPolicy?: CertificateSpecManagementPolicy;
+  readonly initProvider?: CertificateSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateSpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2580,13 +3414,6 @@ export interface CertificateSpec {
    * @schema CertificateSpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateSpec#providerRef
-   */
-  readonly providerRef?: CertificateSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2613,9 +3440,9 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2625,7 +3452,7 @@ export function toJson_CertificateSpec(obj: CertificateSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateSpecDeletionPolicy
  */
@@ -2776,17 +3603,84 @@ export function toJson_CertificateSpecForProvider(obj: CertificateSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateSpecManagementPolicy
+ * @schema CertificateSpecInitProvider
  */
-export enum CertificateSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateSpecInitProvider {
+  /**
+   * The config used to create a self-signed X.509 certificate or CSR. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProvider#config
+   */
+  readonly config?: CertificateSpecInitProviderConfig[];
+
+  /**
+   * Labels with user-defined metadata to apply to this resource.
+   *
+   * @schema CertificateSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The desired lifetime of the CA certificate. Used to create the "notBeforeTime" and "notAfterTime" fields inside an X.509 certificate. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema CertificateSpecInitProvider#lifetime
+   */
+  readonly lifetime?: string;
+
+  /**
+   * Immutable. A pem-encoded X.509 certificate signing request (CSR).
+   *
+   * @schema CertificateSpecInitProvider#pemCsr
+   */
+  readonly pemCsr?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema CertificateSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProvider(obj: CertificateSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'config': obj.config?.map(y => toJson_CertificateSpecInitProviderConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'lifetime': obj.lifetime,
+    'pemCsr': obj.pemCsr,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateSpecManagementPolicies
+ */
+export enum CertificateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2820,43 +3714,6 @@ export function toJson_CertificateSpecProviderConfigRef(obj: CertificateSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateSpecProviderRef
- */
-export interface CertificateSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateSpecProviderRef#policy
-   */
-  readonly policy?: CertificateSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateSpecProviderRef(obj: CertificateSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3118,21 +3975,21 @@ export interface CertificateSpecForProviderConfig {
    *
    * @schema CertificateSpecForProviderConfig#publicKey
    */
-  readonly publicKey: CertificateSpecForProviderConfigPublicKey[];
+  readonly publicKey?: CertificateSpecForProviderConfigPublicKey[];
 
   /**
    * Specifies some of the values in a certificate that are related to the subject. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfig#subjectConfig
    */
-  readonly subjectConfig: CertificateSpecForProviderConfigSubjectConfig[];
+  readonly subjectConfig?: CertificateSpecForProviderConfigSubjectConfig[];
 
   /**
    * Describes how some of the technical X.509 fields in a certificate should be populated. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfig#x509Config
    */
-  readonly x509Config: CertificateSpecForProviderConfigX509Config[];
+  readonly x509Config?: CertificateSpecForProviderConfigX509Config[];
 
 }
 
@@ -3235,6 +4092,49 @@ export function toJson_CertificateSpecForProviderPoolSelector(obj: CertificateSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateSpecInitProviderConfig
+ */
+export interface CertificateSpecInitProviderConfig {
+  /**
+   * A PublicKey describes a public key. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfig#publicKey
+   */
+  readonly publicKey?: CertificateSpecInitProviderConfigPublicKey[];
+
+  /**
+   * Specifies some of the values in a certificate that are related to the subject. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfig#subjectConfig
+   */
+  readonly subjectConfig?: CertificateSpecInitProviderConfigSubjectConfig[];
+
+  /**
+   * Describes how some of the technical X.509 fields in a certificate should be populated. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfig#x509Config
+   */
+  readonly x509Config?: CertificateSpecInitProviderConfigX509Config[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfig(obj: CertificateSpecInitProviderConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicKey': obj.publicKey?.map(y => toJson_CertificateSpecInitProviderConfigPublicKey(y)),
+    'subjectConfig': obj.subjectConfig?.map(y => toJson_CertificateSpecInitProviderConfigSubjectConfig(y)),
+    'x509Config': obj.x509Config?.map(y => toJson_CertificateSpecInitProviderConfigX509Config(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CertificateSpecProviderConfigRefPolicy
@@ -3261,43 +4161,6 @@ export interface CertificateSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateSpecProviderConfigRefPolicy(obj: CertificateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CertificateSpecProviderRefPolicy
- */
-export interface CertificateSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateSpecProviderRefPolicy(obj: CertificateSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3547,7 +4410,7 @@ export interface CertificateSpecForProviderConfigPublicKey {
    *
    * @schema CertificateSpecForProviderConfigPublicKey#format
    */
-  readonly format: string;
+  readonly format?: string;
 
   /**
    * Required. A public key. When this is specified in a request, the padding and encoding can be any of the options described by the respective 'KeyType' value. When this is generated by the service, it will always be an RFC 5280 SubjectPublicKeyInfo structure containing an algorithm identifier and a key. A base64-encoded string.
@@ -3582,7 +4445,7 @@ export interface CertificateSpecForProviderConfigSubjectConfig {
    *
    * @schema CertificateSpecForProviderConfigSubjectConfig#subject
    */
-  readonly subject: CertificateSpecForProviderConfigSubjectConfigSubject[];
+  readonly subject?: CertificateSpecForProviderConfigSubjectConfigSubject[];
 
   /**
    * (Output) The subject alternative name fields. Structure is documented below.
@@ -3638,7 +4501,7 @@ export interface CertificateSpecForProviderConfigX509Config {
    *
    * @schema CertificateSpecForProviderConfigX509Config#keyUsage
    */
-  readonly keyUsage: CertificateSpecForProviderConfigX509ConfigKeyUsage[];
+  readonly keyUsage?: CertificateSpecForProviderConfigX509ConfigKeyUsage[];
 
   /**
    * (Output) Describes the X.509 name constraints extension. Structure is documented below.
@@ -3750,6 +4613,135 @@ export function toJson_CertificateSpecForProviderPoolSelectorPolicy(obj: Certifi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateSpecInitProviderConfigPublicKey
+ */
+export interface CertificateSpecInitProviderConfigPublicKey {
+  /**
+   * The format of the public key. Currently, only PEM format is supported. Possible values are: KEY_TYPE_UNSPECIFIED, PEM.
+   *
+   * @schema CertificateSpecInitProviderConfigPublicKey#format
+   */
+  readonly format?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigPublicKey' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigPublicKey(obj: CertificateSpecInitProviderConfigPublicKey | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'format': obj.format,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigSubjectConfig
+ */
+export interface CertificateSpecInitProviderConfigSubjectConfig {
+  /**
+   * (Output) Contains distinguished name fields such as the location and organization. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfig#subject
+   */
+  readonly subject?: CertificateSpecInitProviderConfigSubjectConfigSubject[];
+
+  /**
+   * (Output) The subject alternative name fields. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfig#subjectAltName
+   */
+  readonly subjectAltName?: CertificateSpecInitProviderConfigSubjectConfigSubjectAltName[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigSubjectConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigSubjectConfig(obj: CertificateSpecInitProviderConfigSubjectConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subject': obj.subject?.map(y => toJson_CertificateSpecInitProviderConfigSubjectConfigSubject(y)),
+    'subjectAltName': obj.subjectAltName?.map(y => toJson_CertificateSpecInitProviderConfigSubjectConfigSubjectAltName(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509Config
+ */
+export interface CertificateSpecInitProviderConfigX509Config {
+  /**
+   * (Output) Describes custom X.509 extensions. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#additionalExtensions
+   */
+  readonly additionalExtensions?: CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions[];
+
+  /**
+   * (Output) Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#aiaOcspServers
+   */
+  readonly aiaOcspServers?: string[];
+
+  /**
+   * (Output) Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#caOptions
+   */
+  readonly caOptions?: CertificateSpecInitProviderConfigX509ConfigCaOptions[];
+
+  /**
+   * (Output) Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#keyUsage
+   */
+  readonly keyUsage?: CertificateSpecInitProviderConfigX509ConfigKeyUsage[];
+
+  /**
+   * (Output) Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#nameConstraints
+   */
+  readonly nameConstraints?: CertificateSpecInitProviderConfigX509ConfigNameConstraints[];
+
+  /**
+   * (Output) Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509Config#policyIds
+   */
+  readonly policyIds?: CertificateSpecInitProviderConfigX509ConfigPolicyIds[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509Config' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509Config(obj: CertificateSpecInitProviderConfigX509Config | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExtensions': obj.additionalExtensions?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions(y)),
+    'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
+    'caOptions': obj.caOptions?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigCaOptions(y)),
+    'keyUsage': obj.keyUsage?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigNameConstraints(y)),
+    'policyIds': obj.policyIds?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigPolicyIds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CertificateSpecProviderConfigRefPolicyResolution
@@ -3767,30 +4759,6 @@ export enum CertificateSpecProviderConfigRefPolicyResolution {
  * @schema CertificateSpecProviderConfigRefPolicyResolve
  */
 export enum CertificateSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateSpecProviderRefPolicyResolution
- */
-export enum CertificateSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateSpecProviderRefPolicyResolve
- */
-export enum CertificateSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3984,7 +4952,7 @@ export interface CertificateSpecForProviderConfigSubjectConfigSubject {
    *
    * @schema CertificateSpecForProviderConfigSubjectConfigSubject#commonName
    */
-  readonly commonName: string;
+  readonly commonName?: string;
 
   /**
    * The country code of the subject.
@@ -4005,7 +4973,7 @@ export interface CertificateSpecForProviderConfigSubjectConfigSubject {
    *
    * @schema CertificateSpecForProviderConfigSubjectConfigSubject#organization
    */
-  readonly organization: string;
+  readonly organization?: string;
 
   /**
    * The organizational unit of the subject.
@@ -4118,21 +5086,21 @@ export interface CertificateSpecForProviderConfigX509ConfigAdditionalExtensions 
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensions#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Describes values that are relevant in a CA certificate. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensions#objectId
    */
-  readonly objectId: CertificateSpecForProviderConfigX509ConfigAdditionalExtensionsObjectId[];
+  readonly objectId?: CertificateSpecForProviderConfigX509ConfigAdditionalExtensionsObjectId[];
 
   /**
    * (Output) The value of this X.509 extension.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -4212,14 +5180,14 @@ export interface CertificateSpecForProviderConfigX509ConfigKeyUsage {
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsage#baseKeyUsage
    */
-  readonly baseKeyUsage: CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
+  readonly baseKeyUsage?: CertificateSpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
 
   /**
    * Describes high-level ways in which a key may be used. Structure is documented below.
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsage#extendedKeyUsage
    */
-  readonly extendedKeyUsage: CertificateSpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
+  readonly extendedKeyUsage?: CertificateSpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
 
   /**
    * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
@@ -4255,7 +5223,7 @@ export interface CertificateSpecForProviderConfigX509ConfigNameConstraints {
    *
    * @schema CertificateSpecForProviderConfigX509ConfigNameConstraints#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
@@ -4346,7 +5314,7 @@ export interface CertificateSpecForProviderConfigX509ConfigPolicyIds {
    *
    * @schema CertificateSpecForProviderConfigX509ConfigPolicyIds#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -4413,6 +5381,395 @@ export enum CertificateSpecForProviderPoolSelectorPolicyResolve {
 }
 
 /**
+ * @schema CertificateSpecInitProviderConfigSubjectConfigSubject
+ */
+export interface CertificateSpecInitProviderConfigSubjectConfigSubject {
+  /**
+   * The common name of the distinguished name.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#commonName
+   */
+  readonly commonName?: string;
+
+  /**
+   * The country code of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#countryCode
+   */
+  readonly countryCode?: string;
+
+  /**
+   * The locality or city of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#locality
+   */
+  readonly locality?: string;
+
+  /**
+   * The organization of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#organization
+   */
+  readonly organization?: string;
+
+  /**
+   * The organizational unit of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#organizationalUnit
+   */
+  readonly organizationalUnit?: string;
+
+  /**
+   * The postal code of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#postalCode
+   */
+  readonly postalCode?: string;
+
+  /**
+   * The province, territory, or regional state of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#province
+   */
+  readonly province?: string;
+
+  /**
+   * The street address of the subject.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubject#streetAddress
+   */
+  readonly streetAddress?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigSubjectConfigSubject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigSubjectConfigSubject(obj: CertificateSpecInitProviderConfigSubjectConfigSubject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'commonName': obj.commonName,
+    'countryCode': obj.countryCode,
+    'locality': obj.locality,
+    'organization': obj.organization,
+    'organizationalUnit': obj.organizationalUnit,
+    'postalCode': obj.postalCode,
+    'province': obj.province,
+    'streetAddress': obj.streetAddress,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigSubjectConfigSubjectAltName
+ */
+export interface CertificateSpecInitProviderConfigSubjectConfigSubjectAltName {
+  /**
+   * Contains only valid, fully-qualified host names.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubjectAltName#dnsNames
+   */
+  readonly dnsNames?: string[];
+
+  /**
+   * Contains only valid RFC 2822 E-mail addresses.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubjectAltName#emailAddresses
+   */
+  readonly emailAddresses?: string[];
+
+  /**
+   * Contains only valid 32-bit IPv4 addresses or RFC 4291 IPv6 addresses.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubjectAltName#ipAddresses
+   */
+  readonly ipAddresses?: string[];
+
+  /**
+   * Contains only valid RFC 3986 URIs.
+   *
+   * @schema CertificateSpecInitProviderConfigSubjectConfigSubjectAltName#uris
+   */
+  readonly uris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigSubjectConfigSubjectAltName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigSubjectConfigSubjectAltName(obj: CertificateSpecInitProviderConfigSubjectConfigSubjectAltName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dnsNames': obj.dnsNames?.map(y => y),
+    'emailAddresses': obj.emailAddresses?.map(y => y),
+    'ipAddresses': obj.ipAddresses?.map(y => y),
+    'uris': obj.uris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions#objectId
+   */
+  readonly objectId?: CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId[];
+
+  /**
+   * (Output) The value of this X.509 extension.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions(obj: CertificateSpecInitProviderConfigX509ConfigAdditionalExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'objectId': obj.objectId?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId(y)),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigCaOptions
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigCaOptions {
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to true.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigCaOptions#isCa
+   */
+  readonly isCa?: boolean;
+
+  /**
+   * Refers to the "path length constraint" in Basic Constraints extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigCaOptions#maxIssuerPathLength
+   */
+  readonly maxIssuerPathLength?: number;
+
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to false. If both is_ca and non_ca are unset, the extension will be omitted from the CA certificate.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigCaOptions#nonCa
+   */
+  readonly nonCa?: boolean;
+
+  /**
+   * When true, the "path length constraint" in Basic Constraints extension will be set to 0. if both max_issuer_path_length and zero_max_issuer_path_length are unset, the max path length will be omitted from the CA certificate.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigCaOptions#zeroMaxIssuerPathLength
+   */
+  readonly zeroMaxIssuerPathLength?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigCaOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigCaOptions(obj: CertificateSpecInitProviderConfigX509ConfigCaOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'isCa': obj.isCa,
+    'maxIssuerPathLength': obj.maxIssuerPathLength,
+    'nonCa': obj.nonCa,
+    'zeroMaxIssuerPathLength': obj.zeroMaxIssuerPathLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsage
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigKeyUsage {
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsage#baseKeyUsage
+   */
+  readonly baseKeyUsage?: CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
+
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsage#extendedKeyUsage
+   */
+  readonly extendedKeyUsage?: CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
+
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsage#unknownExtendedKeyUsages
+   */
+  readonly unknownExtendedKeyUsages?: CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsage(obj: CertificateSpecInitProviderConfigX509ConfigKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage(y)),
+    'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage(y)),
+    'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigNameConstraints(obj: CertificateSpecInitProviderConfigX509ConfigNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigPolicyIds
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigPolicyIds {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigPolicyIds#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigPolicyIds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigPolicyIds(obj: CertificateSpecInitProviderConfigX509ConfigPolicyIds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CertificateSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -4445,7 +5802,7 @@ export interface CertificateSpecForProviderConfigX509ConfigAdditionalExtensionsO
    *
    * @schema CertificateSpecForProviderConfigX509ConfigAdditionalExtensionsObjectId#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -4630,7 +5987,7 @@ export interface CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtend
    *
    * @schema CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -4639,6 +5996,218 @@ export interface CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtend
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(obj: CertificateSpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId(obj: CertificateSpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage {
+  /**
+   * (Output) The key may be used to sign certificates.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#certSign
+   */
+  readonly certSign?: boolean;
+
+  /**
+   * (Output) The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#contentCommitment
+   */
+  readonly contentCommitment?: boolean;
+
+  /**
+   * (Output) The key may be used sign certificate revocation lists.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#crlSign
+   */
+  readonly crlSign?: boolean;
+
+  /**
+   * (Output) The key may be used to encipher data.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#dataEncipherment
+   */
+  readonly dataEncipherment?: boolean;
+
+  /**
+   * (Output) The key may be used to decipher only.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#decipherOnly
+   */
+  readonly decipherOnly?: boolean;
+
+  /**
+   * (Output) The key may be used for digital signatures.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#digitalSignature
+   */
+  readonly digitalSignature?: boolean;
+
+  /**
+   * (Output) The key may be used to encipher only.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#encipherOnly
+   */
+  readonly encipherOnly?: boolean;
+
+  /**
+   * (Output) The key may be used in a key agreement protocol.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyAgreement
+   */
+  readonly keyAgreement?: boolean;
+
+  /**
+   * (Output) The key may be used to encipher other keys.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyEncipherment
+   */
+  readonly keyEncipherment?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage(obj: CertificateSpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certSign': obj.certSign,
+    'contentCommitment': obj.contentCommitment,
+    'crlSign': obj.crlSign,
+    'dataEncipherment': obj.dataEncipherment,
+    'decipherOnly': obj.decipherOnly,
+    'digitalSignature': obj.digitalSignature,
+    'encipherOnly': obj.encipherOnly,
+    'keyAgreement': obj.keyAgreement,
+    'keyEncipherment': obj.keyEncipherment,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage {
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.2. Officially described as "TLS WWW client authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#clientAuth
+   */
+  readonly clientAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.3. Officially described as "Signing of downloadable executable code client authentication".
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#codeSigning
+   */
+  readonly codeSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.4. Officially described as "Email protection".
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#emailProtection
+   */
+  readonly emailProtection?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.9. Officially described as "Signing OCSP responses".
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#ocspSigning
+   */
+  readonly ocspSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.1. Officially described as "TLS WWW server authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#serverAuth
+   */
+  readonly serverAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.8. Officially described as "Binding the hash of an object to a time".
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#timeStamping
+   */
+  readonly timeStamping?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage(obj: CertificateSpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuth': obj.clientAuth,
+    'codeSigning': obj.codeSigning,
+    'emailProtection': obj.emailProtection,
+    'ocspSigning': obj.ocspSigning,
+    'serverAuth': obj.serverAuth,
+    'timeStamping': obj.timeStamping,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages
+ */
+export interface CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(obj: CertificateSpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'objectIdPath': obj.objectIdPath?.map(y => y),
@@ -4745,7 +6314,7 @@ export function toJson_CertificateAuthorityProps(obj: CertificateAuthorityProps 
  */
 export interface CertificateAuthoritySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateAuthoritySpec#deletionPolicy
    */
@@ -4757,11 +6326,18 @@ export interface CertificateAuthoritySpec {
   readonly forProvider: CertificateAuthoritySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateAuthoritySpec#managementPolicy
+   * @schema CertificateAuthoritySpec#initProvider
    */
-  readonly managementPolicy?: CertificateAuthoritySpecManagementPolicy;
+  readonly initProvider?: CertificateAuthoritySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateAuthoritySpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateAuthoritySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4769,13 +6345,6 @@ export interface CertificateAuthoritySpec {
    * @schema CertificateAuthoritySpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateAuthoritySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateAuthoritySpec#providerRef
-   */
-  readonly providerRef?: CertificateAuthoritySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4802,9 +6371,9 @@ export function toJson_CertificateAuthoritySpec(obj: CertificateAuthoritySpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateAuthoritySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateAuthoritySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateAuthoritySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateAuthoritySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateAuthoritySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateAuthoritySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4814,7 +6383,7 @@ export function toJson_CertificateAuthoritySpec(obj: CertificateAuthoritySpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateAuthoritySpecDeletionPolicy
  */
@@ -4981,17 +6550,148 @@ export function toJson_CertificateAuthoritySpecForProvider(obj: CertificateAutho
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateAuthoritySpecManagementPolicy
+ * @schema CertificateAuthoritySpecInitProvider
  */
-export enum CertificateAuthoritySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateAuthoritySpecInitProvider {
+  /**
+   * The config used to create a self-signed X.509 certificate or CSR. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#config
+   */
+  readonly config?: CertificateAuthoritySpecInitProviderConfig[];
+
+  /**
+   * @schema CertificateAuthoritySpecInitProvider#deletionProtection
+   */
+  readonly deletionProtection?: boolean;
+
+  /**
+   * Desired state of the CertificateAuthority. Set this field to STAGED to create a STAGED root CA.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#desiredState
+   */
+  readonly desiredState?: string;
+
+  /**
+   * The name of a Cloud Storage bucket where this CertificateAuthority will publish content, such as the CA certificate and CRLs. This must be a bucket name, without any prefixes (such as gs://) or suffixes (such as .googleapis.com). For example, to use a bucket named my-bucket, you would simply specify my-bucket. If not specified, a managed bucket will be created.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#gcsBucket
+   */
+  readonly gcsBucket?: string;
+
+  /**
+   * This field allows the CA to be deleted even if the CA has active certs. Active certs include both unrevoked and unexpired certs. Use with care. Defaults to false.
+   *
+   * @default false.
+   * @schema CertificateAuthoritySpecInitProvider#ignoreActiveCertificatesOnDeletion
+   */
+  readonly ignoreActiveCertificatesOnDeletion?: boolean;
+
+  /**
+   * Used when issuing certificates for this CertificateAuthority. If this CertificateAuthority is a self-signed CertificateAuthority, this key is also used to sign the self-signed CA certificate. Otherwise, it is used to sign a CSR. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#keySpec
+   */
+  readonly keySpec?: CertificateAuthoritySpecInitProviderKeySpec[];
+
+  /**
+   * Labels with user-defined metadata. An object containing a list of "key": value pairs. Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The desired lifetime of the CA certificate. Used to create the "notBeforeTime" and "notAfterTime" fields inside an X.509 certificate. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+   *
+   * @schema CertificateAuthoritySpecInitProvider#lifetime
+   */
+  readonly lifetime?: string;
+
+  /**
+   * The signed CA certificate issued from the subordinated CA's CSR. This is needed when activating the subordiante CA with a third party issuer.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#pemCaCertificate
+   */
+  readonly pemCaCertificate?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * If this flag is set, the Certificate Authority will be deleted as soon as possible without a 30-day grace period where undeletion would have been allowed. If you proceed, there will be no way to recover this CA. Use with care. Defaults to false.
+   *
+   * @default false.
+   * @schema CertificateAuthoritySpecInitProvider#skipGracePeriod
+   */
+  readonly skipGracePeriod?: boolean;
+
+  /**
+   * If this is a subordinate CertificateAuthority, this field will be set with the subordinate configuration, which describes its issuers. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#subordinateConfig
+   */
+  readonly subordinateConfig?: CertificateAuthoritySpecInitProviderSubordinateConfig[];
+
+  /**
+   * The Type of this CertificateAuthority. ~> Note: For SUBORDINATE Certificate Authorities, they need to be activated before they can issue certificates. Default value is SELF_SIGNED. Possible values are: SELF_SIGNED, SUBORDINATE.
+   *
+   * @schema CertificateAuthoritySpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProvider(obj: CertificateAuthoritySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'config': obj.config?.map(y => toJson_CertificateAuthoritySpecInitProviderConfig(y)),
+    'deletionProtection': obj.deletionProtection,
+    'desiredState': obj.desiredState,
+    'gcsBucket': obj.gcsBucket,
+    'ignoreActiveCertificatesOnDeletion': obj.ignoreActiveCertificatesOnDeletion,
+    'keySpec': obj.keySpec?.map(y => toJson_CertificateAuthoritySpecInitProviderKeySpec(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'lifetime': obj.lifetime,
+    'pemCaCertificate': obj.pemCaCertificate,
+    'project': obj.project,
+    'skipGracePeriod': obj.skipGracePeriod,
+    'subordinateConfig': obj.subordinateConfig?.map(y => toJson_CertificateAuthoritySpecInitProviderSubordinateConfig(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateAuthoritySpecManagementPolicies
+ */
+export enum CertificateAuthoritySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5025,43 +6725,6 @@ export function toJson_CertificateAuthoritySpecProviderConfigRef(obj: Certificat
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateAuthoritySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateAuthoritySpecProviderRef
- */
-export interface CertificateAuthoritySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateAuthoritySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateAuthoritySpecProviderRef#policy
-   */
-  readonly policy?: CertificateAuthoritySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateAuthoritySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateAuthoritySpecProviderRef(obj: CertificateAuthoritySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateAuthoritySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5159,14 +6822,14 @@ export interface CertificateAuthoritySpecForProviderConfig {
    *
    * @schema CertificateAuthoritySpecForProviderConfig#subjectConfig
    */
-  readonly subjectConfig: CertificateAuthoritySpecForProviderConfigSubjectConfig[];
+  readonly subjectConfig?: CertificateAuthoritySpecForProviderConfigSubjectConfig[];
 
   /**
    * Describes how some of the technical X.509 fields in a certificate should be populated. Structure is documented below.
    *
    * @schema CertificateAuthoritySpecForProviderConfig#x509Config
    */
-  readonly x509Config: CertificateAuthoritySpecForProviderConfigX509Config[];
+  readonly x509Config?: CertificateAuthoritySpecForProviderConfigX509Config[];
 
 }
 
@@ -5354,6 +7017,103 @@ export function toJson_CertificateAuthoritySpecForProviderSubordinateConfig(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateAuthoritySpecInitProviderConfig
+ */
+export interface CertificateAuthoritySpecInitProviderConfig {
+  /**
+   * Specifies some of the values in a certificate that are related to the subject. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfig#subjectConfig
+   */
+  readonly subjectConfig?: CertificateAuthoritySpecInitProviderConfigSubjectConfig[];
+
+  /**
+   * Describes how some of the technical X.509 fields in a certificate should be populated. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfig#x509Config
+   */
+  readonly x509Config?: CertificateAuthoritySpecInitProviderConfigX509Config[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfig(obj: CertificateAuthoritySpecInitProviderConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subjectConfig': obj.subjectConfig?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfig(y)),
+    'x509Config': obj.x509Config?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509Config(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderKeySpec
+ */
+export interface CertificateAuthoritySpecInitProviderKeySpec {
+  /**
+   * The algorithm to use for creating a managed Cloud KMS key for a for a simplified experience. All managed keys will be have their ProtectionLevel as HSM. Possible values are: SIGN_HASH_ALGORITHM_UNSPECIFIED, RSA_PSS_2048_SHA256, RSA_PSS_3072_SHA256, RSA_PSS_4096_SHA256, RSA_PKCS1_2048_SHA256, RSA_PKCS1_3072_SHA256, RSA_PKCS1_4096_SHA256, EC_P256_SHA256, EC_P384_SHA384.
+   *
+   * @schema CertificateAuthoritySpecInitProviderKeySpec#algorithm
+   */
+  readonly algorithm?: string;
+
+  /**
+   * The resource name for an existing Cloud KMS CryptoKeyVersion in the format projects/_/locations/_/keyRings/_/cryptoKeys/_/cryptoKeyVersions/*.
+   *
+   * @schema CertificateAuthoritySpecInitProviderKeySpec#cloudKmsKeyVersion
+   */
+  readonly cloudKmsKeyVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderKeySpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderKeySpec(obj: CertificateAuthoritySpecInitProviderKeySpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'algorithm': obj.algorithm,
+    'cloudKmsKeyVersion': obj.cloudKmsKeyVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderSubordinateConfig
+ */
+export interface CertificateAuthoritySpecInitProviderSubordinateConfig {
+  /**
+   * Contains the PEM certificate chain for the issuers of this CertificateAuthority, but not pem certificate for this CA itself. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderSubordinateConfig#pemIssuerChain
+   */
+  readonly pemIssuerChain?: CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderSubordinateConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderSubordinateConfig(obj: CertificateAuthoritySpecInitProviderSubordinateConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pemIssuerChain': obj.pemIssuerChain?.map(y => toJson_CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CertificateAuthoritySpecProviderConfigRefPolicy
@@ -5380,43 +7140,6 @@ export interface CertificateAuthoritySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateAuthoritySpecProviderConfigRefPolicy(obj: CertificateAuthoritySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CertificateAuthoritySpecProviderRefPolicy
- */
-export interface CertificateAuthoritySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateAuthoritySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateAuthoritySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateAuthoritySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateAuthoritySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateAuthoritySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateAuthoritySpecProviderRefPolicy(obj: CertificateAuthoritySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5518,7 +7241,7 @@ export interface CertificateAuthoritySpecForProviderConfigSubjectConfig {
    *
    * @schema CertificateAuthoritySpecForProviderConfigSubjectConfig#subject
    */
-  readonly subject: CertificateAuthoritySpecForProviderConfigSubjectConfigSubject[];
+  readonly subject?: CertificateAuthoritySpecForProviderConfigSubjectConfigSubject[];
 
   /**
    * The subject alternative name fields. Structure is documented below.
@@ -5567,14 +7290,14 @@ export interface CertificateAuthoritySpecForProviderConfigX509Config {
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509Config#caOptions
    */
-  readonly caOptions: CertificateAuthoritySpecForProviderConfigX509ConfigCaOptions[];
+  readonly caOptions?: CertificateAuthoritySpecForProviderConfigX509ConfigCaOptions[];
 
   /**
    * Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509Config#keyUsage
    */
-  readonly keyUsage: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage[];
+  readonly keyUsage?: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage[];
 
   /**
    * Describes the X.509 name constraints extension. Structure is documented below.
@@ -5795,6 +7518,135 @@ export function toJson_CertificateAuthoritySpecForProviderSubordinateConfigPemIs
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfig
+ */
+export interface CertificateAuthoritySpecInitProviderConfigSubjectConfig {
+  /**
+   * Contains distinguished name fields such as the location and organization. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfig#subject
+   */
+  readonly subject?: CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject[];
+
+  /**
+   * The subject alternative name fields. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfig#subjectAltName
+   */
+  readonly subjectAltName?: CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigSubjectConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfig(obj: CertificateAuthoritySpecInitProviderConfigSubjectConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'subject': obj.subject?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject(y)),
+    'subjectAltName': obj.subjectAltName?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509Config
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509Config {
+  /**
+   * Specifies an X.509 extension, which may be used in different parts of X.509 objects like certificates, CSRs, and CRLs. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#additionalExtensions
+   */
+  readonly additionalExtensions?: CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions[];
+
+  /**
+   * Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#aiaOcspServers
+   */
+  readonly aiaOcspServers?: string[];
+
+  /**
+   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#caOptions
+   */
+  readonly caOptions?: CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions[];
+
+  /**
+   * Indicates the intended use for keys that correspond to a certificate. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#keyUsage
+   */
+  readonly keyUsage?: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage[];
+
+  /**
+   * Describes the X.509 name constraints extension. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#nameConstraints
+   */
+  readonly nameConstraints?: CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints[];
+
+  /**
+   * Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509Config#policyIds
+   */
+  readonly policyIds?: CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509Config' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509Config(obj: CertificateAuthoritySpecInitProviderConfigX509Config | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExtensions': obj.additionalExtensions?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions(y)),
+    'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
+    'caOptions': obj.caOptions?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions(y)),
+    'keyUsage': obj.keyUsage?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage(y)),
+    'nameConstraints': obj.nameConstraints?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints(y)),
+    'policyIds': obj.policyIds?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain
+ */
+export interface CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain {
+  /**
+   * Expected to be in leaf-to-root order according to RFC 5246.
+   *
+   * @schema CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain#pemCertificates
+   */
+  readonly pemCertificates?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain(obj: CertificateAuthoritySpecInitProviderSubordinateConfigPemIssuerChain | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pemCertificates': obj.pemCertificates?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CertificateAuthoritySpecProviderConfigRefPolicyResolution
@@ -5812,30 +7664,6 @@ export enum CertificateAuthoritySpecProviderConfigRefPolicyResolution {
  * @schema CertificateAuthoritySpecProviderConfigRefPolicyResolve
  */
 export enum CertificateAuthoritySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateAuthoritySpecProviderRefPolicyResolution
- */
-export enum CertificateAuthoritySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateAuthoritySpecProviderRefPolicyResolve
- */
-export enum CertificateAuthoritySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5888,7 +7716,7 @@ export interface CertificateAuthoritySpecForProviderConfigSubjectConfigSubject {
    *
    * @schema CertificateAuthoritySpecForProviderConfigSubjectConfigSubject#commonName
    */
-  readonly commonName: string;
+  readonly commonName?: string;
 
   /**
    * The country code of the subject.
@@ -5909,7 +7737,7 @@ export interface CertificateAuthoritySpecForProviderConfigSubjectConfigSubject {
    *
    * @schema CertificateAuthoritySpecForProviderConfigSubjectConfigSubject#organization
    */
-  readonly organization: string;
+  readonly organization?: string;
 
   /**
    * The organizational unit of the subject.
@@ -6022,21 +7850,21 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalEx
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensions#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Describes values that are relevant in a CA certificate. Structure is documented below.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensions#objectId
    */
-  readonly objectId: CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensionsObjectId[];
+  readonly objectId?: CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensionsObjectId[];
 
   /**
    * The value of this X.509 extension. A base64-encoded string.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -6065,7 +7893,7 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigCaOptions {
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigCaOptions#isCa
    */
-  readonly isCa: boolean;
+  readonly isCa?: boolean;
 
   /**
    * Refers to the "path length constraint" in Basic Constraints extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail. Setting the value to 0 requires setting zero_max_issuer_path_length = true.
@@ -6116,14 +7944,14 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage {
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage#baseKeyUsage
    */
-  readonly baseKeyUsage: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
+  readonly baseKeyUsage?: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
 
   /**
    * Describes high-level ways in which a key may be used. Structure is documented below.
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsage#extendedKeyUsage
    */
-  readonly extendedKeyUsage: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
+  readonly extendedKeyUsage?: CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
 
   /**
    * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
@@ -6159,7 +7987,7 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigNameConstrai
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigNameConstraints#critical
    */
-  readonly critical: boolean;
+  readonly critical?: boolean;
 
   /**
    * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
@@ -6250,7 +8078,7 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigPolicyIds {
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigPolicyIds#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -6391,6 +8219,395 @@ export function toJson_CertificateAuthoritySpecForProviderSubordinateConfigCerti
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject
+ */
+export interface CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject {
+  /**
+   * The common name of the distinguished name.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#commonName
+   */
+  readonly commonName?: string;
+
+  /**
+   * The country code of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#countryCode
+   */
+  readonly countryCode?: string;
+
+  /**
+   * The locality or city of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#locality
+   */
+  readonly locality?: string;
+
+  /**
+   * The organization of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#organization
+   */
+  readonly organization?: string;
+
+  /**
+   * The organizational unit of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#organizationalUnit
+   */
+  readonly organizationalUnit?: string;
+
+  /**
+   * The postal code of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#postalCode
+   */
+  readonly postalCode?: string;
+
+  /**
+   * The province, territory, or regional state of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#province
+   */
+  readonly province?: string;
+
+  /**
+   * The street address of the subject.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject#streetAddress
+   */
+  readonly streetAddress?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject(obj: CertificateAuthoritySpecInitProviderConfigSubjectConfigSubject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'commonName': obj.commonName,
+    'countryCode': obj.countryCode,
+    'locality': obj.locality,
+    'organization': obj.organization,
+    'organizationalUnit': obj.organizationalUnit,
+    'postalCode': obj.postalCode,
+    'province': obj.province,
+    'streetAddress': obj.streetAddress,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName
+ */
+export interface CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName {
+  /**
+   * Contains only valid, fully-qualified host names.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName#dnsNames
+   */
+  readonly dnsNames?: string[];
+
+  /**
+   * Contains only valid RFC 2822 E-mail addresses.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName#emailAddresses
+   */
+  readonly emailAddresses?: string[];
+
+  /**
+   * Contains only valid 32-bit IPv4 addresses or RFC 4291 IPv6 addresses.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName#ipAddresses
+   */
+  readonly ipAddresses?: string[];
+
+  /**
+   * Contains only valid RFC 3986 URIs.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName#uris
+   */
+  readonly uris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName(obj: CertificateAuthoritySpecInitProviderConfigSubjectConfigSubjectAltName | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dnsNames': obj.dnsNames?.map(y => y),
+    'emailAddresses': obj.emailAddresses?.map(y => y),
+    'ipAddresses': obj.ipAddresses?.map(y => y),
+    'uris': obj.uris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Describes values that are relevant in a CA certificate. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions#objectId
+   */
+  readonly objectId?: CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId[];
+
+  /**
+   * The value of this X.509 extension. A base64-encoded string.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'objectId': obj.objectId?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId(y)),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions {
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to true.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions#isCa
+   */
+  readonly isCa?: boolean;
+
+  /**
+   * Refers to the "path length constraint" in Basic Constraints extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail. Setting the value to 0 requires setting zero_max_issuer_path_length = true.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions#maxIssuerPathLength
+   */
+  readonly maxIssuerPathLength?: number;
+
+  /**
+   * When true, the "CA" in Basic Constraints extension will be set to false. If both is_ca and non_ca are unset, the extension will be omitted from the CA certificate.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions#nonCa
+   */
+  readonly nonCa?: boolean;
+
+  /**
+   * When true, the "path length constraint" in Basic Constraints extension will be set to 0. If both max_issuer_path_length and zero_max_issuer_path_length are unset, the max path length will be omitted from the CA certificate.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions#zeroMaxIssuerPathLength
+   */
+  readonly zeroMaxIssuerPathLength?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigCaOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'isCa': obj.isCa,
+    'maxIssuerPathLength': obj.maxIssuerPathLength,
+    'nonCa': obj.nonCa,
+    'zeroMaxIssuerPathLength': obj.zeroMaxIssuerPathLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage {
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage#baseKeyUsage
+   */
+  readonly baseKeyUsage?: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage[];
+
+  /**
+   * Describes high-level ways in which a key may be used. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage#extendedKeyUsage
+   */
+  readonly extendedKeyUsage?: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage[];
+
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages. Structure is documented below.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage#unknownExtendedKeyUsages
+   */
+  readonly unknownExtendedKeyUsages?: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage(y)),
+    'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage(y)),
+    'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints {
+  /**
+   * Indicates whether or not the name constraints are marked critical.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Contains excluded DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#excludedDnsNames
+   */
+  readonly excludedDnsNames?: string[];
+
+  /**
+   * Contains the excluded email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#excludedEmailAddresses
+   */
+  readonly excludedEmailAddresses?: string[];
+
+  /**
+   * Contains the excluded IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#excludedIpRanges
+   */
+  readonly excludedIpRanges?: string[];
+
+  /**
+   * Contains the excluded URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#excludedUris
+   */
+  readonly excludedUris?: string[];
+
+  /**
+   * Contains permitted DNS names. Any DNS name that can be constructed by simply adding zero or more labels to the left-hand side of the name satisfies the name constraint. For example, example.com, www.example.com, www.sub.example.com would satisfy example.com while example1.com does not.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#permittedDnsNames
+   */
+  readonly permittedDnsNames?: string[];
+
+  /**
+   * Contains the permitted email addresses. The value can be a particular email address, a hostname to indicate all email addresses on that host or a domain with a leading period (e.g. .example.com) to indicate all email addresses in that domain.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#permittedEmailAddresses
+   */
+  readonly permittedEmailAddresses?: string[];
+
+  /**
+   * Contains the permitted IP ranges. For IPv4 addresses, the ranges are expressed using CIDR notation as specified in RFC 4632. For IPv6 addresses, the ranges are expressed in similar encoding as IPv4 addresses.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#permittedIpRanges
+   */
+  readonly permittedIpRanges?: string[];
+
+  /**
+   * Contains the permitted URIs that apply to the host part of the name. The value can be a hostname or a domain with a leading period (like .example.com)
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints#permittedUris
+   */
+  readonly permittedUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigNameConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'excludedDnsNames': obj.excludedDnsNames?.map(y => y),
+    'excludedEmailAddresses': obj.excludedEmailAddresses?.map(y => y),
+    'excludedIpRanges': obj.excludedIpRanges?.map(y => y),
+    'excludedUris': obj.excludedUris?.map(y => y),
+    'permittedDnsNames': obj.permittedDnsNames?.map(y => y),
+    'permittedEmailAddresses': obj.permittedEmailAddresses?.map(y => y),
+    'permittedIpRanges': obj.permittedIpRanges?.map(y => y),
+    'permittedUris': obj.permittedUris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigPolicyIds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema CertificateAuthoritySpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -6423,7 +8640,7 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalEx
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigAdditionalExtensionsObjectId#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -6608,7 +8825,7 @@ export interface CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageUnkn
    *
    * @schema CertificateAuthoritySpecForProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -6673,6 +8890,218 @@ export enum CertificateAuthoritySpecForProviderSubordinateConfigCertificateAutho
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigAdditionalExtensionsObjectId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage {
+  /**
+   * The key may be used to sign certificates.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#certSign
+   */
+  readonly certSign?: boolean;
+
+  /**
+   * The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#contentCommitment
+   */
+  readonly contentCommitment?: boolean;
+
+  /**
+   * The key may be used sign certificate revocation lists.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#crlSign
+   */
+  readonly crlSign?: boolean;
+
+  /**
+   * The key may be used to encipher data.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#dataEncipherment
+   */
+  readonly dataEncipherment?: boolean;
+
+  /**
+   * The key may be used to decipher only.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#decipherOnly
+   */
+  readonly decipherOnly?: boolean;
+
+  /**
+   * The key may be used for digital signatures.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#digitalSignature
+   */
+  readonly digitalSignature?: boolean;
+
+  /**
+   * The key may be used to encipher only.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#encipherOnly
+   */
+  readonly encipherOnly?: boolean;
+
+  /**
+   * The key may be used in a key agreement protocol.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyAgreement
+   */
+  readonly keyAgreement?: boolean;
+
+  /**
+   * The key may be used to encipher other keys.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage#keyEncipherment
+   */
+  readonly keyEncipherment?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageBaseKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certSign': obj.certSign,
+    'contentCommitment': obj.contentCommitment,
+    'crlSign': obj.crlSign,
+    'dataEncipherment': obj.dataEncipherment,
+    'decipherOnly': obj.decipherOnly,
+    'digitalSignature': obj.digitalSignature,
+    'encipherOnly': obj.encipherOnly,
+    'keyAgreement': obj.keyAgreement,
+    'keyEncipherment': obj.keyEncipherment,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage {
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.2. Officially described as "TLS WWW client authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#clientAuth
+   */
+  readonly clientAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.3. Officially described as "Signing of downloadable executable code client authentication".
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#codeSigning
+   */
+  readonly codeSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.4. Officially described as "Email protection".
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#emailProtection
+   */
+  readonly emailProtection?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.9. Officially described as "Signing OCSP responses".
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#ocspSigning
+   */
+  readonly ocspSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.1. Officially described as "TLS WWW server authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#serverAuth
+   */
+  readonly serverAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.8. Officially described as "Binding the hash of an object to a time".
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage#timeStamping
+   */
+  readonly timeStamping?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageExtendedKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuth': obj.clientAuth,
+    'codeSigning': obj.codeSigning,
+    'emailProtection': obj.emailProtection,
+    'ocspSigning': obj.ocspSigning,
+    'serverAuth': obj.serverAuth,
+    'timeStamping': obj.timeStamping,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages
+ */
+export interface CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages {
+  /**
+   * An ObjectId specifies an object identifier (OID). These provide context and describe types in ASN.1 messages.
+   *
+   * @schema CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages(obj: CertificateAuthoritySpecInitProviderConfigX509ConfigKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 
 /**
@@ -6771,7 +9200,7 @@ export function toJson_CertificateTemplateProps(obj: CertificateTemplateProps | 
  */
 export interface CertificateTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateTemplateSpec#deletionPolicy
    */
@@ -6783,11 +9212,18 @@ export interface CertificateTemplateSpec {
   readonly forProvider: CertificateTemplateSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateTemplateSpec#managementPolicy
+   * @schema CertificateTemplateSpec#initProvider
    */
-  readonly managementPolicy?: CertificateTemplateSpecManagementPolicy;
+  readonly initProvider?: CertificateTemplateSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateTemplateSpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateTemplateSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6795,13 +9231,6 @@ export interface CertificateTemplateSpec {
    * @schema CertificateTemplateSpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateTemplateSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateTemplateSpec#providerRef
-   */
-  readonly providerRef?: CertificateTemplateSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6828,9 +9257,9 @@ export function toJson_CertificateTemplateSpec(obj: CertificateTemplateSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateTemplateSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateTemplateSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateTemplateSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateTemplateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6840,7 +9269,7 @@ export function toJson_CertificateTemplateSpec(obj: CertificateTemplateSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateTemplateSpecDeletionPolicy
  */
@@ -6927,17 +9356,92 @@ export function toJson_CertificateTemplateSpecForProvider(obj: CertificateTempla
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateTemplateSpecManagementPolicy
+ * @schema CertificateTemplateSpecInitProvider
  */
-export enum CertificateTemplateSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateTemplateSpecInitProvider {
+  /**
+   * Optional. A human-readable description of scenarios this template is intended for.
+   *
+   * @schema CertificateTemplateSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Optional. Describes constraints on identities that may be appear in Certificates issued using this template. If this is omitted, then this template will not add restrictions on a certificate's identity.
+   *
+   * @schema CertificateTemplateSpecInitProvider#identityConstraints
+   */
+  readonly identityConstraints?: CertificateTemplateSpecInitProviderIdentityConstraints[];
+
+  /**
+   * Optional. Labels with user-defined metadata.
+   *
+   * @schema CertificateTemplateSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Optional. Describes the set of X.509 extensions that may appear in a Certificate issued using this CertificateTemplate. If a certificate request sets extensions that don't appear in the passthrough_extensions, those extensions will be dropped. If the issuing CaPool's IssuancePolicy defines baseline_values that don't appear here, the certificate issuance request will fail. If this is omitted, then this template will not add restrictions on a certificate's X.509 extensions. These constraints do not apply to X.509 extensions set in this CertificateTemplate's predefined_values.
+   *
+   * @schema CertificateTemplateSpecInitProvider#passthroughExtensions
+   */
+  readonly passthroughExtensions?: CertificateTemplateSpecInitProviderPassthroughExtensions[];
+
+  /**
+   * Optional. A set of X.509 values that will be applied to all issued certificates that use this template. If the certificate request includes conflicting values for the same properties, they will be overwritten by the values defined here. If the issuing CaPool's IssuancePolicy defines conflicting baseline_values for the same properties, the certificate issuance request will fail.
+   *
+   * @schema CertificateTemplateSpecInitProvider#predefinedValues
+   */
+  readonly predefinedValues?: CertificateTemplateSpecInitProviderPredefinedValues[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema CertificateTemplateSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProvider(obj: CertificateTemplateSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'identityConstraints': obj.identityConstraints?.map(y => toJson_CertificateTemplateSpecInitProviderIdentityConstraints(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'passthroughExtensions': obj.passthroughExtensions?.map(y => toJson_CertificateTemplateSpecInitProviderPassthroughExtensions(y)),
+    'predefinedValues': obj.predefinedValues?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValues(y)),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateTemplateSpecManagementPolicies
+ */
+export enum CertificateTemplateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6971,43 +9475,6 @@ export function toJson_CertificateTemplateSpecProviderConfigRef(obj: Certificate
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateTemplateSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateTemplateSpecProviderRef
- */
-export interface CertificateTemplateSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateTemplateSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateTemplateSpecProviderRef#policy
-   */
-  readonly policy?: CertificateTemplateSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateTemplateSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateTemplateSpecProviderRef(obj: CertificateTemplateSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateTemplateSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7105,14 +9572,14 @@ export interface CertificateTemplateSpecForProviderIdentityConstraints {
    *
    * @schema CertificateTemplateSpecForProviderIdentityConstraints#allowSubjectAltNamesPassthrough
    */
-  readonly allowSubjectAltNamesPassthrough: boolean;
+  readonly allowSubjectAltNamesPassthrough?: boolean;
 
   /**
    * Required. If this is true, the Subject field may be copied from a certificate request into the signed certificate. Otherwise, the requested Subject will be discarded.
    *
    * @schema CertificateTemplateSpecForProviderIdentityConstraints#allowSubjectPassthrough
    */
-  readonly allowSubjectPassthrough: boolean;
+  readonly allowSubjectPassthrough?: boolean;
 
   /**
    * Optional. A CEL expression that may be used to validate the resolved X.509 Subject and/or Subject Alternative Name before a certificate is signed. To see the full allowed syntax and some examples, see https://cloud.google.com/certificate-authority-service/docs/using-cel
@@ -7234,6 +9701,143 @@ export function toJson_CertificateTemplateSpecForProviderPredefinedValues(obj: C
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CertificateTemplateSpecInitProviderIdentityConstraints
+ */
+export interface CertificateTemplateSpecInitProviderIdentityConstraints {
+  /**
+   * Required. If this is true, the SubjectAltNames extension may be copied from a certificate request into the signed certificate. Otherwise, the requested SubjectAltNames will be discarded.
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraints#allowSubjectAltNamesPassthrough
+   */
+  readonly allowSubjectAltNamesPassthrough?: boolean;
+
+  /**
+   * Required. If this is true, the Subject field may be copied from a certificate request into the signed certificate. Otherwise, the requested Subject will be discarded.
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraints#allowSubjectPassthrough
+   */
+  readonly allowSubjectPassthrough?: boolean;
+
+  /**
+   * Optional. A CEL expression that may be used to validate the resolved X.509 Subject and/or Subject Alternative Name before a certificate is signed. To see the full allowed syntax and some examples, see https://cloud.google.com/certificate-authority-service/docs/using-cel
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraints#celExpression
+   */
+  readonly celExpression?: CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderIdentityConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderIdentityConstraints(obj: CertificateTemplateSpecInitProviderIdentityConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowSubjectAltNamesPassthrough': obj.allowSubjectAltNamesPassthrough,
+    'allowSubjectPassthrough': obj.allowSubjectPassthrough,
+    'celExpression': obj.celExpression?.map(y => toJson_CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPassthroughExtensions
+ */
+export interface CertificateTemplateSpecInitProviderPassthroughExtensions {
+  /**
+   * Optional. A set of ObjectIds identifying custom X.509 extensions. Will be combined with known_extensions to determine the full set of X.509 extensions.
+   *
+   * @schema CertificateTemplateSpecInitProviderPassthroughExtensions#additionalExtensions
+   */
+  readonly additionalExtensions?: CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions[];
+
+  /**
+   * Optional. A set of named X.509 extensions. Will be combined with additional_extensions to determine the full set of X.509 extensions.
+   *
+   * @schema CertificateTemplateSpecInitProviderPassthroughExtensions#knownExtensions
+   */
+  readonly knownExtensions?: string[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPassthroughExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPassthroughExtensions(obj: CertificateTemplateSpecInitProviderPassthroughExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExtensions': obj.additionalExtensions?.map(y => toJson_CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions(y)),
+    'knownExtensions': obj.knownExtensions?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValues
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValues {
+  /**
+   * Optional. Describes custom X.509 extensions.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValues#additionalExtensions
+   */
+  readonly additionalExtensions?: CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions[];
+
+  /**
+   * Optional. Describes Online Certificate Status Protocol (OCSP) endpoint addresses that appear in the "Authority Information Access" extension in the certificate.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValues#aiaOcspServers
+   */
+  readonly aiaOcspServers?: string[];
+
+  /**
+   * Optional. Describes options in this X509Parameters that are relevant in a CA certificate.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValues#caOptions
+   */
+  readonly caOptions?: CertificateTemplateSpecInitProviderPredefinedValuesCaOptions[];
+
+  /**
+   * Optional. Indicates the intended use for keys that correspond to a certificate.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValues#keyUsage
+   */
+  readonly keyUsage?: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage[];
+
+  /**
+   * Optional. Describes the X.509 certificate policy object identifiers, per https://tools.ietf.org/html/rfc5280#section-4.2.1.4.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValues#policyIds
+   */
+  readonly policyIds?: CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValues(obj: CertificateTemplateSpecInitProviderPredefinedValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalExtensions': obj.additionalExtensions?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions(y)),
+    'aiaOcspServers': obj.aiaOcspServers?.map(y => y),
+    'caOptions': obj.caOptions?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesCaOptions(y)),
+    'keyUsage': obj.keyUsage?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage(y)),
+    'policyIds': obj.policyIds?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CertificateTemplateSpecProviderConfigRefPolicy
@@ -7260,43 +9864,6 @@ export interface CertificateTemplateSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateTemplateSpecProviderConfigRefPolicy(obj: CertificateTemplateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CertificateTemplateSpecProviderRefPolicy
- */
-export interface CertificateTemplateSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateTemplateSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateTemplateSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateTemplateSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateTemplateSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateTemplateSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateTemplateSpecProviderRefPolicy(obj: CertificateTemplateSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7449,7 +10016,7 @@ export interface CertificateTemplateSpecForProviderPassthroughExtensionsAddition
    *
    * @schema CertificateTemplateSpecForProviderPassthroughExtensionsAdditionalExtensions#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -7483,14 +10050,14 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesAdditionalExt
    *
    * @schema CertificateTemplateSpecForProviderPredefinedValuesAdditionalExtensions#objectId
    */
-  readonly objectId: CertificateTemplateSpecForProviderPredefinedValuesAdditionalExtensionsObjectId[];
+  readonly objectId?: CertificateTemplateSpecForProviderPredefinedValuesAdditionalExtensionsObjectId[];
 
   /**
    * Required. The value of this X.509 extension.
    *
    * @schema CertificateTemplateSpecForProviderPredefinedValuesAdditionalExtensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -7597,7 +10164,7 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesPolicyIds {
    *
    * @schema CertificateTemplateSpecForProviderPredefinedValuesPolicyIds#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -7606,6 +10173,224 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesPolicyIds {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateTemplateSpecForProviderPredefinedValuesPolicyIds(obj: CertificateTemplateSpecForProviderPredefinedValuesPolicyIds | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression
+ */
+export interface CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression {
+  /**
+   * Optional. A human-readable description of scenarios this template is intended for.
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression#description
+   */
+  readonly description?: string;
+
+  /**
+   * Textual representation of an expression in Common Expression Language syntax.
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * Optional. Title for the expression, i.e. a short string describing its purpose. This can be used e.g. in UIs which allow to enter the expression.
+   *
+   * @schema CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression(obj: CertificateTemplateSpecInitProviderIdentityConstraintsCelExpression | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions
+ */
+export interface CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions {
+  /**
+   * Required. The parts of an OID path. The most significant parts of the path come first.
+   *
+   * @schema CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions(obj: CertificateTemplateSpecInitProviderPassthroughExtensionsAdditionalExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions {
+  /**
+   * Optional. Indicates whether or not this extension is critical (i.e., if the client does not know how to handle this extension, the client should consider this to be an error).
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions#critical
+   */
+  readonly critical?: boolean;
+
+  /**
+   * Required. The OID for this X.509 extension.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions#objectId
+   */
+  readonly objectId?: CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId[];
+
+  /**
+   * Required. The value of this X.509 extension.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions(obj: CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'critical': obj.critical,
+    'objectId': obj.objectId?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId(y)),
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesCaOptions
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesCaOptions {
+  /**
+   * Optional. Refers to the "CA" X.509 extension, which is a boolean value. When this value is missing, the extension will be omitted from the CA certificate.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesCaOptions#isCa
+   */
+  readonly isCa?: boolean;
+
+  /**
+   * Optional. Refers to the path length restriction X.509 extension. For a CA certificate, this value describes the depth of subordinate CA certificates that are allowed. If this value is less than 0, the request will fail. If this value is missing, the max path length will be omitted from the CA certificate.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesCaOptions#maxIssuerPathLength
+   */
+  readonly maxIssuerPathLength?: number;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesCaOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesCaOptions(obj: CertificateTemplateSpecInitProviderPredefinedValuesCaOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'isCa': obj.isCa,
+    'maxIssuerPathLength': obj.maxIssuerPathLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage {
+  /**
+   * Describes high-level ways in which a key may be used.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage#baseKeyUsage
+   */
+  readonly baseKeyUsage?: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage[];
+
+  /**
+   * Detailed scenarios in which a key may be used.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage#extendedKeyUsage
+   */
+  readonly extendedKeyUsage?: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage[];
+
+  /**
+   * Used to describe extended key usages that are not listed in the KeyUsage.ExtendedKeyUsageOptions message.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage#unknownExtendedKeyUsages
+   */
+  readonly unknownExtendedKeyUsages?: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage(obj: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseKeyUsage': obj.baseKeyUsage?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage(y)),
+    'extendedKeyUsage': obj.extendedKeyUsage?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage(y)),
+    'unknownExtendedKeyUsages': obj.unknownExtendedKeyUsages?.map(y => toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds {
+  /**
+   * Required. The parts of an OID path. The most significant parts of the path come first.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds(obj: CertificateTemplateSpecInitProviderPredefinedValuesPolicyIds | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'objectIdPath': obj.objectIdPath?.map(y => y),
@@ -7633,30 +10418,6 @@ export enum CertificateTemplateSpecProviderConfigRefPolicyResolution {
  * @schema CertificateTemplateSpecProviderConfigRefPolicyResolve
  */
 export enum CertificateTemplateSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateTemplateSpecProviderRefPolicyResolution
- */
-export enum CertificateTemplateSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateTemplateSpecProviderRefPolicyResolve
- */
-export enum CertificateTemplateSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7709,7 +10470,7 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesAdditionalExt
    *
    * @schema CertificateTemplateSpecForProviderPredefinedValuesAdditionalExtensionsObjectId#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -7894,7 +10655,7 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesKeyUsageUnkno
    *
    * @schema CertificateTemplateSpecForProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages#objectIdPath
    */
-  readonly objectIdPath: number[];
+  readonly objectIdPath?: number[];
 
 }
 
@@ -7903,6 +10664,218 @@ export interface CertificateTemplateSpecForProviderPredefinedValuesKeyUsageUnkno
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateTemplateSpecForProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages(obj: CertificateTemplateSpecForProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId {
+  /**
+   * Required. The parts of an OID path. The most significant parts of the path come first.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId(obj: CertificateTemplateSpecInitProviderPredefinedValuesAdditionalExtensionsObjectId | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectIdPath': obj.objectIdPath?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage {
+  /**
+   * The key may be used to sign certificates.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#certSign
+   */
+  readonly certSign?: boolean;
+
+  /**
+   * The key may be used for cryptographic commitments. Note that this may also be referred to as "non-repudiation".
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#contentCommitment
+   */
+  readonly contentCommitment?: boolean;
+
+  /**
+   * The key may be used sign certificate revocation lists.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#crlSign
+   */
+  readonly crlSign?: boolean;
+
+  /**
+   * The key may be used to encipher data.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#dataEncipherment
+   */
+  readonly dataEncipherment?: boolean;
+
+  /**
+   * The key may be used to decipher only.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#decipherOnly
+   */
+  readonly decipherOnly?: boolean;
+
+  /**
+   * The key may be used for digital signatures.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#digitalSignature
+   */
+  readonly digitalSignature?: boolean;
+
+  /**
+   * The key may be used to encipher only.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#encipherOnly
+   */
+  readonly encipherOnly?: boolean;
+
+  /**
+   * The key may be used in a key agreement protocol.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#keyAgreement
+   */
+  readonly keyAgreement?: boolean;
+
+  /**
+   * The key may be used to encipher other keys.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage#keyEncipherment
+   */
+  readonly keyEncipherment?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage(obj: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageBaseKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certSign': obj.certSign,
+    'contentCommitment': obj.contentCommitment,
+    'crlSign': obj.crlSign,
+    'dataEncipherment': obj.dataEncipherment,
+    'decipherOnly': obj.decipherOnly,
+    'digitalSignature': obj.digitalSignature,
+    'encipherOnly': obj.encipherOnly,
+    'keyAgreement': obj.keyAgreement,
+    'keyEncipherment': obj.keyEncipherment,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage {
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.2. Officially described as "TLS WWW client authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#clientAuth
+   */
+  readonly clientAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.3. Officially described as "Signing of downloadable executable code client authentication".
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#codeSigning
+   */
+  readonly codeSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.4. Officially described as "Email protection".
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#emailProtection
+   */
+  readonly emailProtection?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.9. Officially described as "Signing OCSP responses".
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#ocspSigning
+   */
+  readonly ocspSigning?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.1. Officially described as "TLS WWW server authentication", though regularly used for non-WWW TLS.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#serverAuth
+   */
+  readonly serverAuth?: boolean;
+
+  /**
+   * Corresponds to OID 1.3.6.1.5.5.7.3.8. Officially described as "Binding the hash of an object to a time".
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage#timeStamping
+   */
+  readonly timeStamping?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage(obj: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageExtendedKeyUsage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientAuth': obj.clientAuth,
+    'codeSigning': obj.codeSigning,
+    'emailProtection': obj.emailProtection,
+    'ocspSigning': obj.ocspSigning,
+    'serverAuth': obj.serverAuth,
+    'timeStamping': obj.timeStamping,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages
+ */
+export interface CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages {
+  /**
+   * Required. The parts of an OID path. The most significant parts of the path come first.
+   *
+   * @schema CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages#objectIdPath
+   */
+  readonly objectIdPath?: number[];
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages(obj: CertificateTemplateSpecInitProviderPredefinedValuesKeyUsageUnknownExtendedKeyUsages | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'objectIdPath': obj.objectIdPath?.map(y => y),
@@ -8033,7 +11006,7 @@ export function toJson_CertificateTemplateIamMemberProps(obj: CertificateTemplat
  */
 export interface CertificateTemplateIamMemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CertificateTemplateIamMemberSpec#deletionPolicy
    */
@@ -8045,11 +11018,18 @@ export interface CertificateTemplateIamMemberSpec {
   readonly forProvider: CertificateTemplateIamMemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CertificateTemplateIamMemberSpec#managementPolicy
+   * @schema CertificateTemplateIamMemberSpec#initProvider
    */
-  readonly managementPolicy?: CertificateTemplateIamMemberSpecManagementPolicy;
+  readonly initProvider?: CertificateTemplateIamMemberSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CertificateTemplateIamMemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: CertificateTemplateIamMemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8057,13 +11037,6 @@ export interface CertificateTemplateIamMemberSpec {
    * @schema CertificateTemplateIamMemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: CertificateTemplateIamMemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CertificateTemplateIamMemberSpec#providerRef
-   */
-  readonly providerRef?: CertificateTemplateIamMemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8090,9 +11063,9 @@ export function toJson_CertificateTemplateIamMemberSpec(obj: CertificateTemplate
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CertificateTemplateIamMemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CertificateTemplateIamMemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CertificateTemplateIamMemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CertificateTemplateIamMemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CertificateTemplateIamMemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CertificateTemplateIamMemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8102,7 +11075,7 @@ export function toJson_CertificateTemplateIamMemberSpec(obj: CertificateTemplate
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CertificateTemplateIamMemberSpecDeletionPolicy
  */
@@ -8185,17 +11158,74 @@ export function toJson_CertificateTemplateIamMemberSpecForProvider(obj: Certific
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CertificateTemplateIamMemberSpecManagementPolicy
+ * @schema CertificateTemplateIamMemberSpecInitProvider
  */
-export enum CertificateTemplateIamMemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CertificateTemplateIamMemberSpecInitProvider {
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProvider#condition
+   */
+  readonly condition?: CertificateTemplateIamMemberSpecInitProviderCondition[];
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProvider#member
+   */
+  readonly member?: string;
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProvider#role
+   */
+  readonly role?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateIamMemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateIamMemberSpecInitProvider(obj: CertificateTemplateIamMemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'condition': obj.condition?.map(y => toJson_CertificateTemplateIamMemberSpecInitProviderCondition(y)),
+    'location': obj.location,
+    'member': obj.member,
+    'project': obj.project,
+    'role': obj.role,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CertificateTemplateIamMemberSpecManagementPolicies
+ */
+export enum CertificateTemplateIamMemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8229,43 +11259,6 @@ export function toJson_CertificateTemplateIamMemberSpecProviderConfigRef(obj: Ce
   const result = {
     'name': obj.name,
     'policy': toJson_CertificateTemplateIamMemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CertificateTemplateIamMemberSpecProviderRef
- */
-export interface CertificateTemplateIamMemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CertificateTemplateIamMemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CertificateTemplateIamMemberSpecProviderRef#policy
-   */
-  readonly policy?: CertificateTemplateIamMemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CertificateTemplateIamMemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateTemplateIamMemberSpecProviderRef(obj: CertificateTemplateIamMemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CertificateTemplateIamMemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8448,12 +11441,12 @@ export interface CertificateTemplateIamMemberSpecForProviderCondition {
   /**
    * @schema CertificateTemplateIamMemberSpecForProviderCondition#expression
    */
-  readonly expression: string;
+  readonly expression?: string;
 
   /**
    * @schema CertificateTemplateIamMemberSpecForProviderCondition#title
    */
-  readonly title: string;
+  readonly title?: string;
 
 }
 
@@ -8462,6 +11455,43 @@ export interface CertificateTemplateIamMemberSpecForProviderCondition {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateTemplateIamMemberSpecForProviderCondition(obj: CertificateTemplateIamMemberSpecForProviderCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'expression': obj.expression,
+    'title': obj.title,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema CertificateTemplateIamMemberSpecInitProviderCondition
+ */
+export interface CertificateTemplateIamMemberSpecInitProviderCondition {
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProviderCondition#description
+   */
+  readonly description?: string;
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProviderCondition#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * @schema CertificateTemplateIamMemberSpecInitProviderCondition#title
+   */
+  readonly title?: string;
+
+}
+
+/**
+ * Converts an object of type 'CertificateTemplateIamMemberSpecInitProviderCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CertificateTemplateIamMemberSpecInitProviderCondition(obj: CertificateTemplateIamMemberSpecInitProviderCondition | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'description': obj.description,
@@ -8500,43 +11530,6 @@ export interface CertificateTemplateIamMemberSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CertificateTemplateIamMemberSpecProviderConfigRefPolicy(obj: CertificateTemplateIamMemberSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CertificateTemplateIamMemberSpecProviderRefPolicy
- */
-export interface CertificateTemplateIamMemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CertificateTemplateIamMemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CertificateTemplateIamMemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CertificateTemplateIamMemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CertificateTemplateIamMemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CertificateTemplateIamMemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CertificateTemplateIamMemberSpecProviderRefPolicy(obj: CertificateTemplateIamMemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -8721,30 +11714,6 @@ export enum CertificateTemplateIamMemberSpecProviderConfigRefPolicyResolution {
  * @schema CertificateTemplateIamMemberSpecProviderConfigRefPolicyResolve
  */
 export enum CertificateTemplateIamMemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CertificateTemplateIamMemberSpecProviderRefPolicyResolution
- */
-export enum CertificateTemplateIamMemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CertificateTemplateIamMemberSpecProviderRefPolicyResolve
- */
-export enum CertificateTemplateIamMemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_FlowProps(obj: FlowProps | undefined): Record<string, any
  */
 export interface FlowSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FlowSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface FlowSpec {
   readonly forProvider: FlowSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FlowSpec#managementPolicy
+   * @schema FlowSpec#initProvider
    */
-  readonly managementPolicy?: FlowSpecManagementPolicy;
+  readonly initProvider?: FlowSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FlowSpec#managementPolicies
+   */
+  readonly managementPolicies?: FlowSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface FlowSpec {
    * @schema FlowSpec#providerConfigRef
    */
   readonly providerConfigRef?: FlowSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FlowSpec#providerRef
-   */
-  readonly providerRef?: FlowSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_FlowSpec(obj: FlowSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FlowSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FlowSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FlowSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FlowSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FlowSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FlowSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_FlowSpec(obj: FlowSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FlowSpecDeletionPolicy
  */
@@ -263,17 +263,100 @@ export function toJson_FlowSpecForProvider(obj: FlowSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FlowSpecManagementPolicy
+ * @schema FlowSpecInitProvider
  */
-export enum FlowSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FlowSpecInitProvider {
+  /**
+   * Description of the flow you want to create.
+   *
+   * @schema FlowSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A Destination Flow Config that controls how Amazon AppFlow places data in the destination connector.
+   *
+   * @schema FlowSpecInitProvider#destinationFlowConfig
+   */
+  readonly destinationFlowConfig?: FlowSpecInitProviderDestinationFlowConfig[];
+
+  /**
+   * ARN (Amazon Resource Name) of the Key Management Service (KMS) key you provide for encryption. This is required if you do not want to use the Amazon AppFlow-managed KMS key. If you don't provide anything here, Amazon AppFlow uses the Amazon AppFlow-managed KMS key.
+   *
+   * @schema FlowSpecInitProvider#kmsArn
+   */
+  readonly kmsArn?: string;
+
+  /**
+   * The Source Flow Config that controls how Amazon AppFlow retrieves data from the source connector.
+   *
+   * @schema FlowSpecInitProvider#sourceFlowConfig
+   */
+  readonly sourceFlowConfig?: FlowSpecInitProviderSourceFlowConfig[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FlowSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * A Task that Amazon AppFlow performs while transferring the data in the flow run.
+   *
+   * @schema FlowSpecInitProvider#task
+   */
+  readonly task?: FlowSpecInitProviderTask[];
+
+  /**
+   * A Trigger that determine how and when the flow runs.
+   *
+   * @schema FlowSpecInitProvider#triggerConfig
+   */
+  readonly triggerConfig?: FlowSpecInitProviderTriggerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProvider(obj: FlowSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'destinationFlowConfig': obj.destinationFlowConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfig(y)),
+    'kmsArn': obj.kmsArn,
+    'sourceFlowConfig': obj.sourceFlowConfig?.map(y => toJson_FlowSpecInitProviderSourceFlowConfig(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'task': obj.task?.map(y => toJson_FlowSpecInitProviderTask(y)),
+    'triggerConfig': obj.triggerConfig?.map(y => toJson_FlowSpecInitProviderTriggerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FlowSpecManagementPolicies
+ */
+export enum FlowSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -307,43 +390,6 @@ export function toJson_FlowSpecProviderConfigRef(obj: FlowSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_FlowSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FlowSpecProviderRef
- */
-export interface FlowSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FlowSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FlowSpecProviderRef#policy
-   */
-  readonly policy?: FlowSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FlowSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FlowSpecProviderRef(obj: FlowSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FlowSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -455,14 +501,14 @@ export interface FlowSpecForProviderDestinationFlowConfig {
    *
    * @schema FlowSpecForProviderDestinationFlowConfig#connectorType
    */
-  readonly connectorType: string;
+  readonly connectorType?: string;
 
   /**
    * This stores the information that is required to query a particular connector. See Destination Connector Properties for more information.
    *
    * @schema FlowSpecForProviderDestinationFlowConfig#destinationConnectorProperties
    */
-  readonly destinationConnectorProperties: FlowSpecForProviderDestinationFlowConfigDestinationConnectorProperties[];
+  readonly destinationConnectorProperties?: FlowSpecForProviderDestinationFlowConfigDestinationConnectorProperties[];
 
 }
 
@@ -506,7 +552,7 @@ export interface FlowSpecForProviderSourceFlowConfig {
    *
    * @schema FlowSpecForProviderSourceFlowConfig#connectorType
    */
-  readonly connectorType: string;
+  readonly connectorType?: string;
 
   /**
    * Defines the configuration for a scheduled incremental data pull. If a valid configuration is provided, the fields specified in the configuration are used when querying for the incremental data pull. See Incremental Pull Config for more details.
@@ -520,7 +566,7 @@ export interface FlowSpecForProviderSourceFlowConfig {
    *
    * @schema FlowSpecForProviderSourceFlowConfig#sourceConnectorProperties
    */
-  readonly sourceConnectorProperties: FlowSpecForProviderSourceFlowConfigSourceConnectorProperties[];
+  readonly sourceConnectorProperties?: FlowSpecForProviderSourceFlowConfigSourceConnectorProperties[];
 
 }
 
@@ -565,7 +611,7 @@ export interface FlowSpecForProviderTask {
    *
    * @schema FlowSpecForProviderTask#sourceFields
    */
-  readonly sourceFields: string[];
+  readonly sourceFields?: string[];
 
   /**
    * Map used to store task-related information. The execution service looks for particular information based on the TaskType. Valid keys are VALUE, VALUES, DATA_TYPE, UPPER_BOUND, LOWER_BOUND, SOURCE_DATA_TYPE, DESTINATION_DATA_TYPE, VALIDATION_ACTION, MASK_VALUE, MASK_LENGTH, TRUNCATE_LENGTH, MATH_OPERATION_FIELDS_ORDER, CONCAT_FORMAT, SUBFIELD_CATEGORY_MAP, and EXCLUDE_SOURCE_FIELDS_LIST.
@@ -579,7 +625,7 @@ export interface FlowSpecForProviderTask {
    *
    * @schema FlowSpecForProviderTask#taskType
    */
-  readonly taskType: string;
+  readonly taskType?: string;
 
 }
 
@@ -617,7 +663,7 @@ export interface FlowSpecForProviderTriggerConfig {
    *
    * @schema FlowSpecForProviderTriggerConfig#triggerType
    */
-  readonly triggerType: string;
+  readonly triggerType?: string;
 
 }
 
@@ -629,6 +675,210 @@ export function toJson_FlowSpecForProviderTriggerConfig(obj: FlowSpecForProvider
   if (obj === undefined) { return undefined; }
   const result = {
     'triggerProperties': obj.triggerProperties?.map(y => toJson_FlowSpecForProviderTriggerConfigTriggerProperties(y)),
+    'triggerType': obj.triggerType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfig {
+  /**
+   * API version that the destination connector uses.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfig#apiVersion
+   */
+  readonly apiVersion?: string;
+
+  /**
+   * Name of the connector profile. This name must be unique for each connector profile in the AWS account.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfig#connectorProfileName
+   */
+  readonly connectorProfileName?: string;
+
+  /**
+   * Type of connector, such as Salesforce, Amplitude, and so on. Valid values are Salesforce, Singular, Slack, Redshift, S3, Marketo, Googleanalytics, Zendesk, Servicenow, Datadog, Trendmicro, Snowflake, Dynatrace, Infornexus, Amplitude, Veeva, EventBridge, LookoutMetrics, Upsolver, Honeycode, CustomerProfiles, SAPOData, and CustomConnector.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfig#connectorType
+   */
+  readonly connectorType?: string;
+
+  /**
+   * This stores the information that is required to query a particular connector. See Destination Connector Properties for more information.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfig#destinationConnectorProperties
+   */
+  readonly destinationConnectorProperties?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfig(obj: FlowSpecInitProviderDestinationFlowConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiVersion': obj.apiVersion,
+    'connectorProfileName': obj.connectorProfileName,
+    'connectorType': obj.connectorType,
+    'destinationConnectorProperties': obj.destinationConnectorProperties?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfig
+ */
+export interface FlowSpecInitProviderSourceFlowConfig {
+  /**
+   * API version that the destination connector uses.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfig#apiVersion
+   */
+  readonly apiVersion?: string;
+
+  /**
+   * Name of the connector profile. This name must be unique for each connector profile in the AWS account.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfig#connectorProfileName
+   */
+  readonly connectorProfileName?: string;
+
+  /**
+   * Type of connector, such as Salesforce, Amplitude, and so on. Valid values are Salesforce, Singular, Slack, Redshift, S3, Marketo, Googleanalytics, Zendesk, Servicenow, Datadog, Trendmicro, Snowflake, Dynatrace, Infornexus, Amplitude, Veeva, EventBridge, LookoutMetrics, Upsolver, Honeycode, CustomerProfiles, SAPOData, and CustomConnector.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfig#connectorType
+   */
+  readonly connectorType?: string;
+
+  /**
+   * Defines the configuration for a scheduled incremental data pull. If a valid configuration is provided, the fields specified in the configuration are used when querying for the incremental data pull. See Incremental Pull Config for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfig#incrementalPullConfig
+   */
+  readonly incrementalPullConfig?: FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig[];
+
+  /**
+   * Information that is required to query a particular source connector. See Source Connector Properties for details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfig#sourceConnectorProperties
+   */
+  readonly sourceConnectorProperties?: FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfig(obj: FlowSpecInitProviderSourceFlowConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apiVersion': obj.apiVersion,
+    'connectorProfileName': obj.connectorProfileName,
+    'connectorType': obj.connectorType,
+    'incrementalPullConfig': obj.incrementalPullConfig?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig(y)),
+    'sourceConnectorProperties': obj.sourceConnectorProperties?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderTask
+ */
+export interface FlowSpecInitProviderTask {
+  /**
+   * Operation to be performed on the provided source fields. See Connector Operator for details.
+   *
+   * @schema FlowSpecInitProviderTask#connectorOperator
+   */
+  readonly connectorOperator?: FlowSpecInitProviderTaskConnectorOperator[];
+
+  /**
+   * Field in a destination connector, or a field value against which Amazon AppFlow validates a source field.
+   *
+   * @schema FlowSpecInitProviderTask#destinationField
+   */
+  readonly destinationField?: string;
+
+  /**
+   * Source fields to which a particular task is applied.
+   *
+   * @schema FlowSpecInitProviderTask#sourceFields
+   */
+  readonly sourceFields?: string[];
+
+  /**
+   * Map used to store task-related information. The execution service looks for particular information based on the TaskType. Valid keys are VALUE, VALUES, DATA_TYPE, UPPER_BOUND, LOWER_BOUND, SOURCE_DATA_TYPE, DESTINATION_DATA_TYPE, VALIDATION_ACTION, MASK_VALUE, MASK_LENGTH, TRUNCATE_LENGTH, MATH_OPERATION_FIELDS_ORDER, CONCAT_FORMAT, SUBFIELD_CATEGORY_MAP, and EXCLUDE_SOURCE_FIELDS_LIST.
+   *
+   * @schema FlowSpecInitProviderTask#taskProperties
+   */
+  readonly taskProperties?: { [key: string]: string };
+
+  /**
+   * Particular task implementation that Amazon AppFlow performs. Valid values are Arithmetic, Filter, Map, Map_all, Mask, Merge, Passthrough, Truncate, and Validate.
+   *
+   * @schema FlowSpecInitProviderTask#taskType
+   */
+  readonly taskType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderTask' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderTask(obj: FlowSpecInitProviderTask | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectorOperator': obj.connectorOperator?.map(y => toJson_FlowSpecInitProviderTaskConnectorOperator(y)),
+    'destinationField': obj.destinationField,
+    'sourceFields': obj.sourceFields?.map(y => y),
+    'taskProperties': ((obj.taskProperties) === undefined) ? undefined : (Object.entries(obj.taskProperties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'taskType': obj.taskType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderTriggerConfig
+ */
+export interface FlowSpecInitProviderTriggerConfig {
+  /**
+   * Configuration details of a schedule-triggered flow as defined by the user. Currently, these settings only apply to the Scheduled trigger type. See Scheduled Trigger Properties for details.
+   *
+   * @schema FlowSpecInitProviderTriggerConfig#triggerProperties
+   */
+  readonly triggerProperties?: FlowSpecInitProviderTriggerConfigTriggerProperties[];
+
+  /**
+   * Type of flow trigger. Valid values are Scheduled, Event, and OnDemand.
+   *
+   * @schema FlowSpecInitProviderTriggerConfig#triggerType
+   */
+  readonly triggerType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderTriggerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderTriggerConfig(obj: FlowSpecInitProviderTriggerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'triggerProperties': obj.triggerProperties?.map(y => toJson_FlowSpecInitProviderTriggerConfigTriggerProperties(y)),
     'triggerType': obj.triggerType,
   };
   // filter undefined values
@@ -663,43 +913,6 @@ export interface FlowSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FlowSpecProviderConfigRefPolicy(obj: FlowSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FlowSpecProviderRefPolicy
- */
-export interface FlowSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FlowSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FlowSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FlowSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FlowSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FlowSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FlowSpecProviderRefPolicy(obj: FlowSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1260,6 +1473,473 @@ export function toJson_FlowSpecForProviderTriggerConfigTriggerProperties(obj: Fl
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties {
+  /**
+   * Properties that are required to query the custom Connector. See Custom Connector Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#customConnector
+   */
+  readonly customConnector?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector[];
+
+  /**
+   * Properties that are required to query Amazon Connect Customer Profiles. See Customer Profiles Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#customerProfiles
+   */
+  readonly customerProfiles?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles[];
+
+  /**
+   * Properties that are required to query Amazon EventBridge. See Generic Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#eventBridge
+   */
+  readonly eventBridge?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge[];
+
+  /**
+   * Properties that are required to query Amazon Honeycode. See Generic Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#honeycode
+   */
+  readonly honeycode?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode[];
+
+  /**
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#lookoutMetrics
+   */
+  readonly lookoutMetrics?: any[];
+
+  /**
+   * Properties that are required to query Marketo. See Generic Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#marketo
+   */
+  readonly marketo?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo[];
+
+  /**
+   * Properties that are required to query Amazon Redshift. See Redshift Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#redshift
+   */
+  readonly redshift?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift[];
+
+  /**
+   * Properties that are required to query Amazon S3. See S3 Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#s3
+   */
+  readonly s3?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3[];
+
+  /**
+   * Properties that are required to query Salesforce. See Salesforce Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#salesforce
+   */
+  readonly salesforce?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce[];
+
+  /**
+   * Properties that are required to query SAPOData. See SAPOData Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#sapoData
+   */
+  readonly sapoData?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData[];
+
+  /**
+   * Properties that are required to query Snowflake. See Snowflake Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#snowflake
+   */
+  readonly snowflake?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake[];
+
+  /**
+   * Properties that are required to query Upsolver. See Upsolver Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#upsolver
+   */
+  readonly upsolver?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver[];
+
+  /**
+   * Properties that are required to query Zendesk. See Zendesk Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties#zendesk
+   */
+  readonly zendesk?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customConnector': obj.customConnector?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector(y)),
+    'customerProfiles': obj.customerProfiles?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles(y)),
+    'eventBridge': obj.eventBridge?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge(y)),
+    'honeycode': obj.honeycode?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode(y)),
+    'lookoutMetrics': obj.lookoutMetrics?.map(y => y),
+    'marketo': obj.marketo?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo(y)),
+    'redshift': obj.redshift?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift(y)),
+    's3': obj.s3?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3(y)),
+    'salesforce': obj.salesforce?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce(y)),
+    'sapoData': obj.sapoData?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData(y)),
+    'snowflake': obj.snowflake?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake(y)),
+    'upsolver': obj.upsolver?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver(y)),
+    'zendesk': obj.zendesk?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig
+ */
+export interface FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig {
+  /**
+   * Field that specifies the date time or timestamp field as the criteria to use when importing incremental records from the source.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig#datetimeTypeFieldName
+   */
+  readonly datetimeTypeFieldName?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig(obj: FlowSpecInitProviderSourceFlowConfigIncrementalPullConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'datetimeTypeFieldName': obj.datetimeTypeFieldName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties {
+  /**
+   * Information that is required for querying Amplitude. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#amplitude
+   */
+  readonly amplitude?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude[];
+
+  /**
+   * Properties that are required to query the custom Connector. See Custom Connector Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#customConnector
+   */
+  readonly customConnector?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector[];
+
+  /**
+   * Information that is required for querying Datadog. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#datadog
+   */
+  readonly datadog?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog[];
+
+  /**
+   * Operation to be performed on the provided Dynatrace source fields. Valid values are PROJECTION, BETWEEN, EQUAL_TO, ADDITION, MULTIPLICATION, DIVISION, SUBTRACTION, MASK_ALL, MASK_FIRST_N, MASK_LAST_N, VALIDATE_NON_NULL, VALIDATE_NON_ZERO, VALIDATE_NON_NEGATIVE, VALIDATE_NUMERIC, and NO_OP.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#dynatrace
+   */
+  readonly dynatrace?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace[];
+
+  /**
+   * Operation to be performed on the provided Google Analytics source fields. Valid values are PROJECTION and BETWEEN.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#googleAnalytics
+   */
+  readonly googleAnalytics?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics[];
+
+  /**
+   * Information that is required for querying Infor Nexus. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#inforNexus
+   */
+  readonly inforNexus?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus[];
+
+  /**
+   * Properties that are required to query Marketo. See Generic Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#marketo
+   */
+  readonly marketo?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo[];
+
+  /**
+   * Properties that are required to query Amazon S3. See S3 Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#s3
+   */
+  readonly s3?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3[];
+
+  /**
+   * Properties that are required to query Salesforce. See Salesforce Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#salesforce
+   */
+  readonly salesforce?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce[];
+
+  /**
+   * Properties that are required to query SAPOData. See SAPOData Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#sapoData
+   */
+  readonly sapoData?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData[];
+
+  /**
+   * Information that is required for querying ServiceNow. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#serviceNow
+   */
+  readonly serviceNow?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow[];
+
+  /**
+   * Information that is required for querying Singular. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#singular
+   */
+  readonly singular?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular[];
+
+  /**
+   * Information that is required for querying Slack. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#slack
+   */
+  readonly slack?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack[];
+
+  /**
+   * Operation to be performed on the provided Trend Micro source fields. Valid values are PROJECTION, EQUAL_TO, ADDITION, MULTIPLICATION, DIVISION, SUBTRACTION, MASK_ALL, MASK_FIRST_N, MASK_LAST_N, VALIDATE_NON_NULL, VALIDATE_NON_ZERO, VALIDATE_NON_NEGATIVE, VALIDATE_NUMERIC, and NO_OP.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#trendmicro
+   */
+  readonly trendmicro?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro[];
+
+  /**
+   * Information that is required for querying Veeva. See Veeva Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#veeva
+   */
+  readonly veeva?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva[];
+
+  /**
+   * Properties that are required to query Zendesk. See Zendesk Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties#zendesk
+   */
+  readonly zendesk?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'amplitude': obj.amplitude?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude(y)),
+    'customConnector': obj.customConnector?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector(y)),
+    'datadog': obj.datadog?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog(y)),
+    'dynatrace': obj.dynatrace?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace(y)),
+    'googleAnalytics': obj.googleAnalytics?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics(y)),
+    'inforNexus': obj.inforNexus?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus(y)),
+    'marketo': obj.marketo?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo(y)),
+    's3': obj.s3?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3(y)),
+    'salesforce': obj.salesforce?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce(y)),
+    'sapoData': obj.sapoData?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData(y)),
+    'serviceNow': obj.serviceNow?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow(y)),
+    'singular': obj.singular?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular(y)),
+    'slack': obj.slack?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack(y)),
+    'trendmicro': obj.trendmicro?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro(y)),
+    'veeva': obj.veeva?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva(y)),
+    'zendesk': obj.zendesk?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderTaskConnectorOperator
+ */
+export interface FlowSpecInitProviderTaskConnectorOperator {
+  /**
+   * Information that is required for querying Amplitude. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#amplitude
+   */
+  readonly amplitude?: string;
+
+  /**
+   * Properties that are required to query the custom Connector. See Custom Connector Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#customConnector
+   */
+  readonly customConnector?: string;
+
+  /**
+   * Information that is required for querying Datadog. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#datadog
+   */
+  readonly datadog?: string;
+
+  /**
+   * Operation to be performed on the provided Dynatrace source fields. Valid values are PROJECTION, BETWEEN, EQUAL_TO, ADDITION, MULTIPLICATION, DIVISION, SUBTRACTION, MASK_ALL, MASK_FIRST_N, MASK_LAST_N, VALIDATE_NON_NULL, VALIDATE_NON_ZERO, VALIDATE_NON_NEGATIVE, VALIDATE_NUMERIC, and NO_OP.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#dynatrace
+   */
+  readonly dynatrace?: string;
+
+  /**
+   * Operation to be performed on the provided Google Analytics source fields. Valid values are PROJECTION and BETWEEN.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#googleAnalytics
+   */
+  readonly googleAnalytics?: string;
+
+  /**
+   * Information that is required for querying Infor Nexus. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#inforNexus
+   */
+  readonly inforNexus?: string;
+
+  /**
+   * Properties that are required to query Marketo. See Generic Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#marketo
+   */
+  readonly marketo?: string;
+
+  /**
+   * Properties that are required to query Amazon S3. See S3 Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#s3
+   */
+  readonly s3?: string;
+
+  /**
+   * Properties that are required to query Salesforce. See Salesforce Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#salesforce
+   */
+  readonly salesforce?: string;
+
+  /**
+   * Properties that are required to query SAPOData. See SAPOData Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#sapoData
+   */
+  readonly sapoData?: string;
+
+  /**
+   * Information that is required for querying ServiceNow. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#serviceNow
+   */
+  readonly serviceNow?: string;
+
+  /**
+   * Information that is required for querying Singular. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#singular
+   */
+  readonly singular?: string;
+
+  /**
+   * Information that is required for querying Slack. See Generic Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#slack
+   */
+  readonly slack?: string;
+
+  /**
+   * Operation to be performed on the provided Trend Micro source fields. Valid values are PROJECTION, EQUAL_TO, ADDITION, MULTIPLICATION, DIVISION, SUBTRACTION, MASK_ALL, MASK_FIRST_N, MASK_LAST_N, VALIDATE_NON_NULL, VALIDATE_NON_ZERO, VALIDATE_NON_NEGATIVE, VALIDATE_NUMERIC, and NO_OP.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#trendmicro
+   */
+  readonly trendmicro?: string;
+
+  /**
+   * Information that is required for querying Veeva. See Veeva Source Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#veeva
+   */
+  readonly veeva?: string;
+
+  /**
+   * Properties that are required to query Zendesk. See Zendesk Destination Properties for more details.
+   *
+   * @schema FlowSpecInitProviderTaskConnectorOperator#zendesk
+   */
+  readonly zendesk?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderTaskConnectorOperator' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderTaskConnectorOperator(obj: FlowSpecInitProviderTaskConnectorOperator | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'amplitude': obj.amplitude,
+    'customConnector': obj.customConnector,
+    'datadog': obj.datadog,
+    'dynatrace': obj.dynatrace,
+    'googleAnalytics': obj.googleAnalytics,
+    'inforNexus': obj.inforNexus,
+    'marketo': obj.marketo,
+    's3': obj.s3,
+    'salesforce': obj.salesforce,
+    'sapoData': obj.sapoData,
+    'serviceNow': obj.serviceNow,
+    'singular': obj.singular,
+    'slack': obj.slack,
+    'trendmicro': obj.trendmicro,
+    'veeva': obj.veeva,
+    'zendesk': obj.zendesk,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderTriggerConfigTriggerProperties
+ */
+export interface FlowSpecInitProviderTriggerConfigTriggerProperties {
+  /**
+   * @schema FlowSpecInitProviderTriggerConfigTriggerProperties#scheduled
+   */
+  readonly scheduled?: FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderTriggerConfigTriggerProperties' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderTriggerConfigTriggerProperties(obj: FlowSpecInitProviderTriggerConfigTriggerProperties | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scheduled': obj.scheduled?.map(y => toJson_FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FlowSpecProviderConfigRefPolicyResolution
@@ -1277,30 +1957,6 @@ export enum FlowSpecProviderConfigRefPolicyResolution {
  * @schema FlowSpecProviderConfigRefPolicyResolve
  */
 export enum FlowSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FlowSpecProviderRefPolicyResolution
- */
-export enum FlowSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FlowSpecProviderRefPolicyResolve
- */
-export enum FlowSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1360,7 +2016,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#entityName
    */
-  readonly entityName: string;
+  readonly entityName?: string;
 
   /**
    * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
@@ -1412,7 +2068,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles#domainName
    */
-  readonly domainName: string;
+  readonly domainName?: string;
 
   /**
    * Object specified in the Amazon Connect Customer Profiles flow destination.
@@ -1454,7 +2110,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1489,7 +2145,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1524,7 +2180,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1566,14 +2222,14 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#intermediateBucketName
    */
-  readonly intermediateBucketName: string;
+  readonly intermediateBucketName?: string;
 
   /**
    * Object specified in the flow destination.
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1676,7 +2332,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce#object
    */
-  readonly object: string;
+  readonly object?: string;
 
   /**
    * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
@@ -1727,7 +2383,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#objectPath
    */
-  readonly objectPath: string;
+  readonly objectPath?: string;
 
   /**
    * Determines how Amazon AppFlow handles the success response that it gets from the connector after placing data. See Success Response Handling Config for more details.
@@ -1786,14 +2442,14 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#intermediateBucketName
    */
-  readonly intermediateBucketName: string;
+  readonly intermediateBucketName?: string;
 
   /**
    * Object specified in the flow destination.
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1823,7 +2479,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver#bucketName
    */
-  readonly bucketName: string;
+  readonly bucketName?: string;
 
   /**
    * Object key for the bucket in which Amazon AppFlow places the destination files.
@@ -1837,7 +2493,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver#s3OutputFormatConfig
    */
-  readonly s3OutputFormatConfig: FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig[];
+  readonly s3OutputFormatConfig?: FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig[];
 
 }
 
@@ -1880,7 +2536,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk#object
    */
-  readonly object: string;
+  readonly object?: string;
 
   /**
    * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
@@ -1917,7 +2573,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesAmp
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesAmplitude#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -1951,7 +2607,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesCus
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector#entityName
    */
-  readonly entityName: string;
+  readonly entityName?: string;
 
 }
 
@@ -1979,7 +2635,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesDat
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesDatadog#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2006,7 +2662,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesDyn
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesDynatrace#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2033,7 +2689,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesGoo
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2060,7 +2716,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesInf
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesInforNexus#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2087,7 +2743,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesMar
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesMarketo#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2187,7 +2843,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSal
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSalesforce#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2216,7 +2872,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSap
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSapoData#objectPath
    */
-  readonly objectPath: string;
+  readonly objectPath?: string;
 
 }
 
@@ -2243,7 +2899,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSer
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesServiceNow#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2270,7 +2926,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSin
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSingular#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2297,7 +2953,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSla
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesSlack#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2324,7 +2980,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesTre
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2379,7 +3035,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesVee
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesVeeva#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2410,7 +3066,7 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesZen
    *
    * @schema FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesZendesk#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2458,7 +3114,7 @@ export interface FlowSpecForProviderTriggerConfigTriggerPropertiesScheduled {
    *
    * @schema FlowSpecForProviderTriggerConfigTriggerPropertiesScheduled#scheduleExpression
    */
-  readonly scheduleExpression: string;
+  readonly scheduleExpression?: string;
 
   /**
    * Optional offset that is added to the time interval for a schedule-triggered flow. Maximum value of 36000.
@@ -2488,6 +3144,1117 @@ export interface FlowSpecForProviderTriggerConfigTriggerPropertiesScheduled {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FlowSpecForProviderTriggerConfigTriggerPropertiesScheduled(obj: FlowSpecForProviderTriggerConfigTriggerPropertiesScheduled | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataPullMode': obj.dataPullMode,
+    'firstExecutionFrom': obj.firstExecutionFrom,
+    'scheduleEndTime': obj.scheduleEndTime,
+    'scheduleExpression': obj.scheduleExpression,
+    'scheduleOffset': obj.scheduleOffset,
+    'scheduleStartTime': obj.scheduleStartTime,
+    'timezone': obj.timezone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector {
+  /**
+   * Custom properties that are specific to the connector when it's used as a destination in the flow. Maximum of 50 items.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#customProperties
+   */
+  readonly customProperties?: { [key: string]: string };
+
+  /**
+   * Entity specified in the custom connector as a destination in the flow.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#entityName
+   */
+  readonly entityName?: string;
+
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig[];
+
+  /**
+   * Name of the field that Amazon AppFlow uses as an ID when performing a write operation such as update, delete, or upsert.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#idFieldNames
+   */
+  readonly idFieldNames?: string[];
+
+  /**
+   * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector#writeOperationType
+   */
+  readonly writeOperationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customProperties': ((obj.customProperties) === undefined) ? undefined : (Object.entries(obj.customProperties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'entityName': obj.entityName,
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig(y)),
+    'idFieldNames': obj.idFieldNames?.map(y => y),
+    'writeOperationType': obj.writeOperationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles {
+  /**
+   * Unique name of the Amazon Connect Customer Profiles domain.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles#domainName
+   */
+  readonly domainName?: string;
+
+  /**
+   * Object specified in the Amazon Connect Customer Profiles flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles#objectTypeName
+   */
+  readonly objectTypeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomerProfiles | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'domainName': obj.domainName,
+    'objectTypeName': obj.objectTypeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig[];
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridge | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig(y)),
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig[];
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycode | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig(y)),
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig[];
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig(y)),
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift {
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig[];
+
+  /**
+   * Intermediate bucket that Amazon AppFlow uses when moving data into Amazon Redshift.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#intermediateBucketName
+   */
+  readonly intermediateBucketName?: string;
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshift | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketPrefix': obj.bucketPrefix,
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig(y)),
+    'intermediateBucketName': obj.intermediateBucketName,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3 {
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * Configuration that determines how Amazon AppFlow should format the flow output data when Amazon S3 is used as the destination. See S3 Output Format Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3#s3OutputFormatConfig
+   */
+  readonly s3OutputFormatConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketPrefix': obj.bucketPrefix,
+    's3OutputFormatConfig': obj.s3OutputFormatConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig[];
+
+  /**
+   * Name of the field that Amazon AppFlow uses as an ID when performing a write operation such as update, delete, or upsert.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce#idFieldNames
+   */
+  readonly idFieldNames?: string[];
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce#object
+   */
+  readonly object?: string;
+
+  /**
+   * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce#writeOperationType
+   */
+  readonly writeOperationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforce | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig(y)),
+    'idFieldNames': obj.idFieldNames?.map(y => y),
+    'object': obj.object,
+    'writeOperationType': obj.writeOperationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig[];
+
+  /**
+   * Name of the field that Amazon AppFlow uses as an ID when performing a write operation such as update, delete, or upsert.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#idFieldNames
+   */
+  readonly idFieldNames?: string[];
+
+  /**
+   * Object path specified in the SAPOData flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#objectPath
+   */
+  readonly objectPath?: string;
+
+  /**
+   * Determines how Amazon AppFlow handles the success response that it gets from the connector after placing data. See Success Response Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#successResponseHandlingConfig
+   */
+  readonly successResponseHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig[];
+
+  /**
+   * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData#writeOperationType
+   */
+  readonly writeOperationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoData | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig(y)),
+    'idFieldNames': obj.idFieldNames?.map(y => y),
+    'objectPath': obj.objectPath,
+    'successResponseHandlingConfig': obj.successResponseHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig(y)),
+    'writeOperationType': obj.writeOperationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake {
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig[];
+
+  /**
+   * Intermediate bucket that Amazon AppFlow uses when moving data into Amazon Redshift.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#intermediateBucketName
+   */
+  readonly intermediateBucketName?: string;
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflake | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketPrefix': obj.bucketPrefix,
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig(y)),
+    'intermediateBucketName': obj.intermediateBucketName,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * Configuration that determines how Amazon AppFlow should format the flow output data when Amazon S3 is used as the destination. See S3 Output Format Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver#s3OutputFormatConfig
+   */
+  readonly s3OutputFormatConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolver | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    's3OutputFormatConfig': obj.s3OutputFormatConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk {
+  /**
+   * Settings that determine how Amazon AppFlow handles an error when placing data in the destination. See Error Handling Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk#errorHandlingConfig
+   */
+  readonly errorHandlingConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig[];
+
+  /**
+   * Name of the field that Amazon AppFlow uses as an ID when performing a write operation such as update, delete, or upsert.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk#idFieldNames
+   */
+  readonly idFieldNames?: string[];
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk#object
+   */
+  readonly object?: string;
+
+  /**
+   * Type of write operation to be performed in the custom connector when it's used as destination. Valid values are INSERT, UPSERT, UPDATE, and DELETE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk#writeOperationType
+   */
+  readonly writeOperationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendesk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorHandlingConfig': obj.errorHandlingConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig(y)),
+    'idFieldNames': obj.idFieldNames?.map(y => y),
+    'object': obj.object,
+    'writeOperationType': obj.writeOperationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesAmplitude | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector {
+  /**
+   * Custom properties that are specific to the connector when it's used as a destination in the flow. Maximum of 50 items.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector#customProperties
+   */
+  readonly customProperties?: { [key: string]: string };
+
+  /**
+   * Entity specified in the custom connector as a destination in the flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector#entityName
+   */
+  readonly entityName?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesCustomConnector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customProperties': ((obj.customProperties) === undefined) ? undefined : (Object.entries(obj.customProperties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'entityName': obj.entityName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDatadog | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesDynatrace | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesGoogleAnalytics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesInforNexus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesMarketo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3 {
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * When you use Amazon S3 as the source, the configuration format that you provide the flow input data. See S3 Input Format Config for details.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3#s3InputFormatConfig
+   */
+  readonly s3InputFormatConfig?: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3 | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketPrefix': obj.bucketPrefix,
+    's3InputFormatConfig': obj.s3InputFormatConfig?.map(y => toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce {
+  /**
+   * Flag that enables dynamic fetching of new (recently added) fields in the Salesforce objects while running a flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce#enableDynamicFieldUpdate
+   */
+  readonly enableDynamicFieldUpdate?: boolean;
+
+  /**
+   * Whether Amazon AppFlow includes deleted files in the flow run.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce#includeDeletedRecords
+   */
+  readonly includeDeletedRecords?: boolean;
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSalesforce | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableDynamicFieldUpdate': obj.enableDynamicFieldUpdate,
+    'includeDeletedRecords': obj.includeDeletedRecords,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData {
+  /**
+   * Object path specified in the SAPOData flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData#objectPath
+   */
+  readonly objectPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSapoData | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'objectPath': obj.objectPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesServiceNow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSingular | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesSlack | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesTrendmicro | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva {
+  /**
+   * Document type specified in the Veeva document extract flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva#documentType
+   */
+  readonly documentType?: string;
+
+  /**
+   * Boolean value to include All Versions of files in Veeva document extract flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva#includeAllVersions
+   */
+  readonly includeAllVersions?: boolean;
+
+  /**
+   * Boolean value to include file renditions in Veeva document extract flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva#includeRenditions
+   */
+  readonly includeRenditions?: boolean;
+
+  /**
+   * Boolean value to include source files in Veeva document extract flow.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva#includeSourceFiles
+   */
+  readonly includeSourceFiles?: boolean;
+
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesVeeva | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'documentType': obj.documentType,
+    'includeAllVersions': obj.includeAllVersions,
+    'includeRenditions': obj.includeRenditions,
+    'includeSourceFiles': obj.includeSourceFiles,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk {
+  /**
+   * Object specified in the flow destination.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesZendesk | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled
+ */
+export interface FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled {
+  /**
+   * Whether a scheduled flow has an incremental data transfer or a complete data transfer for each flow run. Valid values are Incremental and Complete.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#dataPullMode
+   */
+  readonly dataPullMode?: string;
+
+  /**
+   * Date range for the records to import from the connector in the first flow run. Must be a valid RFC3339 timestamp.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#firstExecutionFrom
+   */
+  readonly firstExecutionFrom?: string;
+
+  /**
+   * Scheduled end time for a schedule-triggered flow. Must be a valid RFC3339 timestamp.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#scheduleEndTime
+   */
+  readonly scheduleEndTime?: string;
+
+  /**
+   * Scheduling expression that determines the rate at which the schedule will run, for example rate(5minutes).
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#scheduleExpression
+   */
+  readonly scheduleExpression?: string;
+
+  /**
+   * Optional offset that is added to the time interval for a schedule-triggered flow. Maximum value of 36000.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#scheduleOffset
+   */
+  readonly scheduleOffset?: number;
+
+  /**
+   * Scheduled start time for a schedule-triggered flow. Must be a valid RFC3339 timestamp.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#scheduleStartTime
+   */
+  readonly scheduleStartTime?: string;
+
+  /**
+   * Time zone used when referring to the date and time of a scheduled-triggered flow, such as America/New_York.
+   *
+   * @schema FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled#timezone
+   */
+  readonly timezone?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled(obj: FlowSpecInitProviderTriggerConfigTriggerPropertiesScheduled | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'dataPullMode': obj.dataPullMode,
@@ -3062,7 +4829,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig#prefixConfig
    */
-  readonly prefixConfig: FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig[];
+  readonly prefixConfig?: FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig[];
 
 }
 
@@ -3225,6 +4992,549 @@ export interface FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesS3S
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig(obj: FlowSpecForProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    's3InputFileType': obj.s3InputFileType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesCustomConnectorErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesEventBridgeErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesHoneycodeErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesMarketoErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesRedshiftErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig {
+  /**
+   * Aggregation settings that you can use to customize the output format of your flow data. See Aggregation Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig#aggregationConfig
+   */
+  readonly aggregationConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig[];
+
+  /**
+   * File type that Amazon AppFlow places in the Amazon S3 bucket. Valid values are CSV, JSON, and PARQUET.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig#fileType
+   */
+  readonly fileType?: string;
+
+  /**
+   * Determines the prefix that Amazon AppFlow applies to the folder name in the Amazon S3 bucket. You can name folders according to the flow frequency and date. See Prefix Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig#prefixConfig
+   */
+  readonly prefixConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig[];
+
+  /**
+   * Whether the data types from the source system need to be preserved (Only valid for Parquet file type)
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig#preserveSourceDataTyping
+   */
+  readonly preserveSourceDataTyping?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregationConfig': obj.aggregationConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig(y)),
+    'fileType': obj.fileType,
+    'prefixConfig': obj.prefixConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig(y)),
+    'preserveSourceDataTyping': obj.preserveSourceDataTyping,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSalesforceErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSapoDataSuccessResponseHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesSnowflakeErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig {
+  /**
+   * Aggregation settings that you can use to customize the output format of your flow data. See Aggregation Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig#aggregationConfig
+   */
+  readonly aggregationConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig[];
+
+  /**
+   * File type that Amazon AppFlow places in the Amazon S3 bucket. Valid values are CSV, JSON, and PARQUET.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig#fileType
+   */
+  readonly fileType?: string;
+
+  /**
+   * Determines the prefix that Amazon AppFlow applies to the folder name in the Amazon S3 bucket. You can name folders according to the flow frequency and date. See Prefix Config for more details.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig#prefixConfig
+   */
+  readonly prefixConfig?: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregationConfig': obj.aggregationConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig(y)),
+    'fileType': obj.fileType,
+    'prefixConfig': obj.prefixConfig?.map(y => toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig {
+  /**
+   * Amazon S3 bucket name in which Amazon AppFlow places the transferred data.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig#bucketName
+   */
+  readonly bucketName?: string;
+
+  /**
+   * Object key for the bucket in which Amazon AppFlow places the destination files.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig#bucketPrefix
+   */
+  readonly bucketPrefix?: string;
+
+  /**
+   * If the flow should fail after the first instance of a failure when attempting to place data in the destination.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig#failOnFirstDestinationError
+   */
+  readonly failOnFirstDestinationError?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesZendeskErrorHandlingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketName': obj.bucketName,
+    'bucketPrefix': obj.bucketPrefix,
+    'failOnFirstDestinationError': obj.failOnFirstDestinationError,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig
+ */
+export interface FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig {
+  /**
+   * File type that Amazon AppFlow gets from your Amazon S3 bucket. Valid values are CSV and JSON.
+   *
+   * @schema FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig#s3InputFileType
+   */
+  readonly s3InputFileType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig(obj: FlowSpecInitProviderSourceFlowConfigSourceConnectorPropertiesS3S3InputFormatConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     's3InputFileType': obj.s3InputFileType,
@@ -3413,7 +5723,7 @@ export interface FlowSpecForProviderDestinationFlowConfigDestinationConnectorPro
    *
    * @schema FlowSpecForProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig#prefixType
    */
-  readonly prefixType: string;
+  readonly prefixType?: string;
 
 }
 
@@ -3500,6 +5810,130 @@ export function toJson_FlowSpecForProviderSourceFlowConfigSourceConnectorPropert
   const result = {
     'resolution': obj.resolution,
     'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig {
+  /**
+   * Whether Amazon AppFlow aggregates the flow records into a single file, or leave them unaggregated. Valid values are None and SingleFile.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig#aggregationType
+   */
+  readonly aggregationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigAggregationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregationType': obj.aggregationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig {
+  /**
+   * Determines the level of granularity that's included in the prefix. Valid values are YEAR, MONTH, DAY, HOUR, and MINUTE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig#prefixFormat
+   */
+  readonly prefixFormat?: string;
+
+  /**
+   * Determines the format of the prefix, and whether it applies to the file name, file path, or both. Valid values are FILENAME, PATH, and PATH_AND_FILENAME.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig#prefixType
+   */
+  readonly prefixType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesS3S3OutputFormatConfigPrefixConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefixFormat': obj.prefixFormat,
+    'prefixType': obj.prefixType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig {
+  /**
+   * Whether Amazon AppFlow aggregates the flow records into a single file, or leave them unaggregated. Valid values are None and SingleFile.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig#aggregationType
+   */
+  readonly aggregationType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigAggregationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregationType': obj.aggregationType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig
+ */
+export interface FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig {
+  /**
+   * Determines the level of granularity that's included in the prefix. Valid values are YEAR, MONTH, DAY, HOUR, and MINUTE.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig#prefixFormat
+   */
+  readonly prefixFormat?: string;
+
+  /**
+   * Determines the format of the prefix, and whether it applies to the file name, file path, or both. Valid values are FILENAME, PATH, and PATH_AND_FILENAME.
+   *
+   * @schema FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig#prefixType
+   */
+  readonly prefixType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig(obj: FlowSpecInitProviderDestinationFlowConfigDestinationConnectorPropertiesUpsolverS3OutputFormatConfigPrefixConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefixFormat': obj.prefixFormat,
+    'prefixType': obj.prefixType,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

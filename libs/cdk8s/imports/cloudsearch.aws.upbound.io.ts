@@ -99,7 +99,7 @@ export function toJson_DomainProps(obj: DomainProps | undefined): Record<string,
  */
 export interface DomainSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface DomainSpec {
   readonly forProvider: DomainSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainSpec#managementPolicy
+   * @schema DomainSpec#initProvider
    */
-  readonly managementPolicy?: DomainSpecManagementPolicy;
+  readonly initProvider?: DomainSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainSpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface DomainSpec {
    * @schema DomainSpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainSpec#providerRef
-   */
-  readonly providerRef?: DomainSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainSpecDeletionPolicy
  */
@@ -239,17 +239,76 @@ export function toJson_DomainSpecForProvider(obj: DomainSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainSpecManagementPolicy
+ * @schema DomainSpecInitProvider
  */
-export enum DomainSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainSpecInitProvider {
+  /**
+   * Domain endpoint options. Documented below.
+   *
+   * @schema DomainSpecInitProvider#endpointOptions
+   */
+  readonly endpointOptions?: DomainSpecInitProviderEndpointOptions[];
+
+  /**
+   * The index fields for documents added to the domain. Documented below.
+   *
+   * @schema DomainSpecInitProvider#indexField
+   */
+  readonly indexField?: DomainSpecInitProviderIndexField[];
+
+  /**
+   * Whether or not to maintain extra instances for the domain in a second Availability Zone to ensure high availability.
+   *
+   * @schema DomainSpecInitProvider#multiAz
+   */
+  readonly multiAz?: boolean;
+
+  /**
+   * Domain scaling parameters. Documented below.
+   *
+   * @schema DomainSpecInitProvider#scalingParameters
+   */
+  readonly scalingParameters?: DomainSpecInitProviderScalingParameters[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProvider(obj: DomainSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endpointOptions': obj.endpointOptions?.map(y => toJson_DomainSpecInitProviderEndpointOptions(y)),
+    'indexField': obj.indexField?.map(y => toJson_DomainSpecInitProviderIndexField(y)),
+    'multiAz': obj.multiAz,
+    'scalingParameters': obj.scalingParameters?.map(y => toJson_DomainSpecInitProviderScalingParameters(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainSpecManagementPolicies
+ */
+export enum DomainSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +342,6 @@ export function toJson_DomainSpecProviderConfigRef(obj: DomainSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_DomainSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainSpecProviderRef
- */
-export interface DomainSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainSpecProviderRef#policy
-   */
-  readonly policy?: DomainSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRef(obj: DomainSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -480,7 +502,7 @@ export interface DomainSpecForProviderIndexField {
    *
    * @schema DomainSpecForProviderIndexField#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * You can enable returning the value of all searchable fields.
@@ -515,7 +537,7 @@ export interface DomainSpecForProviderIndexField {
    *
    * @schema DomainSpecForProviderIndexField#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -586,6 +608,183 @@ export function toJson_DomainSpecForProviderScalingParameters(obj: DomainSpecFor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSpecInitProviderEndpointOptions
+ */
+export interface DomainSpecInitProviderEndpointOptions {
+  /**
+   * Enables or disables the requirement that all requests to the domain arrive over HTTPS.
+   *
+   * @schema DomainSpecInitProviderEndpointOptions#enforceHttps
+   */
+  readonly enforceHttps?: boolean;
+
+  /**
+   * The minimum required TLS version. See the AWS documentation for valid values.
+   *
+   * @schema DomainSpecInitProviderEndpointOptions#tlsSecurityPolicy
+   */
+  readonly tlsSecurityPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderEndpointOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderEndpointOptions(obj: DomainSpecInitProviderEndpointOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enforceHttps': obj.enforceHttps,
+    'tlsSecurityPolicy': obj.tlsSecurityPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderIndexField
+ */
+export interface DomainSpecInitProviderIndexField {
+  /**
+   * The analysis scheme you want to use for a text field. The analysis scheme specifies the language-specific text processing options that are used during indexing.
+   *
+   * @schema DomainSpecInitProviderIndexField#analysisScheme
+   */
+  readonly analysisScheme?: string;
+
+  /**
+   * The default value for the field. This value is used when no value is specified for the field in the document data.
+   *
+   * @schema DomainSpecInitProviderIndexField#defaultValue
+   */
+  readonly defaultValue?: string;
+
+  /**
+   * You can get facet information by enabling this.
+   *
+   * @schema DomainSpecInitProviderIndexField#facet
+   */
+  readonly facet?: boolean;
+
+  /**
+   * You can highlight information.
+   *
+   * @schema DomainSpecInitProviderIndexField#highlight
+   */
+  readonly highlight?: boolean;
+
+  /**
+   * The name of the CloudSearch domain.
+   *
+   * @schema DomainSpecInitProviderIndexField#name
+   */
+  readonly name?: string;
+
+  /**
+   * You can enable returning the value of all searchable fields.
+   *
+   * @schema DomainSpecInitProviderIndexField#return
+   */
+  readonly return?: boolean;
+
+  /**
+   * You can set whether this index should be searchable or not.
+   *
+   * @schema DomainSpecInitProviderIndexField#search
+   */
+  readonly search?: boolean;
+
+  /**
+   * You can enable the property to be sortable.
+   *
+   * @schema DomainSpecInitProviderIndexField#sort
+   */
+  readonly sort?: boolean;
+
+  /**
+   * A comma-separated list of source fields to map to the field. Specifying a source field copies data from one field to another, enabling you to use the same source data in different ways by configuring different options for the fields.
+   *
+   * @schema DomainSpecInitProviderIndexField#sourceFields
+   */
+  readonly sourceFields?: string;
+
+  /**
+   * The field type. Valid values: date, date-array, double, double-array, int, int-array, literal, literal-array, text, text-array.
+   *
+   * @schema DomainSpecInitProviderIndexField#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderIndexField' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderIndexField(obj: DomainSpecInitProviderIndexField | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'analysisScheme': obj.analysisScheme,
+    'defaultValue': obj.defaultValue,
+    'facet': obj.facet,
+    'highlight': obj.highlight,
+    'name': obj.name,
+    'return': obj.return,
+    'search': obj.search,
+    'sort': obj.sort,
+    'sourceFields': obj.sourceFields,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderScalingParameters
+ */
+export interface DomainSpecInitProviderScalingParameters {
+  /**
+   * The instance type that you want to preconfigure for your domain. See the AWS documentation for valid values.
+   *
+   * @schema DomainSpecInitProviderScalingParameters#desiredInstanceType
+   */
+  readonly desiredInstanceType?: string;
+
+  /**
+   * The number of partitions you want to preconfigure for your domain. Only valid when you select search.2xlarge as the instance type.
+   *
+   * @schema DomainSpecInitProviderScalingParameters#desiredPartitionCount
+   */
+  readonly desiredPartitionCount?: number;
+
+  /**
+   * The number of replicas you want to preconfigure for each index partition.
+   *
+   * @schema DomainSpecInitProviderScalingParameters#desiredReplicationCount
+   */
+  readonly desiredReplicationCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderScalingParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderScalingParameters(obj: DomainSpecInitProviderScalingParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'desiredInstanceType': obj.desiredInstanceType,
+    'desiredPartitionCount': obj.desiredPartitionCount,
+    'desiredReplicationCount': obj.desiredReplicationCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DomainSpecProviderConfigRefPolicy
@@ -612,43 +811,6 @@ export interface DomainSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DomainSpecProviderConfigRefPolicy(obj: DomainSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DomainSpecProviderRefPolicy
- */
-export interface DomainSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRefPolicy(obj: DomainSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -759,30 +921,6 @@ export enum DomainSpecProviderConfigRefPolicyResolution {
  * @schema DomainSpecProviderConfigRefPolicyResolve
  */
 export enum DomainSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainSpecProviderRefPolicyResolution
- */
-export enum DomainSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainSpecProviderRefPolicyResolve
- */
-export enum DomainSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -947,7 +1085,7 @@ export function toJson_DomainServiceAccessPolicyProps(obj: DomainServiceAccessPo
  */
 export interface DomainServiceAccessPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainServiceAccessPolicySpec#deletionPolicy
    */
@@ -959,11 +1097,18 @@ export interface DomainServiceAccessPolicySpec {
   readonly forProvider: DomainServiceAccessPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainServiceAccessPolicySpec#managementPolicy
+   * @schema DomainServiceAccessPolicySpec#initProvider
    */
-  readonly managementPolicy?: DomainServiceAccessPolicySpecManagementPolicy;
+  readonly initProvider?: DomainServiceAccessPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainServiceAccessPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainServiceAccessPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -971,13 +1116,6 @@ export interface DomainServiceAccessPolicySpec {
    * @schema DomainServiceAccessPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainServiceAccessPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainServiceAccessPolicySpec#providerRef
-   */
-  readonly providerRef?: DomainServiceAccessPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1004,9 +1142,9 @@ export function toJson_DomainServiceAccessPolicySpec(obj: DomainServiceAccessPol
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainServiceAccessPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainServiceAccessPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainServiceAccessPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainServiceAccessPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainServiceAccessPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainServiceAccessPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1016,7 +1154,7 @@ export function toJson_DomainServiceAccessPolicySpec(obj: DomainServiceAccessPol
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainServiceAccessPolicySpecDeletionPolicy
  */
@@ -1087,17 +1225,52 @@ export function toJson_DomainServiceAccessPolicySpecForProvider(obj: DomainServi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainServiceAccessPolicySpecManagementPolicy
+ * @schema DomainServiceAccessPolicySpecInitProvider
  */
-export enum DomainServiceAccessPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainServiceAccessPolicySpecInitProvider {
+  /**
+   * The access rules you want to configure. These rules replace any existing rules. See the AWS documentation for details.
+   *
+   * @schema DomainServiceAccessPolicySpecInitProvider#accessPolicy
+   */
+  readonly accessPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainServiceAccessPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainServiceAccessPolicySpecInitProvider(obj: DomainServiceAccessPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessPolicy': obj.accessPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainServiceAccessPolicySpecManagementPolicies
+ */
+export enum DomainServiceAccessPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1131,43 +1304,6 @@ export function toJson_DomainServiceAccessPolicySpecProviderConfigRef(obj: Domai
   const result = {
     'name': obj.name,
     'policy': toJson_DomainServiceAccessPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainServiceAccessPolicySpecProviderRef
- */
-export interface DomainServiceAccessPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainServiceAccessPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainServiceAccessPolicySpecProviderRef#policy
-   */
-  readonly policy?: DomainServiceAccessPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainServiceAccessPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainServiceAccessPolicySpecProviderRef(obj: DomainServiceAccessPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainServiceAccessPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1376,43 +1512,6 @@ export function toJson_DomainServiceAccessPolicySpecProviderConfigRefPolicy(obj:
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DomainServiceAccessPolicySpecProviderRefPolicy
- */
-export interface DomainServiceAccessPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainServiceAccessPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainServiceAccessPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainServiceAccessPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainServiceAccessPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainServiceAccessPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainServiceAccessPolicySpecProviderRefPolicy(obj: DomainServiceAccessPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DomainServiceAccessPolicySpecPublishConnectionDetailsToConfigRef
@@ -1586,30 +1685,6 @@ export enum DomainServiceAccessPolicySpecProviderConfigRefPolicyResolution {
  * @schema DomainServiceAccessPolicySpecProviderConfigRefPolicyResolve
  */
 export enum DomainServiceAccessPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainServiceAccessPolicySpecProviderRefPolicyResolution
- */
-export enum DomainServiceAccessPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainServiceAccessPolicySpecProviderRefPolicyResolve
- */
-export enum DomainServiceAccessPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

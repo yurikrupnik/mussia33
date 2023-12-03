@@ -52013,7 +52013,7 @@ export interface DummyProps {
   /**
    * @schema Dummy#spec
    */
-  readonly spec?: any;
+  readonly spec?: DummySpec;
 
 }
 
@@ -52025,7 +52025,38 @@ export function toJson_DummyProps(obj: DummyProps | undefined): Record<string, a
   if (obj === undefined) { return undefined; }
   const result = {
     'metadata': obj.metadata,
-    'spec': obj.spec,
+    'spec': toJson_DummySpec(obj.spec),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DummySpec
+ */
+export interface DummySpec {
+  /**
+   * @schema DummySpec#cpu
+   */
+  readonly cpu?: string;
+
+  /**
+   * @schema DummySpec#memory
+   */
+  readonly memory?: string;
+
+}
+
+/**
+ * Converts an object of type 'DummySpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DummySpec(obj: DummySpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpu': obj.cpu,
+    'memory': obj.memory,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});

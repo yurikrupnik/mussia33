@@ -99,7 +99,7 @@ export function toJson_AutoscalingPolicyProps(obj: AutoscalingPolicyProps | unde
  */
 export interface AutoscalingPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AutoscalingPolicySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AutoscalingPolicySpec {
   readonly forProvider: AutoscalingPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AutoscalingPolicySpec#managementPolicy
+   * @schema AutoscalingPolicySpec#initProvider
    */
-  readonly managementPolicy?: AutoscalingPolicySpecManagementPolicy;
+  readonly initProvider?: AutoscalingPolicySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AutoscalingPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: AutoscalingPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AutoscalingPolicySpec {
    * @schema AutoscalingPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: AutoscalingPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AutoscalingPolicySpec#providerRef
-   */
-  readonly providerRef?: AutoscalingPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AutoscalingPolicySpec(obj: AutoscalingPolicySpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AutoscalingPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AutoscalingPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AutoscalingPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AutoscalingPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AutoscalingPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AutoscalingPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AutoscalingPolicySpec(obj: AutoscalingPolicySpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AutoscalingPolicySpecDeletionPolicy
  */
@@ -239,17 +239,76 @@ export function toJson_AutoscalingPolicySpecForProvider(obj: AutoscalingPolicySp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AutoscalingPolicySpecManagementPolicy
+ * @schema AutoscalingPolicySpecInitProvider
  */
-export enum AutoscalingPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AutoscalingPolicySpecInitProvider {
+  /**
+   * Basic algorithm for autoscaling. Structure is documented below.
+   *
+   * @schema AutoscalingPolicySpecInitProvider#basicAlgorithm
+   */
+  readonly basicAlgorithm?: AutoscalingPolicySpecInitProviderBasicAlgorithm[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AutoscalingPolicySpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Describes how the autoscaler will operate for secondary workers. Structure is documented below.
+   *
+   * @schema AutoscalingPolicySpecInitProvider#secondaryWorkerConfig
+   */
+  readonly secondaryWorkerConfig?: AutoscalingPolicySpecInitProviderSecondaryWorkerConfig[];
+
+  /**
+   * Describes how the autoscaler will operate for primary workers. Structure is documented below.
+   *
+   * @schema AutoscalingPolicySpecInitProvider#workerConfig
+   */
+  readonly workerConfig?: AutoscalingPolicySpecInitProviderWorkerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'AutoscalingPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AutoscalingPolicySpecInitProvider(obj: AutoscalingPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'basicAlgorithm': obj.basicAlgorithm?.map(y => toJson_AutoscalingPolicySpecInitProviderBasicAlgorithm(y)),
+    'project': obj.project,
+    'secondaryWorkerConfig': obj.secondaryWorkerConfig?.map(y => toJson_AutoscalingPolicySpecInitProviderSecondaryWorkerConfig(y)),
+    'workerConfig': obj.workerConfig?.map(y => toJson_AutoscalingPolicySpecInitProviderWorkerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AutoscalingPolicySpecManagementPolicies
+ */
+export enum AutoscalingPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -283,43 +342,6 @@ export function toJson_AutoscalingPolicySpecProviderConfigRef(obj: AutoscalingPo
   const result = {
     'name': obj.name,
     'policy': toJson_AutoscalingPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AutoscalingPolicySpecProviderRef
- */
-export interface AutoscalingPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AutoscalingPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AutoscalingPolicySpecProviderRef#policy
-   */
-  readonly policy?: AutoscalingPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AutoscalingPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AutoscalingPolicySpecProviderRef(obj: AutoscalingPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AutoscalingPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -424,7 +446,7 @@ export interface AutoscalingPolicySpecForProviderBasicAlgorithm {
    *
    * @schema AutoscalingPolicySpecForProviderBasicAlgorithm#yarnConfig
    */
-  readonly yarnConfig: AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig[];
+  readonly yarnConfig?: AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig[];
 
 }
 
@@ -497,7 +519,7 @@ export interface AutoscalingPolicySpecForProviderWorkerConfig {
    *
    * @schema AutoscalingPolicySpecForProviderWorkerConfig#maxInstances
    */
-  readonly maxInstances: number;
+  readonly maxInstances?: number;
 
   /**
    * Minimum number of instances for this group. Bounds: [2, maxInstances]. Defaults to 2.
@@ -521,6 +543,130 @@ export interface AutoscalingPolicySpecForProviderWorkerConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AutoscalingPolicySpecForProviderWorkerConfig(obj: AutoscalingPolicySpecForProviderWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxInstances': obj.maxInstances,
+    'minInstances': obj.minInstances,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AutoscalingPolicySpecInitProviderBasicAlgorithm
+ */
+export interface AutoscalingPolicySpecInitProviderBasicAlgorithm {
+  /**
+   * Duration between scaling events. A scaling period starts after the update operation from the previous event has completed. Bounds: [2m, 1d]. Default: 2m.
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithm#cooldownPeriod
+   */
+  readonly cooldownPeriod?: string;
+
+  /**
+   * YARN autoscaling configuration. Structure is documented below.
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithm#yarnConfig
+   */
+  readonly yarnConfig?: AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig[];
+
+}
+
+/**
+ * Converts an object of type 'AutoscalingPolicySpecInitProviderBasicAlgorithm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AutoscalingPolicySpecInitProviderBasicAlgorithm(obj: AutoscalingPolicySpecInitProviderBasicAlgorithm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cooldownPeriod': obj.cooldownPeriod,
+    'yarnConfig': obj.yarnConfig?.map(y => toJson_AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AutoscalingPolicySpecInitProviderSecondaryWorkerConfig
+ */
+export interface AutoscalingPolicySpecInitProviderSecondaryWorkerConfig {
+  /**
+   * Maximum number of instances for this group. Note that by default, clusters will not use secondary workers. Required for secondary workers if the minimum secondary instances is set. Bounds: [minInstances, ). Defaults to 0.
+   *
+   * @default 0.
+   * @schema AutoscalingPolicySpecInitProviderSecondaryWorkerConfig#maxInstances
+   */
+  readonly maxInstances?: number;
+
+  /**
+   * Minimum number of instances for this group. Bounds: [0, maxInstances]. Defaults to 0.
+   *
+   * @default 0.
+   * @schema AutoscalingPolicySpecInitProviderSecondaryWorkerConfig#minInstances
+   */
+  readonly minInstances?: number;
+
+  /**
+   * Weight for the instance group, which is used to determine the fraction of total workers in the cluster from this instance group. For example, if primary workers have weight 2, and secondary workers have weight 1, the cluster will have approximately 2 primary workers for each secondary worker. The cluster may not reach the specified balance if constrained by min/max bounds or other autoscaling settings. For example, if maxInstances for secondary workers is 0, then only primary workers will be added. The cluster can also be out of balance when created. If weight is not set on any instance group, the cluster will default to equal weight for all groups: the cluster will attempt to maintain an equal number of workers in each group within the configured size bounds for each group. If weight is set for one group only, the cluster will default to zero weight on the unset group. For example if weight is set only on primary workers, the cluster will use primary workers only and no secondary workers.
+   *
+   * @schema AutoscalingPolicySpecInitProviderSecondaryWorkerConfig#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'AutoscalingPolicySpecInitProviderSecondaryWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AutoscalingPolicySpecInitProviderSecondaryWorkerConfig(obj: AutoscalingPolicySpecInitProviderSecondaryWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxInstances': obj.maxInstances,
+    'minInstances': obj.minInstances,
+    'weight': obj.weight,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AutoscalingPolicySpecInitProviderWorkerConfig
+ */
+export interface AutoscalingPolicySpecInitProviderWorkerConfig {
+  /**
+   * Maximum number of instances for this group.
+   *
+   * @schema AutoscalingPolicySpecInitProviderWorkerConfig#maxInstances
+   */
+  readonly maxInstances?: number;
+
+  /**
+   * Minimum number of instances for this group. Bounds: [2, maxInstances]. Defaults to 2.
+   *
+   * @default 2.
+   * @schema AutoscalingPolicySpecInitProviderWorkerConfig#minInstances
+   */
+  readonly minInstances?: number;
+
+  /**
+   * Weight for the instance group, which is used to determine the fraction of total workers in the cluster from this instance group. For example, if primary workers have weight 2, and secondary workers have weight 1, the cluster will have approximately 2 primary workers for each secondary worker. The cluster may not reach the specified balance if constrained by min/max bounds or other autoscaling settings. For example, if maxInstances for secondary workers is 0, then only primary workers will be added. The cluster can also be out of balance when created. If weight is not set on any instance group, the cluster will default to equal weight for all groups: the cluster will attempt to maintain an equal number of workers in each group within the configured size bounds for each group. If weight is set for one group only, the cluster will default to zero weight on the unset group. For example if weight is set only on primary workers, the cluster will use primary workers only and no secondary workers.
+   *
+   * @schema AutoscalingPolicySpecInitProviderWorkerConfig#weight
+   */
+  readonly weight?: number;
+
+}
+
+/**
+ * Converts an object of type 'AutoscalingPolicySpecInitProviderWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AutoscalingPolicySpecInitProviderWorkerConfig(obj: AutoscalingPolicySpecInitProviderWorkerConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'maxInstances': obj.maxInstances,
@@ -559,43 +705,6 @@ export interface AutoscalingPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AutoscalingPolicySpecProviderConfigRefPolicy(obj: AutoscalingPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AutoscalingPolicySpecProviderRefPolicy
- */
-export interface AutoscalingPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AutoscalingPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AutoscalingPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AutoscalingPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AutoscalingPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AutoscalingPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AutoscalingPolicySpecProviderRefPolicy(obj: AutoscalingPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -697,14 +806,14 @@ export interface AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig {
    *
    * @schema AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig#gracefulDecommissionTimeout
    */
-  readonly gracefulDecommissionTimeout: string;
+  readonly gracefulDecommissionTimeout?: string;
 
   /**
    * Fraction of average pending memory in the last cooldown period for which to remove workers. A scale-down factor of 1 will result in scaling down so that there is no available memory remaining after the update (more aggressive scaling). A scale-down factor of 0 disables removing workers, which can be beneficial for autoscaling a single job. Bounds: [0.0, 1.0].
    *
    * @schema AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig#scaleDownFactor
    */
-  readonly scaleDownFactor: number;
+  readonly scaleDownFactor?: number;
 
   /**
    * Minimum scale-down threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2 worker scale-down for the cluster to scale. A threshold of 0 means the autoscaler will scale down on any recommended change. Bounds: [0.0, 1.0]. Default: 0.0.
@@ -718,7 +827,7 @@ export interface AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig {
    *
    * @schema AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig#scaleUpFactor
    */
-  readonly scaleUpFactor: number;
+  readonly scaleUpFactor?: number;
 
   /**
    * Minimum scale-up threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2-worker scale-up for the cluster to scale. A threshold of 0 means the autoscaler will scale up on any recommended change. Bounds: [0.0, 1.0]. Default: 0.0.
@@ -734,6 +843,65 @@ export interface AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig(obj: AutoscalingPolicySpecForProviderBasicAlgorithmYarnConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gracefulDecommissionTimeout': obj.gracefulDecommissionTimeout,
+    'scaleDownFactor': obj.scaleDownFactor,
+    'scaleDownMinWorkerFraction': obj.scaleDownMinWorkerFraction,
+    'scaleUpFactor': obj.scaleUpFactor,
+    'scaleUpMinWorkerFraction': obj.scaleUpMinWorkerFraction,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig
+ */
+export interface AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig {
+  /**
+   * Timeout for YARN graceful decommissioning of Node Managers. Specifies the duration to wait for jobs to complete before forcefully removing workers (and potentially interrupting jobs). Only applicable to downscaling operations. Bounds: [0s, 1d].
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig#gracefulDecommissionTimeout
+   */
+  readonly gracefulDecommissionTimeout?: string;
+
+  /**
+   * Fraction of average pending memory in the last cooldown period for which to remove workers. A scale-down factor of 1 will result in scaling down so that there is no available memory remaining after the update (more aggressive scaling). A scale-down factor of 0 disables removing workers, which can be beneficial for autoscaling a single job. Bounds: [0.0, 1.0].
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig#scaleDownFactor
+   */
+  readonly scaleDownFactor?: number;
+
+  /**
+   * Minimum scale-down threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2 worker scale-down for the cluster to scale. A threshold of 0 means the autoscaler will scale down on any recommended change. Bounds: [0.0, 1.0]. Default: 0.0.
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig#scaleDownMinWorkerFraction
+   */
+  readonly scaleDownMinWorkerFraction?: number;
+
+  /**
+   * Fraction of average pending memory in the last cooldown period for which to add workers. A scale-up factor of 1.0 will result in scaling up so that there is no pending memory remaining after the update (more aggressive scaling). A scale-up factor closer to 0 will result in a smaller magnitude of scaling up (less aggressive scaling). Bounds: [0.0, 1.0].
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig#scaleUpFactor
+   */
+  readonly scaleUpFactor?: number;
+
+  /**
+   * Minimum scale-up threshold as a fraction of total cluster size before scaling occurs. For example, in a 20-worker cluster, a threshold of 0.1 means the autoscaler must recommend at least a 2-worker scale-up for the cluster to scale. A threshold of 0 means the autoscaler will scale up on any recommended change. Bounds: [0.0, 1.0]. Default: 0.0.
+   *
+   * @schema AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig#scaleUpMinWorkerFraction
+   */
+  readonly scaleUpMinWorkerFraction?: number;
+
+}
+
+/**
+ * Converts an object of type 'AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig(obj: AutoscalingPolicySpecInitProviderBasicAlgorithmYarnConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'gracefulDecommissionTimeout': obj.gracefulDecommissionTimeout,
@@ -765,30 +933,6 @@ export enum AutoscalingPolicySpecProviderConfigRefPolicyResolution {
  * @schema AutoscalingPolicySpecProviderConfigRefPolicyResolve
  */
 export enum AutoscalingPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AutoscalingPolicySpecProviderRefPolicyResolution
- */
-export enum AutoscalingPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AutoscalingPolicySpecProviderRefPolicyResolve
- */
-export enum AutoscalingPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -953,7 +1097,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -965,11 +1109,18 @@ export interface ClusterSpec {
   readonly forProvider: ClusterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClusterSpec#managementPolicy
+   * @schema ClusterSpec#initProvider
    */
-  readonly managementPolicy?: ClusterSpecManagementPolicy;
+  readonly initProvider?: ClusterSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClusterSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClusterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -977,13 +1128,6 @@ export interface ClusterSpec {
    * @schema ClusterSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClusterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClusterSpec#providerRef
-   */
-  readonly providerRef?: ClusterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1010,9 +1154,9 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClusterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClusterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1022,7 +1166,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -1110,17 +1254,101 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClusterSpecManagementPolicy
+ * @schema ClusterSpecInitProvider
  */
-export enum ClusterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClusterSpecInitProvider {
+  /**
+   * Allows you to configure various aspects of the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProvider#clusterConfig
+   */
+  readonly clusterConfig?: ClusterSpecInitProviderClusterConfig[];
+
+  /**
+   * Does not affect auto scaling decomissioning from an autoscaling policy. Graceful decommissioning allows removing nodes from the cluster without interrupting jobs in progress. Timeout specifies how long to wait for jobs in progress to finish before forcefully removing nodes (and potentially interrupting jobs). Default timeout is 0 (for forceful decommission), and the maximum allowed timeout is 1 day. (see JSON representation of Duration). Only supported on Dataproc image versions 1.2 and higher. For more context see the docs
+   *
+   * @schema ClusterSpecInitProvider#gracefulDecommissionTimeout
+   */
+  readonly gracefulDecommissionTimeout?: string;
+
+  /**
+   * The list of labels (key/value pairs) to be applied to instances in the cluster. GCP generates some itself including goog-dataproc-cluster-name which is the name of the cluster.
+   *
+   * @schema ClusterSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The name of the cluster, unique within the project and zone.
+   *
+   * @schema ClusterSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the cluster will exist. If it is not provided, the provider project is used.
+   *
+   * @schema ClusterSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region in which the cluster and associated nodes will be created in. Defaults to global.
+   *
+   * @default global.
+   * @schema ClusterSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * Allows you to configure a virtual Dataproc on GKE cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProvider#virtualClusterConfig
+   */
+  readonly virtualClusterConfig?: ClusterSpecInitProviderVirtualClusterConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProvider(obj: ClusterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterConfig': obj.clusterConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfig(y)),
+    'gracefulDecommissionTimeout': obj.gracefulDecommissionTimeout,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'name': obj.name,
+    'project': obj.project,
+    'region': obj.region,
+    'virtualClusterConfig': obj.virtualClusterConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClusterSpecManagementPolicies
+ */
+export enum ClusterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1154,43 +1382,6 @@ export function toJson_ClusterSpecProviderConfigRef(obj: ClusterSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ClusterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClusterSpecProviderRef
- */
-export interface ClusterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClusterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClusterSpecProviderRef#policy
-   */
-  readonly policy?: ClusterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRef(obj: ClusterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClusterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1462,6 +1653,188 @@ export function toJson_ClusterSpecForProviderVirtualClusterConfig(obj: ClusterSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecInitProviderClusterConfig
+ */
+export interface ClusterSpecInitProviderClusterConfig {
+  /**
+   * The autoscaling policy config associated with the cluster. Note that once set, if autoscaling_config is the only field set in cluster_config, it can only be removed by setting policy_uri = "", rather than removing the whole block. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#autoscalingConfig
+   */
+  readonly autoscalingConfig?: ClusterSpecInitProviderClusterConfigAutoscalingConfig[];
+
+  /**
+   * The Compute Engine accelerator (GPU) configuration for these instances. Can be specified multiple times. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#dataprocMetricConfig
+   */
+  readonly dataprocMetricConfig?: ClusterSpecInitProviderClusterConfigDataprocMetricConfig[];
+
+  /**
+   * The Customer managed encryption keys settings for the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#encryptionConfig
+   */
+  readonly encryptionConfig?: ClusterSpecInitProviderClusterConfigEncryptionConfig[];
+
+  /**
+   * The config settings for port access on the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#endpointConfig
+   */
+  readonly endpointConfig?: ClusterSpecInitProviderClusterConfigEndpointConfig[];
+
+  /**
+   * Common config settings for resources of Google Compute Engine cluster instances, applicable to all instances in the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#gceClusterConfig
+   */
+  readonly gceClusterConfig?: ClusterSpecInitProviderClusterConfigGceClusterConfig[];
+
+  /**
+   * Commands to execute on each node after config is completed. You can specify multiple versions of these. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#initializationAction
+   */
+  readonly initializationAction?: ClusterSpecInitProviderClusterConfigInitializationAction[];
+
+  /**
+   * The settings for auto deletion cluster schedule. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#lifecycleConfig
+   */
+  readonly lifecycleConfig?: ClusterSpecInitProviderClusterConfigLifecycleConfig[];
+
+  /**
+   * The Google Compute Engine config settings for the master instances in a cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#masterConfig
+   */
+  readonly masterConfig?: ClusterSpecInitProviderClusterConfigMasterConfig[];
+
+  /**
+   * The config setting for metastore service with the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#metastoreConfig
+   */
+  readonly metastoreConfig?: ClusterSpecInitProviderClusterConfigMetastoreConfig[];
+
+  /**
+   * The Google Compute Engine config settings for the additional instances in a cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#preemptibleWorkerConfig
+   */
+  readonly preemptibleWorkerConfig?: ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig[];
+
+  /**
+   * Security related configuration. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#securityConfig
+   */
+  readonly securityConfig?: ClusterSpecInitProviderClusterConfigSecurityConfig[];
+
+  /**
+   * The config settings for software inside the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#softwareConfig
+   */
+  readonly softwareConfig?: ClusterSpecInitProviderClusterConfigSoftwareConfig[];
+
+  /**
+   * The Cloud Storage staging bucket used to stage files, such as Hadoop jars, between client machines and the cluster. Note: If you don't explicitly specify a staging_bucket then GCP will auto create / assign one for you. However, you are not guaranteed an auto generated bucket which is solely dedicated to your cluster; it may be shared with other clusters in the same region/zone also choosing to use the auto generation option.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#stagingBucket
+   */
+  readonly stagingBucket?: string;
+
+  /**
+   * The Cloud Storage temp bucket used to store ephemeral cluster and jobs data, such as Spark and MapReduce history files. Note: If you don't explicitly specify a temp_bucket then GCP will auto create / assign one for you.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#tempBucket
+   */
+  readonly tempBucket?: string;
+
+  /**
+   * The Google Compute Engine config settings for the worker instances in a cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderClusterConfig#workerConfig
+   */
+  readonly workerConfig?: ClusterSpecInitProviderClusterConfigWorkerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfig(obj: ClusterSpecInitProviderClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoscalingConfig': obj.autoscalingConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigAutoscalingConfig(y)),
+    'dataprocMetricConfig': obj.dataprocMetricConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigDataprocMetricConfig(y)),
+    'encryptionConfig': obj.encryptionConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigEncryptionConfig(y)),
+    'endpointConfig': obj.endpointConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigEndpointConfig(y)),
+    'gceClusterConfig': obj.gceClusterConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigGceClusterConfig(y)),
+    'initializationAction': obj.initializationAction?.map(y => toJson_ClusterSpecInitProviderClusterConfigInitializationAction(y)),
+    'lifecycleConfig': obj.lifecycleConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigLifecycleConfig(y)),
+    'masterConfig': obj.masterConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigMasterConfig(y)),
+    'metastoreConfig': obj.metastoreConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigMetastoreConfig(y)),
+    'preemptibleWorkerConfig': obj.preemptibleWorkerConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig(y)),
+    'securityConfig': obj.securityConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigSecurityConfig(y)),
+    'softwareConfig': obj.softwareConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigSoftwareConfig(y)),
+    'stagingBucket': obj.stagingBucket,
+    'tempBucket': obj.tempBucket,
+    'workerConfig': obj.workerConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigWorkerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfig {
+  /**
+   * Configuration of auxiliary services used by this cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfig#auxiliaryServicesConfig
+   */
+  readonly auxiliaryServicesConfig?: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig[];
+
+  /**
+   * The configuration for running the Dataproc cluster on Kubernetes. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfig#kubernetesClusterConfig
+   */
+  readonly kubernetesClusterConfig?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig[];
+
+  /**
+   * The Cloud Storage staging bucket used to stage files, such as Hadoop jars, between client machines and the cluster. Note: If you don't explicitly specify a staging_bucket then GCP will auto create / assign one for you. However, you are not guaranteed an auto generated bucket which is solely dedicated to your cluster; it may be shared with other clusters in the same region/zone also choosing to use the auto generation option.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfig#stagingBucket
+   */
+  readonly stagingBucket?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfig(obj: ClusterSpecInitProviderVirtualClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'auxiliaryServicesConfig': obj.auxiliaryServicesConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig(y)),
+    'kubernetesClusterConfig': obj.kubernetesClusterConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig(y)),
+    'stagingBucket': obj.stagingBucket,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ClusterSpecProviderConfigRefPolicy
@@ -1488,43 +1861,6 @@ export interface ClusterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecProviderConfigRefPolicy(obj: ClusterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ClusterSpecProviderRefPolicy
- */
-export interface ClusterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClusterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClusterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRefPolicy(obj: ClusterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1626,7 +1962,7 @@ export interface ClusterSpecForProviderClusterConfigAutoscalingConfig {
    *
    * @schema ClusterSpecForProviderClusterConfigAutoscalingConfig#policyUri
    */
-  readonly policyUri: string;
+  readonly policyUri?: string;
 
 }
 
@@ -1653,7 +1989,7 @@ export interface ClusterSpecForProviderClusterConfigDataprocMetricConfig {
    *
    * @schema ClusterSpecForProviderClusterConfigDataprocMetricConfig#metrics
    */
-  readonly metrics: ClusterSpecForProviderClusterConfigDataprocMetricConfigMetrics[];
+  readonly metrics?: ClusterSpecForProviderClusterConfigDataprocMetricConfigMetrics[];
 
 }
 
@@ -1680,7 +2016,7 @@ export interface ClusterSpecForProviderClusterConfigEncryptionConfig {
    *
    * @schema ClusterSpecForProviderClusterConfigEncryptionConfig#kmsKeyName
    */
-  readonly kmsKeyName: string;
+  readonly kmsKeyName?: string;
 
 }
 
@@ -1708,7 +2044,7 @@ export interface ClusterSpecForProviderClusterConfigEndpointConfig {
    * @default false.
    * @schema ClusterSpecForProviderClusterConfigEndpointConfig#enableHttpPortAccess
    */
-  readonly enableHttpPortAccess: boolean;
+  readonly enableHttpPortAccess?: boolean;
 
 }
 
@@ -1858,7 +2194,7 @@ export interface ClusterSpecForProviderClusterConfigInitializationAction {
    *
    * @schema ClusterSpecForProviderClusterConfigInitializationAction#script
    */
-  readonly script: string;
+  readonly script?: string;
 
   /**
    * The maximum duration (in seconds) which script is allowed to take to execute its action. GCP will default to a predetermined computed value if not set (currently 300).
@@ -1995,7 +2331,7 @@ export interface ClusterSpecForProviderClusterConfigMetastoreConfig {
    *
    * @schema ClusterSpecForProviderClusterConfigMetastoreConfig#dataprocMetastoreService
    */
-  readonly dataprocMetastoreService: string;
+  readonly dataprocMetastoreService?: string;
 
 }
 
@@ -2066,7 +2402,7 @@ export interface ClusterSpecForProviderClusterConfigSecurityConfig {
    *
    * @schema ClusterSpecForProviderClusterConfigSecurityConfig#kerberosConfig
    */
-  readonly kerberosConfig: ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig[];
+  readonly kerberosConfig?: ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig[];
 
 }
 
@@ -2238,7 +2574,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfig#gkeClusterConfig
    */
-  readonly gkeClusterConfig: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig[];
+  readonly gkeClusterConfig?: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig[];
 
   /**
    * A namespace within the Kubernetes cluster to deploy into. If this namespace does not exist, it is created. If it  exists, Dataproc verifies that another Dataproc VirtualCluster is not installed into it. If not specified, the name of the Dataproc Cluster is used.
@@ -2252,7 +2588,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfig#kubernetesSoftwareConfig
    */
-  readonly kubernetesSoftwareConfig: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig[];
+  readonly kubernetesSoftwareConfig?: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig[];
 
 }
 
@@ -2266,6 +2602,637 @@ export function toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClust
     'gkeClusterConfig': obj.gkeClusterConfig?.map(y => toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig(y)),
     'kubernetesNamespace': obj.kubernetesNamespace,
     'kubernetesSoftwareConfig': obj.kubernetesSoftwareConfig?.map(y => toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigAutoscalingConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigAutoscalingConfig {
+  /**
+   * The autoscaling policy used by the cluster.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigAutoscalingConfig#policyUri
+   */
+  readonly policyUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigAutoscalingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigAutoscalingConfig(obj: ClusterSpecInitProviderClusterConfigAutoscalingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policyUri': obj.policyUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigDataprocMetricConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigDataprocMetricConfig {
+  /**
+   * Metrics sources to enable.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigDataprocMetricConfig#metrics
+   */
+  readonly metrics?: ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigDataprocMetricConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigDataprocMetricConfig(obj: ClusterSpecInitProviderClusterConfigDataprocMetricConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metrics': obj.metrics?.map(y => toJson_ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigEncryptionConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigEncryptionConfig {
+  /**
+   * The Cloud KMS key name to use for PD disk encryption for all instances in the cluster.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigEncryptionConfig#kmsKeyName
+   */
+  readonly kmsKeyName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigEncryptionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigEncryptionConfig(obj: ClusterSpecInitProviderClusterConfigEncryptionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyName': obj.kmsKeyName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigEndpointConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigEndpointConfig {
+  /**
+   * The flag to enable http access to specific ports on the cluster from external sources (aka Component Gateway). Defaults to false.
+   *
+   * @default false.
+   * @schema ClusterSpecInitProviderClusterConfigEndpointConfig#enableHttpPortAccess
+   */
+  readonly enableHttpPortAccess?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigEndpointConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigEndpointConfig(obj: ClusterSpecInitProviderClusterConfigEndpointConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableHttpPortAccess': obj.enableHttpPortAccess,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigGceClusterConfig {
+  /**
+   * By default, clusters are not restricted to internal IP addresses, and will have ephemeral external IP addresses assigned to each instance. If set to true, all instances in the cluster will only have internal IP addresses. Note: Private Google Access (also known as privateIpGoogleAccess) must be enabled on the subnetwork that the cluster will be launched in.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#internalIpOnly
+   */
+  readonly internalIpOnly?: boolean;
+
+  /**
+   * A map of the Compute Engine metadata entries to add to all instances (see Project and instance metadata).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * The name or self_link of the Google Compute Engine network to the cluster will be part of. Conflicts with subnetwork. If neither is specified, this defaults to the "default" network.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#network
+   */
+  readonly network?: string;
+
+  /**
+   * Node Group Affinity for sole-tenant clusters.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#nodeGroupAffinity
+   */
+  readonly nodeGroupAffinity?: ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity[];
+
+  /**
+   * Reservation Affinity for consuming zonal reservation.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#reservationAffinity
+   */
+  readonly reservationAffinity?: ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity[];
+
+  /**
+   * The set of Google API scopes to be made available on all of the node VMs under the service_account specified. Both OAuth2 URLs and gcloud short names are supported. To allow full access to all Cloud APIs, use the cloud-platform scope. See a complete list of scopes here.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#serviceAccountScopes
+   */
+  readonly serviceAccountScopes?: string[];
+
+  /**
+   * Shielded Instance Config for clusters using Compute Engine Shielded VMs.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig[];
+
+  /**
+   * The name or self_link of the Google Compute Engine subnetwork the cluster will be part of. Conflicts with network.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#subnetwork
+   */
+  readonly subnetwork?: string;
+
+  /**
+   * The list of instance tags applied to instances in the cluster. Tags are used to identify valid sources or targets for network firewalls.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * The GCP zone where your data is stored and used (i.e. where the master and the worker nodes will be created in). If region is set to 'global' (default) then zone is mandatory, otherwise GCP is able to make use of Auto Zone Placement to determine this automatically for you. Note: This setting additionally determines and restricts which computing resources are available for use with other configs such as cluster_config.master_config.machine_type and cluster_config.worker_config.machine_type.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfig#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigGceClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigGceClusterConfig(obj: ClusterSpecInitProviderClusterConfigGceClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalIpOnly': obj.internalIpOnly,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'network': obj.network,
+    'nodeGroupAffinity': obj.nodeGroupAffinity?.map(y => toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity(y)),
+    'reservationAffinity': obj.reservationAffinity?.map(y => toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity(y)),
+    'serviceAccountScopes': obj.serviceAccountScopes?.map(y => y),
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig(y)),
+    'subnetwork': obj.subnetwork,
+    'tags': obj.tags?.map(y => y),
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigInitializationAction
+ */
+export interface ClusterSpecInitProviderClusterConfigInitializationAction {
+  /**
+   * The script to be executed during initialization of the cluster. The script must be a GCS file with a gs:// prefix.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigInitializationAction#script
+   */
+  readonly script?: string;
+
+  /**
+   * The maximum duration (in seconds) which script is allowed to take to execute its action. GCP will default to a predetermined computed value if not set (currently 300).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigInitializationAction#timeoutSec
+   */
+  readonly timeoutSec?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigInitializationAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigInitializationAction(obj: ClusterSpecInitProviderClusterConfigInitializationAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'script': obj.script,
+    'timeoutSec': obj.timeoutSec,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigLifecycleConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigLifecycleConfig {
+  /**
+   * The time when cluster will be auto-deleted. A timestamp in RFC3339 UTC "Zulu" format, accurate to nanoseconds. Example: "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema ClusterSpecInitProviderClusterConfigLifecycleConfig#autoDeleteTime
+   */
+  readonly autoDeleteTime?: string;
+
+  /**
+   * The duration to keep the cluster alive while idling (no jobs running). After this TTL, the cluster will be deleted. Valid range: [10m, 14d].
+   *
+   * @schema ClusterSpecInitProviderClusterConfigLifecycleConfig#idleDeleteTtl
+   */
+  readonly idleDeleteTtl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigLifecycleConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigLifecycleConfig(obj: ClusterSpecInitProviderClusterConfigLifecycleConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoDeleteTime': obj.autoDeleteTime,
+    'idleDeleteTtl': obj.idleDeleteTtl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigMasterConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigMasterConfig {
+  /**
+   * The Compute Engine accelerator (GPU) configuration for these instances. Can be specified multiple times.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#accelerators
+   */
+  readonly accelerators?: ClusterSpecInitProviderClusterConfigMasterConfigAccelerators[];
+
+  /**
+   * Disk Config
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#diskConfig
+   */
+  readonly diskConfig?: ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig[];
+
+  /**
+   * The URI for the image to use for this worker.  See the guide for more information.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#imageUri
+   */
+  readonly imageUri?: string;
+
+  /**
+   * The name of a Google Compute Engine machine type to create for the master. If not specified, GCP will default to a predetermined computed value (currently n1-standard-4).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The name of a minimum generation of CPU family for the master. If not specified, GCP will default to a predetermined computed value for each zone. See the guide for details about which CPU families are available (and defaulted) for each zone.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * Specifies the number of master nodes to create. If not specified, GCP will default to a predetermined computed value (currently 1).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigMasterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigMasterConfig(obj: ClusterSpecInitProviderClusterConfigMasterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accelerators': obj.accelerators?.map(y => toJson_ClusterSpecInitProviderClusterConfigMasterConfigAccelerators(y)),
+    'diskConfig': obj.diskConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig(y)),
+    'imageUri': obj.imageUri,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'numInstances': obj.numInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigMetastoreConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigMetastoreConfig {
+  /**
+   * Resource name of an existing Dataproc Metastore service.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMetastoreConfig#dataprocMetastoreService
+   */
+  readonly dataprocMetastoreService?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigMetastoreConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigMetastoreConfig(obj: ClusterSpecInitProviderClusterConfigMetastoreConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataprocMetastoreService': obj.dataprocMetastoreService,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig {
+  /**
+   * Disk Config
+   *
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig#diskConfig
+   */
+  readonly diskConfig?: ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig[];
+
+  /**
+   * Specifies the number of preemptible nodes to create. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+  /**
+   * Specifies the preemptibility of the secondary workers. The default value is PREEMPTIBLE Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig#preemptibility
+   */
+  readonly preemptibility?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig(obj: ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'diskConfig': obj.diskConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig(y)),
+    'numInstances': obj.numInstances,
+    'preemptibility': obj.preemptibility,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigSecurityConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigSecurityConfig {
+  /**
+   * Kerberos Configuration
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfig#kerberosConfig
+   */
+  readonly kerberosConfig?: ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigSecurityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigSecurityConfig(obj: ClusterSpecInitProviderClusterConfigSecurityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kerberosConfig': obj.kerberosConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigSoftwareConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigSoftwareConfig {
+  /**
+   * The Cloud Dataproc image version to use for the cluster - this controls the sets of software versions installed onto the nodes when you create clusters. If not specified, defaults to the latest version. For a list of valid versions see Cloud Dataproc versions
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSoftwareConfig#imageVersion
+   */
+  readonly imageVersion?: string;
+
+  /**
+   * The set of optional components to activate on the cluster. See Available Optional Components.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSoftwareConfig#optionalComponents
+   */
+  readonly optionalComponents?: string[];
+
+  /**
+   * A list of override and additional properties (key/value pairs) used to modify various aspects of the common configuration files used when creating a cluster. For a list of valid properties please see Cluster properties
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSoftwareConfig#overrideProperties
+   */
+  readonly overrideProperties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigSoftwareConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigSoftwareConfig(obj: ClusterSpecInitProviderClusterConfigSoftwareConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageVersion': obj.imageVersion,
+    'optionalComponents': obj.optionalComponents?.map(y => y),
+    'overrideProperties': ((obj.overrideProperties) === undefined) ? undefined : (Object.entries(obj.overrideProperties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigWorkerConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigWorkerConfig {
+  /**
+   * The Compute Engine accelerator configuration for these instances. Can be specified multiple times.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#accelerators
+   */
+  readonly accelerators?: ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators[];
+
+  /**
+   * Disk Config
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#diskConfig
+   */
+  readonly diskConfig?: ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig[];
+
+  /**
+   * The URI for the image to use for this worker.  See the guide for more information.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#imageUri
+   */
+  readonly imageUri?: string;
+
+  /**
+   * The name of a Google Compute Engine machine type to create for the worker nodes. If not specified, GCP will default to a predetermined computed value (currently n1-standard-4).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The name of a minimum generation of CPU family for the master. If not specified, GCP will default to a predetermined computed value for each zone. See the guide for details about which CPU families are available (and defaulted) for each zone.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * Specifies the number of worker nodes to create. If not specified, GCP will default to a predetermined computed value (currently 2). There is currently a beta feature which allows you to run a Single Node Cluster. In order to take advantage of this you need to set "dataproc:dataproc.allow.zero.workers" = "true" in cluster_config.software_config.properties
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigWorkerConfig(obj: ClusterSpecInitProviderClusterConfigWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accelerators': obj.accelerators?.map(y => toJson_ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators(y)),
+    'diskConfig': obj.diskConfig?.map(y => toJson_ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig(y)),
+    'imageUri': obj.imageUri,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'numInstances': obj.numInstances,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig {
+  /**
+   * The config setting for metastore service with the cluster. Structure defined below.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig#metastoreConfig
+   */
+  readonly metastoreConfig?: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig[];
+
+  /**
+   * The Spark History Server configuration for the workload.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig#sparkHistoryServerConfig
+   */
+  readonly sparkHistoryServerConfig?: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig(obj: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metastoreConfig': obj.metastoreConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig(y)),
+    'sparkHistoryServerConfig': obj.sparkHistoryServerConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig {
+  /**
+   * The configuration for running the Dataproc cluster on GKE.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig#gkeClusterConfig
+   */
+  readonly gkeClusterConfig?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig[];
+
+  /**
+   * A namespace within the Kubernetes cluster to deploy into. If this namespace does not exist, it is created. If it  exists, Dataproc verifies that another Dataproc VirtualCluster is not installed into it. If not specified, the name of the Dataproc Cluster is used.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig#kubernetesNamespace
+   */
+  readonly kubernetesNamespace?: string;
+
+  /**
+   * The software configuration for this Dataproc cluster running on Kubernetes.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig#kubernetesSoftwareConfig
+   */
+  readonly kubernetesSoftwareConfig?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gkeClusterConfig': obj.gkeClusterConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig(y)),
+    'kubernetesNamespace': obj.kubernetesNamespace,
+    'kubernetesSoftwareConfig': obj.kubernetesSoftwareConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2290,30 +3257,6 @@ export enum ClusterSpecProviderConfigRefPolicyResolution {
  * @schema ClusterSpecProviderConfigRefPolicyResolve
  */
 export enum ClusterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClusterSpecProviderRefPolicyResolution
- */
-export enum ClusterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClusterSpecProviderRefPolicyResolve
- */
-export enum ClusterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2373,7 +3316,7 @@ export interface ClusterSpecForProviderClusterConfigDataprocMetricConfigMetrics 
    *
    * @schema ClusterSpecForProviderClusterConfigDataprocMetricConfigMetrics#metricSource
    */
-  readonly metricSource: string;
+  readonly metricSource?: string;
 
 }
 
@@ -2401,7 +3344,7 @@ export interface ClusterSpecForProviderClusterConfigGceClusterConfigNodeGroupAff
    *
    * @schema ClusterSpecForProviderClusterConfigGceClusterConfigNodeGroupAffinity#nodeGroupUri
    */
-  readonly nodeGroupUri: string;
+  readonly nodeGroupUri?: string;
 
 }
 
@@ -2596,14 +3539,14 @@ export interface ClusterSpecForProviderClusterConfigMasterConfigAccelerators {
    *
    * @schema ClusterSpecForProviderClusterConfigMasterConfigAccelerators#acceleratorCount
    */
-  readonly acceleratorCount: number;
+  readonly acceleratorCount?: number;
 
   /**
    * The short name of the accelerator type to expose to this instance. For example, nvidia-tesla-k80.
    *
    * @schema ClusterSpecForProviderClusterConfigMasterConfigAccelerators#acceleratorType
    */
-  readonly acceleratorType: string;
+  readonly acceleratorType?: string;
 
 }
 
@@ -2784,7 +3727,7 @@ export interface ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig
    *
    * @schema ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig#kmsKeyUri
    */
-  readonly kmsKeyUri: string;
+  readonly kmsKeyUri?: string;
 
   /**
    * The name of the on-cluster Kerberos realm. If not specified, the uppercased domain of hostnames will be the realm.
@@ -2798,7 +3741,7 @@ export interface ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig
    *
    * @schema ClusterSpecForProviderClusterConfigSecurityConfigKerberosConfig#rootPrincipalPasswordUri
    */
-  readonly rootPrincipalPasswordUri: string;
+  readonly rootPrincipalPasswordUri?: string;
 
   /**
    * The lifetime of the ticket granting ticket, in hours.
@@ -2860,14 +3803,14 @@ export interface ClusterSpecForProviderClusterConfigWorkerConfigAccelerators {
    *
    * @schema ClusterSpecForProviderClusterConfigWorkerConfigAccelerators#acceleratorCount
    */
-  readonly acceleratorCount: number;
+  readonly acceleratorCount?: number;
 
   /**
    * The short name of the accelerator type to expose to this instance. For example, nvidia-tesla-k80.
    *
    * @schema ClusterSpecForProviderClusterConfigWorkerConfigAccelerators#acceleratorType
    */
-  readonly acceleratorType: string;
+  readonly acceleratorType?: string;
 
 }
 
@@ -3029,7 +3972,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig#componentVersion
    */
-  readonly componentVersion: { [key: string]: string };
+  readonly componentVersion?: { [key: string]: string };
 
   /**
    * The properties to set on daemon config files. Property keys are specified in prefix:property format, for example spark:spark.kubernetes.container.image.
@@ -3045,6 +3988,622 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig(obj: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'componentVersion': ((obj.componentVersion) === undefined) ? undefined : (Object.entries(obj.componentVersion).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics
+ */
+export interface ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics {
+  /**
+   * One or more [available OSS metrics] (https://cloud.google.com/dataproc/docs/guides/monitoring#available_oss_metrics) to collect for the metric course.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics#metricOverrides
+   */
+  readonly metricOverrides?: string[];
+
+  /**
+   * A source for the collection of Dataproc OSS metrics (see available OSS metrics).
+   *
+   * @schema ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics#metricSource
+   */
+  readonly metricSource?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics(obj: ClusterSpecInitProviderClusterConfigDataprocMetricConfigMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metricOverrides': obj.metricOverrides?.map(y => y),
+    'metricSource': obj.metricSource,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity
+ */
+export interface ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity {
+  /**
+   * The URI of a sole-tenant node group resource that the cluster will be created on.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity#nodeGroupUri
+   */
+  readonly nodeGroupUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity(obj: ClusterSpecInitProviderClusterConfigGceClusterConfigNodeGroupAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeGroupUri': obj.nodeGroupUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity
+ */
+export interface ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity {
+  /**
+   * Corresponds to the type of reservation consumption.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity#consumeReservationType
+   */
+  readonly consumeReservationType?: string;
+
+  /**
+   * Corresponds to the label key of reservation resource.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * Corresponds to the label values of reservation resource.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity(obj: ClusterSpecInitProviderClusterConfigGceClusterConfigReservationAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumeReservationType': obj.consumeReservationType,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig {
+  /**
+   * Defines whether instances have integrity monitoring enabled.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines whether instances have Secure Boot enabled.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+  /**
+   * Defines whether instances have the vTPM enabled.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig#enableVtpm
+   */
+  readonly enableVtpm?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig(obj: ClusterSpecInitProviderClusterConfigGceClusterConfigShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+    'enableVtpm': obj.enableVtpm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigMasterConfigAccelerators
+ */
+export interface ClusterSpecInitProviderClusterConfigMasterConfigAccelerators {
+  /**
+   * The number of the accelerator cards of this type exposed to this instance. Often restricted to one of 1, 2, 4, or 8.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfigAccelerators#acceleratorCount
+   */
+  readonly acceleratorCount?: number;
+
+  /**
+   * The short name of the accelerator type to expose to this instance. For example, nvidia-tesla-k80.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfigAccelerators#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigMasterConfigAccelerators' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigMasterConfigAccelerators(obj: ClusterSpecInitProviderClusterConfigMasterConfigAccelerators | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorCount': obj.acceleratorCount,
+    'acceleratorType': obj.acceleratorType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig {
+  /**
+   * Size of the primary disk attached to each node, specified in GB. The primary disk contains the boot volume and system libraries, and the smallest allowed disk size is 10GB. GCP will default to a predetermined computed value if not set (currently 500GB). Note: If SSDs are not attached, it also contains the HDFS data blocks and Hadoop working directories.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * The disk type of the primary disk attached to each node. One of "pd-ssd" or "pd-standard". Defaults to "pd-standard".
+   *
+   * @default pd-standard".
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * The amount of local SSD disks that will be attached to each master cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig(obj: ClusterSpecInitProviderClusterConfigMasterConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig {
+  /**
+   * Size of the primary disk attached to each node, specified in GB. The primary disk contains the boot volume and system libraries, and the smallest allowed disk size is 10GB. GCP will default to a predetermined computed value if not set (currently 500GB). Note: If SSDs are not attached, it also contains the HDFS data blocks and Hadoop working directories.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * The disk type of the primary disk attached to each node. One of "pd-ssd" or "pd-standard". Defaults to "pd-standard".
+   *
+   * @default pd-standard".
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * The amount of local SSD disks that will be attached to each master cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig(obj: ClusterSpecInitProviderClusterConfigPreemptibleWorkerConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig {
+  /**
+   * The admin server (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#crossRealmTrustAdminServer
+   */
+  readonly crossRealmTrustAdminServer?: string;
+
+  /**
+   * The KDC (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#crossRealmTrustKdc
+   */
+  readonly crossRealmTrustKdc?: string;
+
+  /**
+   * The remote realm the Dataproc on-cluster KDC will trust, should the user enable cross realm trust.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#crossRealmTrustRealm
+   */
+  readonly crossRealmTrustRealm?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the shared password between the on-cluster Kerberos realm and the remote trusted realm, in a cross realm trust relationship.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#crossRealmTrustSharedPasswordUri
+   */
+  readonly crossRealmTrustSharedPasswordUri?: string;
+
+  /**
+   * Flag to indicate whether to Kerberize the cluster.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#enableKerberos
+   */
+  readonly enableKerberos?: boolean;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the master key of the KDC database.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#kdcDbKeyUri
+   */
+  readonly kdcDbKeyUri?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided key. For the self-signed certificate, this password is generated by Dataproc.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#keyPasswordUri
+   */
+  readonly keyPasswordUri?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided keystore. For the self-signed certificated, the password is generated by Dataproc.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#keystorePasswordUri
+   */
+  readonly keystorePasswordUri?: string;
+
+  /**
+   * The Cloud Storage URI of the keystore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#keystoreUri
+   */
+  readonly keystoreUri?: string;
+
+  /**
+   * The URI of the KMS key used to encrypt various sensitive files.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#kmsKeyUri
+   */
+  readonly kmsKeyUri?: string;
+
+  /**
+   * The name of the on-cluster Kerberos realm. If not specified, the uppercased domain of hostnames will be the realm.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#realm
+   */
+  readonly realm?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the root principal password.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#rootPrincipalPasswordUri
+   */
+  readonly rootPrincipalPasswordUri?: string;
+
+  /**
+   * The lifetime of the ticket granting ticket, in hours.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#tgtLifetimeHours
+   */
+  readonly tgtLifetimeHours?: number;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided truststore. For the self-signed certificate, this password is generated by Dataproc.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#truststorePasswordUri
+   */
+  readonly truststorePasswordUri?: string;
+
+  /**
+   * The Cloud Storage URI of the truststore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig#truststoreUri
+   */
+  readonly truststoreUri?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig(obj: ClusterSpecInitProviderClusterConfigSecurityConfigKerberosConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossRealmTrustAdminServer': obj.crossRealmTrustAdminServer,
+    'crossRealmTrustKdc': obj.crossRealmTrustKdc,
+    'crossRealmTrustRealm': obj.crossRealmTrustRealm,
+    'crossRealmTrustSharedPasswordUri': obj.crossRealmTrustSharedPasswordUri,
+    'enableKerberos': obj.enableKerberos,
+    'kdcDbKeyUri': obj.kdcDbKeyUri,
+    'keyPasswordUri': obj.keyPasswordUri,
+    'keystorePasswordUri': obj.keystorePasswordUri,
+    'keystoreUri': obj.keystoreUri,
+    'kmsKeyUri': obj.kmsKeyUri,
+    'realm': obj.realm,
+    'rootPrincipalPasswordUri': obj.rootPrincipalPasswordUri,
+    'tgtLifetimeHours': obj.tgtLifetimeHours,
+    'truststorePasswordUri': obj.truststorePasswordUri,
+    'truststoreUri': obj.truststoreUri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators
+ */
+export interface ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators {
+  /**
+   * The number of the accelerator cards of this type exposed to this instance. Often restricted to one of 1, 2, 4, or 8.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators#acceleratorCount
+   */
+  readonly acceleratorCount?: number;
+
+  /**
+   * The short name of the accelerator type to expose to this instance. For example, nvidia-tesla-k80.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators(obj: ClusterSpecInitProviderClusterConfigWorkerConfigAccelerators | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorCount': obj.acceleratorCount,
+    'acceleratorType': obj.acceleratorType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig
+ */
+export interface ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig {
+  /**
+   * Size of the primary disk attached to each node, specified in GB. The primary disk contains the boot volume and system libraries, and the smallest allowed disk size is 10GB. GCP will default to a predetermined computed value if not set (currently 500GB). Note: If SSDs are not attached, it also contains the HDFS data blocks and Hadoop working directories.
+   *
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * The disk type of the primary disk attached to each node. One of "pd-ssd" or "pd-standard". Defaults to "pd-standard".
+   *
+   * @default pd-standard".
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * The amount of local SSD disks that will be attached to each master cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig(obj: ClusterSpecInitProviderClusterConfigWorkerConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig {
+  /**
+   * Resource name of an existing Dataproc Metastore service.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig#dataprocMetastoreService
+   */
+  readonly dataprocMetastoreService?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig(obj: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigMetastoreConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataprocMetastoreService': obj.dataprocMetastoreService,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig {
+  /**
+   * Resource name of an existing Dataproc Cluster to act as a Spark History Server for the workload.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig#dataprocCluster
+   */
+  readonly dataprocCluster?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig(obj: ClusterSpecInitProviderVirtualClusterConfigAuxiliaryServicesConfigSparkHistoryServerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataprocCluster': obj.dataprocCluster,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig {
+  /**
+   * A target GKE cluster to deploy to. It must be in the same project and region as the Dataproc cluster (the GKE cluster can be zonal or regional)
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig#gkeClusterTarget
+   */
+  readonly gkeClusterTarget?: string;
+
+  /**
+   * GKE node pools where workloads will be scheduled. At least one node pool must be assigned the DEFAULT GkeNodePoolTarget.Role. If a GkeNodePoolTarget is not specified, Dataproc constructs a DEFAULT GkeNodePoolTarget. Each role can be given to only one GkeNodePoolTarget. All node pools must have the same location settings.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig#nodePoolTarget
+   */
+  readonly nodePoolTarget?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gkeClusterTarget': obj.gkeClusterTarget,
+    'nodePoolTarget': obj.nodePoolTarget?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig {
+  /**
+   * The components that should be installed in this Dataproc cluster. The key must be a string from the KubernetesComponent enumeration. The value is the version of the software to be installed. At least one entry must be specified.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig#componentVersion
+   */
+  readonly componentVersion?: { [key: string]: string };
+
+  /**
+   * The properties to set on daemon config files. Property keys are specified in prefix:property format, for example spark:spark.kubernetes.container.image.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigKubernetesSoftwareConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'componentVersion': ((obj.componentVersion) === undefined) ? undefined : (Object.entries(obj.componentVersion).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -3162,7 +4721,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget#nodePool
    */
-  readonly nodePool: string;
+  readonly nodePool?: string;
 
   /**
    * (Input only) The configuration for the GKE node pool. If specified, Dataproc attempts to create a node pool with the specified shape. If one with the same name already exists, it is verified against all specified fields. If a field differs, the virtual cluster creation will fail.
@@ -3176,7 +4735,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget#roles
    */
-  readonly roles: string[];
+  readonly roles?: string[];
 
 }
 
@@ -3189,6 +4748,49 @@ export function toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClust
   const result = {
     'nodePool': obj.nodePool,
     'nodePoolConfig': obj.nodePoolConfig?.map(y => toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig(y)),
+    'roles': obj.roles?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget {
+  /**
+   * The target GKE node pool.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget#nodePool
+   */
+  readonly nodePool?: string;
+
+  /**
+   * (Input only) The configuration for the GKE node pool. If specified, Dataproc attempts to create a node pool with the specified shape. If one with the same name already exists, it is verified against all specified fields. If a field differs, the virtual cluster creation will fail.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget#nodePoolConfig
+   */
+  readonly nodePoolConfig?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig[];
+
+  /**
+   * The roles associated with the GKE node pool. One of "DEFAULT", "CONTROLLER", "SPARK_DRIVER" or "SPARK_EXECUTOR".
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget#roles
+   */
+  readonly roles?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTarget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodePool': obj.nodePool,
+    'nodePoolConfig': obj.nodePoolConfig?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig(y)),
     'roles': obj.roles?.map(y => y),
   };
   // filter undefined values
@@ -3267,7 +4869,7 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
    *
    * @schema ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig#locations
    */
-  readonly locations: string[];
+  readonly locations?: string[];
 
 }
 
@@ -3280,6 +4882,49 @@ export function toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClust
   const result = {
     'autoscaling': obj.autoscaling?.map(y => toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling(y)),
     'config': obj.config?.map(y => toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig(y)),
+    'locations': obj.locations?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig {
+  /**
+   * The autoscaler configuration for this node pool. The autoscaler is enabled only when a valid configuration is present.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig#autoscaling
+   */
+  readonly autoscaling?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling[];
+
+  /**
+   * The node pool configuration.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig#config
+   */
+  readonly config?: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig[];
+
+  /**
+   * The list of Compute Engine zones where node pool nodes associated with a Dataproc on GKE virtual cluster will be located.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig#locations
+   */
+  readonly locations?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoscaling': obj.autoscaling?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling(y)),
+    'config': obj.config?.map(y => toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig(y)),
     'locations': obj.locations?.map(y => y),
   };
   // filter undefined values
@@ -3368,6 +5013,100 @@ export interface ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConf
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig(obj: ClusterSpecForProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'preemptible': obj.preemptible,
+    'spot': obj.spot,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling {
+  /**
+   * The maximum number of nodes in the node pool. Must be >= minNodeCount, and must be > 0.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling#maxNodeCount
+   */
+  readonly maxNodeCount?: number;
+
+  /**
+   * The minimum number of nodes in the node pool. Must be >= 0 and <= maxNodeCount.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling#minNodeCount
+   */
+  readonly minNodeCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxNodeCount': obj.maxNodeCount,
+    'minNodeCount': obj.minNodeCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig
+ */
+export interface ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig {
+  /**
+   * The number of local SSD disks to attach to the node, which is limited by the maximum number of disks allowable per zone.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+  /**
+   * The name of a Compute Engine machine type.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Minimum CPU platform to be used by this instance. The instance may be scheduled on the specified or a newer CPU platform. Specify the friendly names of CPU platforms, such as "Intel Haswell" or "Intel Sandy Bridge".
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * Whether the nodes are created as preemptible VM instances. Preemptible nodes cannot be used in a node pool with the CONTROLLER role or in the DEFAULT node pool if the CONTROLLER role is not assigned (the DEFAULT node pool will assume the CONTROLLER role).
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig#preemptible
+   */
+  readonly preemptible?: boolean;
+
+  /**
+   * Spot flag for enabling Spot VM, which is a rebrand of the existing preemptible flag.
+   *
+   * @schema ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig#spot
+   */
+  readonly spot?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig(obj: ClusterSpecInitProviderVirtualClusterConfigKubernetesClusterConfigGkeClusterConfigNodePoolTargetNodePoolConfigConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'localSsdCount': obj.localSsdCount,
@@ -3478,7 +5217,7 @@ export function toJson_JobProps(obj: JobProps | undefined): Record<string, any> 
  */
 export interface JobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema JobSpec#deletionPolicy
    */
@@ -3490,11 +5229,18 @@ export interface JobSpec {
   readonly forProvider: JobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema JobSpec#managementPolicy
+   * @schema JobSpec#initProvider
    */
-  readonly managementPolicy?: JobSpecManagementPolicy;
+  readonly initProvider?: JobSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema JobSpec#managementPolicies
+   */
+  readonly managementPolicies?: JobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3502,13 +5248,6 @@ export interface JobSpec {
    * @schema JobSpec#providerConfigRef
    */
   readonly providerConfigRef?: JobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema JobSpec#providerRef
-   */
-  readonly providerRef?: JobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3535,9 +5274,9 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_JobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_JobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_JobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_JobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_JobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_JobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3547,7 +5286,7 @@ export function toJson_JobSpec(obj: JobSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema JobSpecDeletionPolicy
  */
@@ -3686,17 +5425,128 @@ export function toJson_JobSpecForProvider(obj: JobSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema JobSpecManagementPolicy
+ * @schema JobSpecInitProvider
  */
-export enum JobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface JobSpecInitProvider {
+  /**
+   * By default, you can only delete inactive jobs within Dataproc. Setting this to true, and calling destroy, will ensure that the job is first cancelled before issuing the delete.
+   *
+   * @schema JobSpecInitProvider#forceDelete
+   */
+  readonly forceDelete?: boolean;
+
+  /**
+   * @schema JobSpecInitProvider#hadoopConfig
+   */
+  readonly hadoopConfig?: JobSpecInitProviderHadoopConfig[];
+
+  /**
+   * @schema JobSpecInitProvider#hiveConfig
+   */
+  readonly hiveConfig?: JobSpecInitProviderHiveConfig[];
+
+  /**
+   * The list of labels (key/value pairs) to add to the job.
+   *
+   * @schema JobSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * @schema JobSpecInitProvider#pigConfig
+   */
+  readonly pigConfig?: JobSpecInitProviderPigConfig[];
+
+  /**
+   * @schema JobSpecInitProvider#placement
+   */
+  readonly placement?: any[];
+
+  /**
+   * @schema JobSpecInitProvider#prestoConfig
+   */
+  readonly prestoConfig?: JobSpecInitProviderPrestoConfig[];
+
+  /**
+   * The project in which the cluster can be found and jobs subsequently run against. If it is not provided, the provider project is used.
+   *
+   * @schema JobSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * @schema JobSpecInitProvider#pysparkConfig
+   */
+  readonly pysparkConfig?: JobSpecInitProviderPysparkConfig[];
+
+  /**
+   * @schema JobSpecInitProvider#reference
+   */
+  readonly reference?: JobSpecInitProviderReference[];
+
+  /**
+   * @schema JobSpecInitProvider#scheduling
+   */
+  readonly scheduling?: JobSpecInitProviderScheduling[];
+
+  /**
+   * @schema JobSpecInitProvider#sparkConfig
+   */
+  readonly sparkConfig?: JobSpecInitProviderSparkConfig[];
+
+  /**
+   * @schema JobSpecInitProvider#sparksqlConfig
+   */
+  readonly sparksqlConfig?: JobSpecInitProviderSparksqlConfig[];
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProvider(obj: JobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forceDelete': obj.forceDelete,
+    'hadoopConfig': obj.hadoopConfig?.map(y => toJson_JobSpecInitProviderHadoopConfig(y)),
+    'hiveConfig': obj.hiveConfig?.map(y => toJson_JobSpecInitProviderHiveConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'pigConfig': obj.pigConfig?.map(y => toJson_JobSpecInitProviderPigConfig(y)),
+    'placement': obj.placement?.map(y => y),
+    'prestoConfig': obj.prestoConfig?.map(y => toJson_JobSpecInitProviderPrestoConfig(y)),
+    'project': obj.project,
+    'pysparkConfig': obj.pysparkConfig?.map(y => toJson_JobSpecInitProviderPysparkConfig(y)),
+    'reference': obj.reference?.map(y => toJson_JobSpecInitProviderReference(y)),
+    'scheduling': obj.scheduling?.map(y => toJson_JobSpecInitProviderScheduling(y)),
+    'sparkConfig': obj.sparkConfig?.map(y => toJson_JobSpecInitProviderSparkConfig(y)),
+    'sparksqlConfig': obj.sparksqlConfig?.map(y => toJson_JobSpecInitProviderSparksqlConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema JobSpecManagementPolicies
+ */
+export enum JobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3730,43 +5580,6 @@ export function toJson_JobSpecProviderConfigRef(obj: JobSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_JobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema JobSpecProviderRef
- */
-export interface JobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema JobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema JobSpecProviderRef#policy
-   */
-  readonly policy?: JobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRef(obj: JobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_JobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4237,7 +6050,7 @@ export interface JobSpecForProviderPysparkConfig {
    *
    * @schema JobSpecForProviderPysparkConfig#mainPythonFileUri
    */
-  readonly mainPythonFileUri: string;
+  readonly mainPythonFileUri?: string;
 
   /**
    * A mapping of property names to values, used to configure PySpark. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/spark/conf/spark-defaults.conf and classes in user code.
@@ -4392,14 +6205,14 @@ export interface JobSpecForProviderScheduling {
    *
    * @schema JobSpecForProviderScheduling#maxFailuresPerHour
    */
-  readonly maxFailuresPerHour: number;
+  readonly maxFailuresPerHour?: number;
 
   /**
    * Maximum number of times in total a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed.
    *
    * @schema JobSpecForProviderScheduling#maxFailuresTotal
    */
-  readonly maxFailuresTotal: number;
+  readonly maxFailuresTotal?: number;
 
 }
 
@@ -4565,6 +6378,590 @@ export function toJson_JobSpecForProviderSparksqlConfig(obj: JobSpecForProviderS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema JobSpecInitProviderHadoopConfig
+ */
+export interface JobSpecInitProviderHadoopConfig {
+  /**
+   * HCFS URIs of archives to be extracted in the working directory of .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema JobSpecInitProviderHadoopConfig#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver. Do not include arguments, such as -libjars or -Dfoo=bar, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   *
+   * @schema JobSpecInitProviderHadoopConfig#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be copied to the working directory of Hadoop drivers and distributed tasks. Useful for naively parallel tasks.
+   *
+   * @schema JobSpecInitProviderHadoopConfig#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to add to the CLASSPATHs of the Spark driver and tasks.
+   *
+   * @schema JobSpecInitProviderHadoopConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * @schema JobSpecInitProviderHadoopConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderHadoopConfigLoggingConfig[];
+
+  /**
+   * The name of the driver's main class. The jar file containing the class must be in the default CLASSPATH or specified in jar_file_uris. Conflicts with main_jar_file_uri
+   *
+   * @schema JobSpecInitProviderHadoopConfig#mainClass
+   */
+  readonly mainClass?: string;
+
+  /**
+   * The HCFS URI of the jar file containing the main class. Examples: 'gs://foo-bucket/analytics-binaries/extract-useful-metrics-mr.jar' 'hdfs:/tmp/test-samples/custom-wordcount.jar' 'file:///home/usr/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar'. Conflicts with main_class
+   *
+   * @schema JobSpecInitProviderHadoopConfig#mainJarFileUri
+   */
+  readonly mainJarFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Hadoop. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/hadoop/conf/*-site and classes in user code..
+   *
+   * @schema JobSpecInitProviderHadoopConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHadoopConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHadoopConfig(obj: JobSpecInitProviderHadoopConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderHadoopConfigLoggingConfig(y)),
+    'mainClass': obj.mainClass,
+    'mainJarFileUri': obj.mainJarFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderHiveConfig
+ */
+export interface JobSpecInitProviderHiveConfig {
+  /**
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries. Defaults to false.
+   *
+   * @default false.
+   * @schema JobSpecInitProviderHiveConfig#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * HCFS URIs of jar files to add to the CLASSPATH of the Hive server and Hadoop MapReduce (MR) tasks. Can contain Hive SerDes and UDFs.
+   *
+   * @schema JobSpecInitProviderHiveConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * A mapping of property names and values, used to configure Hive. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/hadoop/conf/*-site.xml, /etc/hive/conf/hive-site.xml, and classes in user code..
+   *
+   * @schema JobSpecInitProviderHiveConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * HCFS URI of file containing Hive script to execute as the job. Conflicts with query_list
+   *
+   * @schema JobSpecInitProviderHiveConfig#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * The list of Hive queries or statements to execute as part of the job. Conflicts with query_file_uri
+   *
+   * @schema JobSpecInitProviderHiveConfig#queryList
+   */
+  readonly queryList?: string[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Hive command: SET name="value";).
+   *
+   * @schema JobSpecInitProviderHiveConfig#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHiveConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHiveConfig(obj: JobSpecInitProviderHiveConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'continueOnFailure': obj.continueOnFailure,
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => y),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPigConfig
+ */
+export interface JobSpecInitProviderPigConfig {
+  /**
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries. Defaults to false.
+   *
+   * @default false.
+   * @schema JobSpecInitProviderPigConfig#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * HCFS URIs of jar files to add to the CLASSPATH of the Pig Client and Hadoop MapReduce (MR) tasks. Can contain Pig UDFs.
+   *
+   * @schema JobSpecInitProviderPigConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * @schema JobSpecInitProviderPigConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderPigConfigLoggingConfig[];
+
+  /**
+   * A mapping of property names to values, used to configure Pig. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/hadoop/conf/*-site.xml, /etc/pig/conf/pig.properties, and classes in user code.
+   *
+   * @schema JobSpecInitProviderPigConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * HCFS URI of file containing Hive script to execute as the job. Conflicts with query_list
+   *
+   * @schema JobSpecInitProviderPigConfig#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * The list of Hive queries or statements to execute as part of the job. Conflicts with query_file_uri
+   *
+   * @schema JobSpecInitProviderPigConfig#queryList
+   */
+  readonly queryList?: string[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Pig command: name=[value]).
+   *
+   * @schema JobSpecInitProviderPigConfig#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPigConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPigConfig(obj: JobSpecInitProviderPigConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'continueOnFailure': obj.continueOnFailure,
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderPigConfigLoggingConfig(y)),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => y),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPrestoConfig
+ */
+export interface JobSpecInitProviderPrestoConfig {
+  /**
+   * Presto client tags to attach to this query.
+   *
+   * @schema JobSpecInitProviderPrestoConfig#clientTags
+   */
+  readonly clientTags?: string[];
+
+  /**
+   * Whether to continue executing queries if a query fails. Setting to true can be useful when executing independent parallel queries. Defaults to false.
+   *
+   * @default false.
+   * @schema JobSpecInitProviderPrestoConfig#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * @schema JobSpecInitProviderPrestoConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderPrestoConfigLoggingConfig[];
+
+  /**
+   * The format in which query output will be displayed. See the Presto documentation for supported output formats.
+   *
+   * @schema JobSpecInitProviderPrestoConfig#outputFormat
+   */
+  readonly outputFormat?: string;
+
+  /**
+   * A mapping of property names to values. Used to set Presto session properties Equivalent to using the --session flag in the Presto CLI.
+   *
+   * @schema JobSpecInitProviderPrestoConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries. Conflicts with query_list
+   *
+   * @schema JobSpecInitProviderPrestoConfig#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * The list of SQL queries or statements to execute as part of the job. Conflicts with query_file_uri
+   *
+   * @schema JobSpecInitProviderPrestoConfig#queryList
+   */
+  readonly queryList?: string[];
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPrestoConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPrestoConfig(obj: JobSpecInitProviderPrestoConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientTags': obj.clientTags?.map(y => y),
+    'continueOnFailure': obj.continueOnFailure,
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderPrestoConfigLoggingConfig(y)),
+    'outputFormat': obj.outputFormat,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPysparkConfig
+ */
+export interface JobSpecInitProviderPysparkConfig {
+  /**
+   * HCFS URIs of archives to be extracted in the working directory of .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be copied to the working directory of Python drivers and distributed tasks. Useful for naively parallel tasks.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to add to the CLASSPATHs of the Python driver and tasks.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * @schema JobSpecInitProviderPysparkConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderPysparkConfigLoggingConfig[];
+
+  /**
+   * The HCFS URI of the main Python file to use as the driver. Must be a .py file.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#mainPythonFileUri
+   */
+  readonly mainPythonFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure PySpark. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/spark/conf/spark-defaults.conf and classes in user code.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * HCFS file URIs of Python files to pass to the PySpark framework. Supported file types: .py, .egg, and .zip.
+   *
+   * @schema JobSpecInitProviderPysparkConfig#pythonFileUris
+   */
+  readonly pythonFileUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPysparkConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPysparkConfig(obj: JobSpecInitProviderPysparkConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderPysparkConfigLoggingConfig(y)),
+    'mainPythonFileUri': obj.mainPythonFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'pythonFileUris': obj.pythonFileUris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderReference
+ */
+export interface JobSpecInitProviderReference {
+  /**
+   * @schema JobSpecInitProviderReference#jobId
+   */
+  readonly jobId?: string;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderReference' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderReference(obj: JobSpecInitProviderReference | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jobId': obj.jobId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderScheduling
+ */
+export interface JobSpecInitProviderScheduling {
+  /**
+   * Maximum number of times per hour a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed.
+   *
+   * @schema JobSpecInitProviderScheduling#maxFailuresPerHour
+   */
+  readonly maxFailuresPerHour?: number;
+
+  /**
+   * Maximum number of times in total a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed.
+   *
+   * @schema JobSpecInitProviderScheduling#maxFailuresTotal
+   */
+  readonly maxFailuresTotal?: number;
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderScheduling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderScheduling(obj: JobSpecInitProviderScheduling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxFailuresPerHour': obj.maxFailuresPerHour,
+    'maxFailuresTotal': obj.maxFailuresTotal,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderSparkConfig
+ */
+export interface JobSpecInitProviderSparkConfig {
+  /**
+   * HCFS URIs of archives to be extracted in the working directory of .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema JobSpecInitProviderSparkConfig#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver.
+   *
+   * @schema JobSpecInitProviderSparkConfig#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be copied to the working directory of Spark drivers and distributed tasks. Useful for naively parallel tasks.
+   *
+   * @schema JobSpecInitProviderSparkConfig#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to add to the CLASSPATHs of the Spark driver and tasks.
+   *
+   * @schema JobSpecInitProviderSparkConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * @schema JobSpecInitProviderSparkConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderSparkConfigLoggingConfig[];
+
+  /**
+   * The class containing the main method of the driver. Must be in a provided jar or jar that is already on the classpath. Conflicts with main_jar_file_uri
+   *
+   * @schema JobSpecInitProviderSparkConfig#mainClass
+   */
+  readonly mainClass?: string;
+
+  /**
+   * The HCFS URI of jar file containing the driver jar. Conflicts with main_class
+   *
+   * @schema JobSpecInitProviderSparkConfig#mainJarFileUri
+   */
+  readonly mainJarFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark. Properties that conflict with values set by the Cloud Dataproc API may be overwritten. Can include properties set in /etc/spark/conf/spark-defaults.conf and classes in user code.
+   *
+   * @schema JobSpecInitProviderSparkConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderSparkConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderSparkConfig(obj: JobSpecInitProviderSparkConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderSparkConfigLoggingConfig(y)),
+    'mainClass': obj.mainClass,
+    'mainJarFileUri': obj.mainJarFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderSparksqlConfig
+ */
+export interface JobSpecInitProviderSparksqlConfig {
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema JobSpecInitProviderSparksqlConfig#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * @schema JobSpecInitProviderSparksqlConfig#loggingConfig
+   */
+  readonly loggingConfig?: JobSpecInitProviderSparksqlConfigLoggingConfig[];
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Cloud Dataproc API may be overwritten.
+   *
+   * @schema JobSpecInitProviderSparksqlConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries. Conflicts with query_list
+   *
+   * @schema JobSpecInitProviderSparksqlConfig#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * The list of SQL queries or statements to execute as part of the job. Conflicts with query_file_uri
+   *
+   * @schema JobSpecInitProviderSparksqlConfig#queryList
+   */
+  readonly queryList?: string[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   *
+   * @schema JobSpecInitProviderSparksqlConfig#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderSparksqlConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderSparksqlConfig(obj: JobSpecInitProviderSparksqlConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_JobSpecInitProviderSparksqlConfigLoggingConfig(y)),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => y),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema JobSpecProviderConfigRefPolicy
@@ -4591,43 +6988,6 @@ export interface JobSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_JobSpecProviderConfigRefPolicy(obj: JobSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema JobSpecProviderRefPolicy
- */
-export interface JobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema JobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: JobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema JobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: JobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'JobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_JobSpecProviderRefPolicy(obj: JobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4729,7 +7089,7 @@ export interface JobSpecForProviderHadoopConfigLoggingConfig {
    *
    * @schema JobSpecForProviderHadoopConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -4756,7 +7116,7 @@ export interface JobSpecForProviderPigConfigLoggingConfig {
    *
    * @schema JobSpecForProviderPigConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -4865,7 +7225,7 @@ export interface JobSpecForProviderPrestoConfigLoggingConfig {
    *
    * @schema JobSpecForProviderPrestoConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -4892,7 +7252,7 @@ export interface JobSpecForProviderPysparkConfigLoggingConfig {
    *
    * @schema JobSpecForProviderPysparkConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -4993,7 +7353,7 @@ export interface JobSpecForProviderSparkConfigLoggingConfig {
    *
    * @schema JobSpecForProviderSparkConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -5020,7 +7380,7 @@ export interface JobSpecForProviderSparksqlConfigLoggingConfig {
    *
    * @schema JobSpecForProviderSparksqlConfigLoggingConfig#driverLogLevels
    */
-  readonly driverLogLevels: { [key: string]: string };
+  readonly driverLogLevels?: { [key: string]: string };
 
 }
 
@@ -5029,6 +7389,168 @@ export interface JobSpecForProviderSparksqlConfigLoggingConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_JobSpecForProviderSparksqlConfigLoggingConfig(obj: JobSpecForProviderSparksqlConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderHadoopConfigLoggingConfig
+ */
+export interface JobSpecInitProviderHadoopConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderHadoopConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderHadoopConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderHadoopConfigLoggingConfig(obj: JobSpecInitProviderHadoopConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPigConfigLoggingConfig
+ */
+export interface JobSpecInitProviderPigConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderPigConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPigConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPigConfigLoggingConfig(obj: JobSpecInitProviderPigConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPrestoConfigLoggingConfig
+ */
+export interface JobSpecInitProviderPrestoConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderPrestoConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPrestoConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPrestoConfigLoggingConfig(obj: JobSpecInitProviderPrestoConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderPysparkConfigLoggingConfig
+ */
+export interface JobSpecInitProviderPysparkConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderPysparkConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderPysparkConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderPysparkConfigLoggingConfig(obj: JobSpecInitProviderPysparkConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderSparkConfigLoggingConfig
+ */
+export interface JobSpecInitProviderSparkConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderSparkConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderSparkConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderSparkConfigLoggingConfig(obj: JobSpecInitProviderSparkConfigLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema JobSpecInitProviderSparksqlConfigLoggingConfig
+ */
+export interface JobSpecInitProviderSparksqlConfigLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include 'root' package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema JobSpecInitProviderSparksqlConfigLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'JobSpecInitProviderSparksqlConfigLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_JobSpecInitProviderSparksqlConfigLoggingConfig(obj: JobSpecInitProviderSparksqlConfigLoggingConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -5056,30 +7578,6 @@ export enum JobSpecProviderConfigRefPolicyResolution {
  * @schema JobSpecProviderConfigRefPolicyResolve
  */
 export enum JobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema JobSpecProviderRefPolicyResolution
- */
-export enum JobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema JobSpecProviderRefPolicyResolve
- */
-export enum JobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5414,7 +7912,7 @@ export function toJson_MetastoreServiceProps(obj: MetastoreServiceProps | undefi
  */
 export interface MetastoreServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MetastoreServiceSpec#deletionPolicy
    */
@@ -5426,11 +7924,18 @@ export interface MetastoreServiceSpec {
   readonly forProvider: MetastoreServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MetastoreServiceSpec#managementPolicy
+   * @schema MetastoreServiceSpec#initProvider
    */
-  readonly managementPolicy?: MetastoreServiceSpecManagementPolicy;
+  readonly initProvider?: MetastoreServiceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MetastoreServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: MetastoreServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5438,13 +7943,6 @@ export interface MetastoreServiceSpec {
    * @schema MetastoreServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: MetastoreServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MetastoreServiceSpec#providerRef
-   */
-  readonly providerRef?: MetastoreServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5471,9 +7969,9 @@ export function toJson_MetastoreServiceSpec(obj: MetastoreServiceSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MetastoreServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MetastoreServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MetastoreServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MetastoreServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MetastoreServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MetastoreServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5483,7 +7981,7 @@ export function toJson_MetastoreServiceSpec(obj: MetastoreServiceSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MetastoreServiceSpecDeletionPolicy
  */
@@ -5618,17 +8116,140 @@ export function toJson_MetastoreServiceSpecForProvider(obj: MetastoreServiceSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MetastoreServiceSpecManagementPolicy
+ * @schema MetastoreServiceSpecInitProvider
  */
-export enum MetastoreServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MetastoreServiceSpecInitProvider {
+  /**
+   * The database type that the Metastore service stores its data. Default value is MYSQL. Possible values are: MYSQL, SPANNER.
+   *
+   * @schema MetastoreServiceSpecInitProvider#databaseType
+   */
+  readonly databaseType?: string;
+
+  /**
+   * Information used to configure the Dataproc Metastore service to encrypt customer data at rest. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProvider#encryptionConfig
+   */
+  readonly encryptionConfig?: any[];
+
+  /**
+   * Configuration information specific to running Hive metastore software as the metastore service. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProvider#hiveMetastoreConfig
+   */
+  readonly hiveMetastoreConfig?: MetastoreServiceSpecInitProviderHiveMetastoreConfig[];
+
+  /**
+   * User-defined labels for the metastore service.
+   *
+   * @schema MetastoreServiceSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The one hour maintenance window of the metastore service. This specifies when the service can be restarted for maintenance purposes in UTC time. Maintenance window is not needed for services with the SPANNER database type. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProvider#maintenanceWindow
+   */
+  readonly maintenanceWindow?: MetastoreServiceSpecInitProviderMaintenanceWindow[];
+
+  /**
+   * The relative resource name of the VPC network on which the instance can be accessed. It is specified in the following form: "projects/{projectNumber}/global/networks/{network_id}".
+   *
+   * @schema MetastoreServiceSpecInitProvider#network
+   */
+  readonly network?: string;
+
+  /**
+   * The configuration specifying the network settings for the Dataproc Metastore service. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProvider#networkConfig
+   */
+  readonly networkConfig?: MetastoreServiceSpecInitProviderNetworkConfig[];
+
+  /**
+   * The TCP port at which the metastore service is reached. Default: 9083.
+   *
+   * @schema MetastoreServiceSpecInitProvider#port
+   */
+  readonly port?: number;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema MetastoreServiceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The release channel of the service. If unspecified, defaults to STABLE. Default value is STABLE. Possible values are: CANARY, STABLE.
+   *
+   * @schema MetastoreServiceSpecInitProvider#releaseChannel
+   */
+  readonly releaseChannel?: string;
+
+  /**
+   * The configuration specifying telemetry settings for the Dataproc Metastore service. If unspecified defaults to JSON. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProvider#telemetryConfig
+   */
+  readonly telemetryConfig?: MetastoreServiceSpecInitProviderTelemetryConfig[];
+
+  /**
+   * The tier of the service. Possible values are: DEVELOPER, ENTERPRISE.
+   *
+   * @schema MetastoreServiceSpecInitProvider#tier
+   */
+  readonly tier?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProvider(obj: MetastoreServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'databaseType': obj.databaseType,
+    'encryptionConfig': obj.encryptionConfig?.map(y => y),
+    'hiveMetastoreConfig': obj.hiveMetastoreConfig?.map(y => toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'maintenanceWindow': obj.maintenanceWindow?.map(y => toJson_MetastoreServiceSpecInitProviderMaintenanceWindow(y)),
+    'network': obj.network,
+    'networkConfig': obj.networkConfig?.map(y => toJson_MetastoreServiceSpecInitProviderNetworkConfig(y)),
+    'port': obj.port,
+    'project': obj.project,
+    'releaseChannel': obj.releaseChannel,
+    'telemetryConfig': obj.telemetryConfig?.map(y => toJson_MetastoreServiceSpecInitProviderTelemetryConfig(y)),
+    'tier': obj.tier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MetastoreServiceSpecManagementPolicies
+ */
+export enum MetastoreServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5662,43 +8283,6 @@ export function toJson_MetastoreServiceSpecProviderConfigRef(obj: MetastoreServi
   const result = {
     'name': obj.name,
     'policy': toJson_MetastoreServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MetastoreServiceSpecProviderRef
- */
-export interface MetastoreServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MetastoreServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MetastoreServiceSpecProviderRef#policy
-   */
-  readonly policy?: MetastoreServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MetastoreServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetastoreServiceSpecProviderRef(obj: MetastoreServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MetastoreServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5853,7 +8437,7 @@ export interface MetastoreServiceSpecForProviderHiveMetastoreConfig {
    *
    * @schema MetastoreServiceSpecForProviderHiveMetastoreConfig#version
    */
-  readonly version: string;
+  readonly version?: string;
 
 }
 
@@ -5882,14 +8466,14 @@ export interface MetastoreServiceSpecForProviderMaintenanceWindow {
    *
    * @schema MetastoreServiceSpecForProviderMaintenanceWindow#dayOfWeek
    */
-  readonly dayOfWeek: string;
+  readonly dayOfWeek?: string;
 
   /**
    * The hour of day (0-23) when the window starts.
    *
    * @schema MetastoreServiceSpecForProviderMaintenanceWindow#hourOfDay
    */
-  readonly hourOfDay: number;
+  readonly hourOfDay?: number;
 
 }
 
@@ -5917,7 +8501,7 @@ export interface MetastoreServiceSpecForProviderNetworkConfig {
    *
    * @schema MetastoreServiceSpecForProviderNetworkConfig#consumers
    */
-  readonly consumers: MetastoreServiceSpecForProviderNetworkConfigConsumers[];
+  readonly consumers?: MetastoreServiceSpecForProviderNetworkConfigConsumers[];
 
 }
 
@@ -5963,6 +8547,138 @@ export function toJson_MetastoreServiceSpecForProviderTelemetryConfig(obj: Metas
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfig
+ */
+export interface MetastoreServiceSpecInitProviderHiveMetastoreConfig {
+  /**
+   * A mapping of Hive metastore configuration key-value pairs to apply to the Hive metastore (configured in hive-site.xml). The mappings override system defaults (some keys cannot be overridden)
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfig#configOverrides
+   */
+  readonly configOverrides?: { [key: string]: string };
+
+  /**
+   * Information used to configure the Hive metastore service as a service principal in a Kerberos realm. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfig#kerberosConfig
+   */
+  readonly kerberosConfig?: MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig[];
+
+  /**
+   * The Hive metastore schema version.
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfig#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderHiveMetastoreConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfig(obj: MetastoreServiceSpecInitProviderHiveMetastoreConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configOverrides': ((obj.configOverrides) === undefined) ? undefined : (Object.entries(obj.configOverrides).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'kerberosConfig': obj.kerberosConfig?.map(y => toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig(y)),
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetastoreServiceSpecInitProviderMaintenanceWindow
+ */
+export interface MetastoreServiceSpecInitProviderMaintenanceWindow {
+  /**
+   * The day of week, when the window starts. Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
+   *
+   * @schema MetastoreServiceSpecInitProviderMaintenanceWindow#dayOfWeek
+   */
+  readonly dayOfWeek?: string;
+
+  /**
+   * The hour of day (0-23) when the window starts.
+   *
+   * @schema MetastoreServiceSpecInitProviderMaintenanceWindow#hourOfDay
+   */
+  readonly hourOfDay?: number;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderMaintenanceWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderMaintenanceWindow(obj: MetastoreServiceSpecInitProviderMaintenanceWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dayOfWeek': obj.dayOfWeek,
+    'hourOfDay': obj.hourOfDay,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetastoreServiceSpecInitProviderNetworkConfig
+ */
+export interface MetastoreServiceSpecInitProviderNetworkConfig {
+  /**
+   * The consumer-side network configuration for the Dataproc Metastore instance. Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProviderNetworkConfig#consumers
+   */
+  readonly consumers?: any[];
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderNetworkConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderNetworkConfig(obj: MetastoreServiceSpecInitProviderNetworkConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumers': obj.consumers?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetastoreServiceSpecInitProviderTelemetryConfig
+ */
+export interface MetastoreServiceSpecInitProviderTelemetryConfig {
+  /**
+   * The output format of the Dataproc Metastore service's logs. Default value is JSON. Possible values are: LEGACY, JSON.
+   *
+   * @schema MetastoreServiceSpecInitProviderTelemetryConfig#logFormat
+   */
+  readonly logFormat?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderTelemetryConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderTelemetryConfig(obj: MetastoreServiceSpecInitProviderTelemetryConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'logFormat': obj.logFormat,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MetastoreServiceSpecProviderConfigRefPolicy
@@ -5989,43 +8705,6 @@ export interface MetastoreServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetastoreServiceSpecProviderConfigRefPolicy(obj: MetastoreServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MetastoreServiceSpecProviderRefPolicy
- */
-export interface MetastoreServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MetastoreServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MetastoreServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MetastoreServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MetastoreServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MetastoreServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetastoreServiceSpecProviderRefPolicy(obj: MetastoreServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6209,21 +8888,21 @@ export interface MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfi
    *
    * @schema MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfig#keytab
    */
-  readonly keytab: MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfigKeytab[];
+  readonly keytab?: MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfigKeytab[];
 
   /**
    * A Cloud Storage URI that specifies the path to a krb5.conf file. It is of the form gs://{bucket_name}/path/to/krb5.conf, although the file does not need to be named krb5.conf explicitly.
    *
    * @schema MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfig#krb5ConfigGcsUri
    */
-  readonly krb5ConfigGcsUri: string;
+  readonly krb5ConfigGcsUri?: string;
 
   /**
    * A Kerberos principal that exists in the both the keytab the KDC to authenticate as. A typical principal is of the form "primary/instance@REALM", but there is no exact format.
    *
    * @schema MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfig#principal
    */
-  readonly principal: string;
+  readonly principal?: string;
 
 }
 
@@ -6287,6 +8966,49 @@ export function toJson_MetastoreServiceSpecForProviderNetworkConfigConsumers(obj
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig
+ */
+export interface MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig {
+  /**
+   * A Kerberos keytab file that can be used to authenticate a service principal with a Kerberos Key Distribution Center (KDC). Structure is documented below.
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig#keytab
+   */
+  readonly keytab?: MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab[];
+
+  /**
+   * A Cloud Storage URI that specifies the path to a krb5.conf file. It is of the form gs://{bucket_name}/path/to/krb5.conf, although the file does not need to be named krb5.conf explicitly.
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig#krb5ConfigGcsUri
+   */
+  readonly krb5ConfigGcsUri?: string;
+
+  /**
+   * A Kerberos principal that exists in the both the keytab the KDC to authenticate as. A typical principal is of the form "primary/instance@REALM", but there is no exact format.
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig#principal
+   */
+  readonly principal?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig(obj: MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keytab': obj.keytab?.map(y => toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab(y)),
+    'krb5ConfigGcsUri': obj.krb5ConfigGcsUri,
+    'principal': obj.principal,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema MetastoreServiceSpecProviderConfigRefPolicyResolution
@@ -6304,30 +9026,6 @@ export enum MetastoreServiceSpecProviderConfigRefPolicyResolution {
  * @schema MetastoreServiceSpecProviderConfigRefPolicyResolve
  */
 export enum MetastoreServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MetastoreServiceSpecProviderRefPolicyResolution
- */
-export enum MetastoreServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MetastoreServiceSpecProviderRefPolicyResolve
- */
-export enum MetastoreServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6454,7 +9152,7 @@ export interface MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfi
    *
    * @schema MetastoreServiceSpecForProviderHiveMetastoreConfigKerberosConfigKeytab#cloudSecret
    */
-  readonly cloudSecret: string;
+  readonly cloudSecret?: string;
 
 }
 
@@ -6548,6 +9246,33 @@ export function toJson_MetastoreServiceSpecForProviderNetworkConfigConsumersSubn
     'matchControllerRef': obj.matchControllerRef,
     'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'policy': toJson_MetastoreServiceSpecForProviderNetworkConfigConsumersSubnetworkSelectorPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab
+ */
+export interface MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab {
+  /**
+   * The relative resource name of a Secret Manager secret version, in the following form: "projects/{projectNumber}/secrets/{secret_id}/versions/{version_id}".
+   *
+   * @schema MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab#cloudSecret
+   */
+  readonly cloudSecret?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab(obj: MetastoreServiceSpecInitProviderHiveMetastoreConfigKerberosConfigKeytab | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudSecret': obj.cloudSecret,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6845,7 +9570,7 @@ export function toJson_WorkflowTemplateProps(obj: WorkflowTemplateProps | undefi
  */
 export interface WorkflowTemplateSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkflowTemplateSpec#deletionPolicy
    */
@@ -6857,11 +9582,18 @@ export interface WorkflowTemplateSpec {
   readonly forProvider: WorkflowTemplateSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkflowTemplateSpec#managementPolicy
+   * @schema WorkflowTemplateSpec#initProvider
    */
-  readonly managementPolicy?: WorkflowTemplateSpecManagementPolicy;
+  readonly initProvider?: WorkflowTemplateSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkflowTemplateSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkflowTemplateSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6869,13 +9601,6 @@ export interface WorkflowTemplateSpec {
    * @schema WorkflowTemplateSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkflowTemplateSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkflowTemplateSpec#providerRef
-   */
-  readonly providerRef?: WorkflowTemplateSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6902,9 +9627,9 @@ export function toJson_WorkflowTemplateSpec(obj: WorkflowTemplateSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkflowTemplateSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkflowTemplateSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkflowTemplateSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkflowTemplateSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkflowTemplateSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkflowTemplateSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6914,7 +9639,7 @@ export function toJson_WorkflowTemplateSpec(obj: WorkflowTemplateSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkflowTemplateSpecDeletionPolicy
  */
@@ -6944,7 +9669,7 @@ export interface WorkflowTemplateSpecForProvider {
   readonly jobs?: WorkflowTemplateSpecForProviderJobs[];
 
   /**
-   * Optional. The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
+   * The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
    *
    * @schema WorkflowTemplateSpecForProvider#labels
    */
@@ -6958,7 +9683,7 @@ export interface WorkflowTemplateSpecForProvider {
   readonly location: string;
 
   /**
-   * Optional. Template parameters whose values are substituted into the template. Values for parameters must be provided when the template is instantiated.
+   * Template parameters whose values are substituted into the template. Values for parameters must be provided when the template is instantiated.
    *
    * @schema WorkflowTemplateSpecForProvider#parameters
    */
@@ -6979,7 +9704,7 @@ export interface WorkflowTemplateSpecForProvider {
   readonly project?: string;
 
   /**
-   * Optional. Used to perform a consistent read-modify-write. This field should be left blank for a CreateWorkflowTemplate request. It is required for an UpdateWorkflowTemplate request, and must match the current server version. A typical update template flow would fetch the current template with a GetWorkflowTemplate request, which will return the current template with the version field filled in with the current server version. The user updates other fields in the template, then returns it as part of the UpdateWorkflowTemplate request.
+   * Used to perform a consistent read-modify-write. This field should be left blank for a CreateWorkflowTemplate request. It is required for an UpdateWorkflowTemplate request, and must match the current server version. A typical update template flow would fetch the current template with a GetWorkflowTemplate request, which will return the current template with the version field filled in with the current server version. The user updates other fields in the template, then returns it as part of the UpdateWorkflowTemplate request.
    *
    * @schema WorkflowTemplateSpecForProvider#version
    */
@@ -7009,17 +9734,100 @@ export function toJson_WorkflowTemplateSpecForProvider(obj: WorkflowTemplateSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkflowTemplateSpecManagementPolicy
+ * @schema WorkflowTemplateSpecInitProvider
  */
-export enum WorkflowTemplateSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkflowTemplateSpecInitProvider {
+  /**
+   * (Beta only) Optional. Timeout duration for the DAG of jobs. You can use "s", "m", "h", and "d" suffixes for second, minute, hour, and day duration values, respectively. The timeout duration must be from 10 minutes ("10m") to 24 hours ("24h" or "1d"). The timer begins when the first job is submitted. If the workflow is running at the end of the timeout period, any remaining jobs are cancelled, the workflow is ended, and if the workflow was running on a (/dataproc/docs/concepts/workflows/using-workflows#configuring_or_selecting_a_cluster), the cluster is deleted.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#dagTimeout
+   */
+  readonly dagTimeout?: string;
+
+  /**
+   * Required. The Directed Acyclic Graph of Jobs to submit.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#jobs
+   */
+  readonly jobs?: WorkflowTemplateSpecInitProviderJobs[];
+
+  /**
+   * The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Template parameters whose values are substituted into the template. Values for parameters must be provided when the template is instantiated.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#parameters
+   */
+  readonly parameters?: WorkflowTemplateSpecInitProviderParameters[];
+
+  /**
+   * Required. WorkflowTemplate scheduling information.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#placement
+   */
+  readonly placement?: WorkflowTemplateSpecInitProviderPlacement[];
+
+  /**
+   * The project for the resource
+   *
+   * @schema WorkflowTemplateSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Used to perform a consistent read-modify-write. This field should be left blank for a CreateWorkflowTemplate request. It is required for an UpdateWorkflowTemplate request, and must match the current server version. A typical update template flow would fetch the current template with a GetWorkflowTemplate request, which will return the current template with the version field filled in with the current server version. The user updates other fields in the template, then returns it as part of the UpdateWorkflowTemplate request.
+   *
+   * @schema WorkflowTemplateSpecInitProvider#version
+   */
+  readonly version?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProvider(obj: WorkflowTemplateSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dagTimeout': obj.dagTimeout,
+    'jobs': obj.jobs?.map(y => toJson_WorkflowTemplateSpecInitProviderJobs(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'parameters': obj.parameters?.map(y => toJson_WorkflowTemplateSpecInitProviderParameters(y)),
+    'placement': obj.placement?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacement(y)),
+    'project': obj.project,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkflowTemplateSpecManagementPolicies
+ */
+export enum WorkflowTemplateSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7053,43 +9861,6 @@ export function toJson_WorkflowTemplateSpecProviderConfigRef(obj: WorkflowTempla
   const result = {
     'name': obj.name,
     'policy': toJson_WorkflowTemplateSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkflowTemplateSpecProviderRef
- */
-export interface WorkflowTemplateSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkflowTemplateSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkflowTemplateSpecProviderRef#policy
-   */
-  readonly policy?: WorkflowTemplateSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkflowTemplateSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkflowTemplateSpecProviderRef(obj: WorkflowTemplateSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkflowTemplateSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7183,77 +9954,77 @@ export function toJson_WorkflowTemplateSpecWriteConnectionSecretToRef(obj: Workf
  */
 export interface WorkflowTemplateSpecForProviderJobs {
   /**
-   * Optional. Job is a Hadoop job.
+   * Job is a Hadoop job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#hadoopJob
    */
   readonly hadoopJob?: WorkflowTemplateSpecForProviderJobsHadoopJob[];
 
   /**
-   * Optional. Job is a Hive job.
+   * Job is a Hive job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#hiveJob
    */
   readonly hiveJob?: WorkflowTemplateSpecForProviderJobsHiveJob[];
 
   /**
-   * Optional. The labels to associate with this job. Label keys must be between 1 and 63 characters long, and must conform to the following regular expression: {0,63} No more than 32 labels can be associated with a given job.
+   * The labels to associate with this job. Label keys must be between 1 and 63 characters long, and must conform to the following regular expression: {0,63} No more than 32 labels can be associated with a given job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#labels
    */
   readonly labels?: { [key: string]: string };
 
   /**
-   * Optional. Job is a Pig job.
+   * Job is a Pig job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#pigJob
    */
   readonly pigJob?: WorkflowTemplateSpecForProviderJobsPigJob[];
 
   /**
-   * Optional. The optional list of prerequisite job step_ids. If not specified, the job will start at the beginning of workflow.
+   * The optional list of prerequisite job step_ids. If not specified, the job will start at the beginning of workflow.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#prerequisiteStepIds
    */
   readonly prerequisiteStepIds?: string[];
 
   /**
-   * Optional. Job is a Presto job.
+   * Job is a Presto job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#prestoJob
    */
   readonly prestoJob?: WorkflowTemplateSpecForProviderJobsPrestoJob[];
 
   /**
-   * Optional. Job is a PySpark job.
+   * Job is a PySpark job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#pysparkJob
    */
   readonly pysparkJob?: WorkflowTemplateSpecForProviderJobsPysparkJob[];
 
   /**
-   * Optional. Job scheduling configuration.
+   * Job scheduling configuration.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#scheduling
    */
   readonly scheduling?: WorkflowTemplateSpecForProviderJobsScheduling[];
 
   /**
-   * Optional. Job is a Spark job.
+   * Job is a Spark job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#sparkJob
    */
   readonly sparkJob?: WorkflowTemplateSpecForProviderJobsSparkJob[];
 
   /**
-   * Optional. Job is a SparkR job.
+   * Job is a SparkR job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#sparkRJob
    */
   readonly sparkRJob?: WorkflowTemplateSpecForProviderJobsSparkRJob[];
 
   /**
-   * Optional. Job is a SparkSql job.
+   * Job is a SparkSql job.
    *
    * @schema WorkflowTemplateSpecForProviderJobs#sparkSqlJob
    */
@@ -7264,7 +10035,7 @@ export interface WorkflowTemplateSpecForProviderJobs {
    *
    * @schema WorkflowTemplateSpecForProviderJobs#stepId
    */
-  readonly stepId: string;
+  readonly stepId?: string;
 
 }
 
@@ -7298,7 +10069,7 @@ export function toJson_WorkflowTemplateSpecForProviderJobs(obj: WorkflowTemplate
  */
 export interface WorkflowTemplateSpecForProviderParameters {
   /**
-   * Optional. Brief description of the parameter. Must not exceed 1024 characters.
+   * Brief description of the parameter. Must not exceed 1024 characters.
    *
    * @schema WorkflowTemplateSpecForProviderParameters#description
    */
@@ -7309,17 +10080,17 @@ export interface WorkflowTemplateSpecForProviderParameters {
    *
    * @schema WorkflowTemplateSpecForProviderParameters#fields
    */
-  readonly fields: string[];
+  readonly fields?: string[];
 
   /**
    * Required. Parameter name. The parameter name is used as the key, and paired with the parameter value, which are passed to the template when the template is instantiated. The name must contain only capital letters (A-Z), numbers (0-9), and underscores (_), and must not start with a number. The maximum length is 40 characters.
    *
    * @schema WorkflowTemplateSpecForProviderParameters#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
-   * Optional. Validation rules to be applied to this parameter's value.
+   * Validation rules to be applied to this parameter's value.
    *
    * @schema WorkflowTemplateSpecForProviderParameters#validation
    */
@@ -7349,7 +10120,7 @@ export function toJson_WorkflowTemplateSpecForProviderParameters(obj: WorkflowTe
  */
 export interface WorkflowTemplateSpecForProviderPlacement {
   /**
-   * Optional. A selector that chooses target cluster for jobs based on metadata. The selector is evaluated at the time each job is submitted.
+   * A selector that chooses target cluster for jobs based on metadata. The selector is evaluated at the time each job is submitted.
    *
    * @schema WorkflowTemplateSpecForProviderPlacement#clusterSelector
    */
@@ -7373,6 +10144,207 @@ export function toJson_WorkflowTemplateSpecForProviderPlacement(obj: WorkflowTem
   const result = {
     'clusterSelector': obj.clusterSelector?.map(y => toJson_WorkflowTemplateSpecForProviderPlacementClusterSelector(y)),
     'managedCluster': obj.managedCluster?.map(y => toJson_WorkflowTemplateSpecForProviderPlacementManagedCluster(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobs
+ */
+export interface WorkflowTemplateSpecInitProviderJobs {
+  /**
+   * Job is a Hadoop job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#hadoopJob
+   */
+  readonly hadoopJob?: WorkflowTemplateSpecInitProviderJobsHadoopJob[];
+
+  /**
+   * Job is a Hive job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#hiveJob
+   */
+  readonly hiveJob?: WorkflowTemplateSpecInitProviderJobsHiveJob[];
+
+  /**
+   * The labels to associate with this job. Label keys must be between 1 and 63 characters long, and must conform to the following regular expression: {0,63} No more than 32 labels can be associated with a given job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Job is a Pig job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#pigJob
+   */
+  readonly pigJob?: WorkflowTemplateSpecInitProviderJobsPigJob[];
+
+  /**
+   * The optional list of prerequisite job step_ids. If not specified, the job will start at the beginning of workflow.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#prerequisiteStepIds
+   */
+  readonly prerequisiteStepIds?: string[];
+
+  /**
+   * Job is a Presto job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#prestoJob
+   */
+  readonly prestoJob?: WorkflowTemplateSpecInitProviderJobsPrestoJob[];
+
+  /**
+   * Job is a PySpark job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#pysparkJob
+   */
+  readonly pysparkJob?: WorkflowTemplateSpecInitProviderJobsPysparkJob[];
+
+  /**
+   * Job scheduling configuration.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#scheduling
+   */
+  readonly scheduling?: WorkflowTemplateSpecInitProviderJobsScheduling[];
+
+  /**
+   * Job is a Spark job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#sparkJob
+   */
+  readonly sparkJob?: WorkflowTemplateSpecInitProviderJobsSparkJob[];
+
+  /**
+   * Job is a SparkR job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#sparkRJob
+   */
+  readonly sparkRJob?: WorkflowTemplateSpecInitProviderJobsSparkRJob[];
+
+  /**
+   * Job is a SparkSql job.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#sparkSqlJob
+   */
+  readonly sparkSqlJob?: WorkflowTemplateSpecInitProviderJobsSparkSqlJob[];
+
+  /**
+   * Required. The step id. The id must be unique among all jobs within the template. The step id is used as prefix for job id, as job goog-dataproc-workflow-step-id label, and in field from other steps. The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). Cannot begin or end with underscore or hyphen. Must consist of between 3 and 50 characters.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobs#stepId
+   */
+  readonly stepId?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobs(obj: WorkflowTemplateSpecInitProviderJobs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hadoopJob': obj.hadoopJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsHadoopJob(y)),
+    'hiveJob': obj.hiveJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsHiveJob(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'pigJob': obj.pigJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPigJob(y)),
+    'prerequisiteStepIds': obj.prerequisiteStepIds?.map(y => y),
+    'prestoJob': obj.prestoJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPrestoJob(y)),
+    'pysparkJob': obj.pysparkJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPysparkJob(y)),
+    'scheduling': obj.scheduling?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsScheduling(y)),
+    'sparkJob': obj.sparkJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkJob(y)),
+    'sparkRJob': obj.sparkRJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkRJob(y)),
+    'sparkSqlJob': obj.sparkSqlJob?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJob(y)),
+    'stepId': obj.stepId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderParameters
+ */
+export interface WorkflowTemplateSpecInitProviderParameters {
+  /**
+   * Brief description of the parameter. Must not exceed 1024 characters.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParameters#description
+   */
+  readonly description?: string;
+
+  /**
+   * Required. Paths to all fields that the parameter replaces. A field is allowed to appear in at most one parameter's list of field paths. A field path is similar in syntax to a .sparkJob.args
+   *
+   * @schema WorkflowTemplateSpecInitProviderParameters#fields
+   */
+  readonly fields?: string[];
+
+  /**
+   * Required. Parameter name. The parameter name is used as the key, and paired with the parameter value, which are passed to the template when the template is instantiated. The name must contain only capital letters (A-Z), numbers (0-9), and underscores (_), and must not start with a number. The maximum length is 40 characters.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParameters#name
+   */
+  readonly name?: string;
+
+  /**
+   * Validation rules to be applied to this parameter's value.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParameters#validation
+   */
+  readonly validation?: WorkflowTemplateSpecInitProviderParametersValidation[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderParameters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderParameters(obj: WorkflowTemplateSpecInitProviderParameters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'fields': obj.fields?.map(y => y),
+    'name': obj.name,
+    'validation': obj.validation?.map(y => toJson_WorkflowTemplateSpecInitProviderParametersValidation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacement
+ */
+export interface WorkflowTemplateSpecInitProviderPlacement {
+  /**
+   * A selector that chooses target cluster for jobs based on metadata. The selector is evaluated at the time each job is submitted.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacement#clusterSelector
+   */
+  readonly clusterSelector?: WorkflowTemplateSpecInitProviderPlacementClusterSelector[];
+
+  /**
+   * A cluster that is managed by the workflow.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacement#managedCluster
+   */
+  readonly managedCluster?: WorkflowTemplateSpecInitProviderPlacementManagedCluster[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacement(obj: WorkflowTemplateSpecInitProviderPlacement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterSelector': obj.clusterSelector?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementClusterSelector(y)),
+    'managedCluster': obj.managedCluster?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedCluster(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7406,43 +10378,6 @@ export interface WorkflowTemplateSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkflowTemplateSpecProviderConfigRefPolicy(obj: WorkflowTemplateSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkflowTemplateSpecProviderRefPolicy
- */
-export interface WorkflowTemplateSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkflowTemplateSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkflowTemplateSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkflowTemplateSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkflowTemplateSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkflowTemplateSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkflowTemplateSpecProviderRefPolicy(obj: WorkflowTemplateSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7540,35 +10475,35 @@ export function toJson_WorkflowTemplateSpecPublishConnectionDetailsToMetadata(ob
  */
 export interface WorkflowTemplateSpecForProviderJobsHadoopJob {
   /**
-   * Optional. HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#archiveUris
    */
   readonly archiveUris?: string[];
 
   /**
-   * Optional. The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#args
    */
   readonly args?: string[];
 
   /**
-   * Optional. HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#fileUris
    */
   readonly fileUris?: string[];
 
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#loggingConfig
    */
@@ -7589,7 +10524,7 @@ export interface WorkflowTemplateSpecForProviderJobsHadoopJob {
   readonly mainJarFileUri?: string;
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHadoopJob#properties
    */
@@ -7623,21 +10558,21 @@ export function toJson_WorkflowTemplateSpecForProviderJobsHadoopJob(obj: Workflo
  */
 export interface WorkflowTemplateSpecForProviderJobsHiveJob {
   /**
-   * Optional. Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHiveJob#continueOnFailure
    */
   readonly continueOnFailure?: boolean;
 
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHiveJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsHiveJob#properties
    */
@@ -7658,7 +10593,7 @@ export interface WorkflowTemplateSpecForProviderJobsHiveJob {
   readonly queryList?: WorkflowTemplateSpecForProviderJobsHiveJobQueryList[];
 
   /**
-   * Optional. Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
    *
    * @schema WorkflowTemplateSpecForProviderJobsHiveJob#scriptVariables
    */
@@ -7690,28 +10625,28 @@ export function toJson_WorkflowTemplateSpecForProviderJobsHiveJob(obj: WorkflowT
  */
 export interface WorkflowTemplateSpecForProviderJobsPigJob {
   /**
-   * Optional. Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJob#continueOnFailure
    */
   readonly continueOnFailure?: boolean;
 
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJob#loggingConfig
    */
   readonly loggingConfig?: WorkflowTemplateSpecForProviderJobsPigJobLoggingConfig[];
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJob#properties
    */
@@ -7732,7 +10667,7 @@ export interface WorkflowTemplateSpecForProviderJobsPigJob {
   readonly queryList?: WorkflowTemplateSpecForProviderJobsPigJobQueryList[];
 
   /**
-   * Optional. Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJob#scriptVariables
    */
@@ -7765,35 +10700,35 @@ export function toJson_WorkflowTemplateSpecForProviderJobsPigJob(obj: WorkflowTe
  */
 export interface WorkflowTemplateSpecForProviderJobsPrestoJob {
   /**
-   * Optional. Presto client tags to attach to this query
+   * Presto client tags to attach to this query
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJob#clientTags
    */
   readonly clientTags?: string[];
 
   /**
-   * Optional. Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJob#continueOnFailure
    */
   readonly continueOnFailure?: boolean;
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJob#loggingConfig
    */
   readonly loggingConfig?: WorkflowTemplateSpecForProviderJobsPrestoJobLoggingConfig[];
 
   /**
-   * Optional. The format in which query output will be displayed. See the Presto documentation for supported output formats
+   * The format in which query output will be displayed. See the Presto documentation for supported output formats
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJob#outputFormat
    */
   readonly outputFormat?: string;
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJob#properties
    */
@@ -7840,35 +10775,35 @@ export function toJson_WorkflowTemplateSpecForProviderJobsPrestoJob(obj: Workflo
  */
 export interface WorkflowTemplateSpecForProviderJobsPysparkJob {
   /**
-   * Optional. HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#archiveUris
    */
   readonly archiveUris?: string[];
 
   /**
-   * Optional. The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#args
    */
   readonly args?: string[];
 
   /**
-   * Optional. HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#fileUris
    */
   readonly fileUris?: string[];
 
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#loggingConfig
    */
@@ -7879,17 +10814,17 @@ export interface WorkflowTemplateSpecForProviderJobsPysparkJob {
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#mainPythonFileUri
    */
-  readonly mainPythonFileUri: string;
+  readonly mainPythonFileUri?: string;
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#properties
    */
   readonly properties?: { [key: string]: string };
 
   /**
-   * Optional. HCFS file URIs of Python files to pass to the PySpark framework. Supported file types: .py, .egg, and .zip.
+   * HCFS file URIs of Python files to pass to the PySpark framework. Supported file types: .py, .egg, and .zip.
    *
    * @schema WorkflowTemplateSpecForProviderJobsPysparkJob#pythonFileUris
    */
@@ -7923,14 +10858,14 @@ export function toJson_WorkflowTemplateSpecForProviderJobsPysparkJob(obj: Workfl
  */
 export interface WorkflowTemplateSpecForProviderJobsScheduling {
   /**
-   * Optional. Maximum number of times per hour a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. A job may be reported as thrashing if driver exits with non-zero code 4 times within 10 minute window. Maximum value is 10.
+   * Maximum number of times per hour a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. A job may be reported as thrashing if driver exits with non-zero code 4 times within 10 minute window. Maximum value is 10.
    *
    * @schema WorkflowTemplateSpecForProviderJobsScheduling#maxFailuresPerHour
    */
   readonly maxFailuresPerHour?: number;
 
   /**
-   * Optional. Maximum number of times in total a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. Maximum value is 240
+   * Maximum number of times in total a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. Maximum value is 240
    *
    * @schema WorkflowTemplateSpecForProviderJobsScheduling#maxFailuresTotal
    */
@@ -7958,35 +10893,35 @@ export function toJson_WorkflowTemplateSpecForProviderJobsScheduling(obj: Workfl
  */
 export interface WorkflowTemplateSpecForProviderJobsSparkJob {
   /**
-   * Optional. HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#archiveUris
    */
   readonly archiveUris?: string[];
 
   /**
-   * Optional. The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#args
    */
   readonly args?: string[];
 
   /**
-   * Optional. HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#fileUris
    */
   readonly fileUris?: string[];
 
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#loggingConfig
    */
@@ -8007,7 +10942,7 @@ export interface WorkflowTemplateSpecForProviderJobsSparkJob {
   readonly mainJarFileUri?: string;
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkJob#properties
    */
@@ -8041,28 +10976,28 @@ export function toJson_WorkflowTemplateSpecForProviderJobsSparkJob(obj: Workflow
  */
 export interface WorkflowTemplateSpecForProviderJobsSparkRJob {
   /**
-   * Optional. HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#archiveUris
    */
   readonly archiveUris?: string[];
 
   /**
-   * Optional. The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#args
    */
   readonly args?: string[];
 
   /**
-   * Optional. HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#fileUris
    */
   readonly fileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#loggingConfig
    */
@@ -8073,10 +11008,10 @@ export interface WorkflowTemplateSpecForProviderJobsSparkRJob {
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#mainRFileUri
    */
-  readonly mainRFileUri: string;
+  readonly mainRFileUri?: string;
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkRJob#properties
    */
@@ -8108,21 +11043,21 @@ export function toJson_WorkflowTemplateSpecForProviderJobsSparkRJob(obj: Workflo
  */
 export interface WorkflowTemplateSpecForProviderJobsSparkSqlJob {
   /**
-   * Optional. HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkSqlJob#jarFileUris
    */
   readonly jarFileUris?: string[];
 
   /**
-   * Optional. The runtime log config for job execution.
+   * The runtime log config for job execution.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkSqlJob#loggingConfig
    */
   readonly loggingConfig?: WorkflowTemplateSpecForProviderJobsSparkSqlJobLoggingConfig[];
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkSqlJob#properties
    */
@@ -8143,7 +11078,7 @@ export interface WorkflowTemplateSpecForProviderJobsSparkSqlJob {
   readonly queryList?: WorkflowTemplateSpecForProviderJobsSparkSqlJobQueryList[];
 
   /**
-   * Optional. Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkSqlJob#scriptVariables
    */
@@ -8214,10 +11149,10 @@ export interface WorkflowTemplateSpecForProviderPlacementClusterSelector {
    *
    * @schema WorkflowTemplateSpecForProviderPlacementClusterSelector#clusterLabels
    */
-  readonly clusterLabels: { [key: string]: string };
+  readonly clusterLabels?: { [key: string]: string };
 
   /**
-   * Optional. The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
+   * The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
    *
    * @schema WorkflowTemplateSpecForProviderPlacementClusterSelector#zone
    */
@@ -8249,17 +11184,17 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedCluster {
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedCluster#clusterName
    */
-  readonly clusterName: string;
+  readonly clusterName?: string;
 
   /**
    * Required. The cluster configuration.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedCluster#config
    */
-  readonly config: WorkflowTemplateSpecForProviderPlacementManagedClusterConfig[];
+  readonly config?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfig[];
 
   /**
-   * Optional. The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
+   * The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedCluster#labels
    */
@@ -8276,6 +11211,754 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedCluster(ob
   const result = {
     'clusterName': obj.clusterName,
     'config': obj.config?.map(y => toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsHadoopJob {
+  /**
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig[];
+
+  /**
+   * The name of the driver's main class. The jar file that contains the class must be in the default CLASSPATH or specified in jar_file_uris.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#mainClass
+   */
+  readonly mainClass?: string;
+
+  /**
+   * The HCFS URI of the jar file that contains the main class.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#mainJarFileUri
+   */
+  readonly mainJarFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsHadoopJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsHadoopJob(obj: WorkflowTemplateSpecInitProviderJobsHadoopJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig(y)),
+    'mainClass': obj.mainClass,
+    'mainJarFileUri': obj.mainJarFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsHiveJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsHiveJob {
+  /**
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * A list of queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#queryList
+   */
+  readonly queryList?: WorkflowTemplateSpecInitProviderJobsHiveJobQueryList[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJob#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsHiveJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsHiveJob(obj: WorkflowTemplateSpecInitProviderJobsHiveJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'continueOnFailure': obj.continueOnFailure,
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsHiveJobQueryList(y)),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPigJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPigJob {
+  /**
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig[];
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * A list of queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#queryList
+   */
+  readonly queryList?: WorkflowTemplateSpecInitProviderJobsPigJobQueryList[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJob#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPigJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPigJob(obj: WorkflowTemplateSpecInitProviderJobsPigJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'continueOnFailure': obj.continueOnFailure,
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig(y)),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPigJobQueryList(y)),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPrestoJob {
+  /**
+   * Presto client tags to attach to this query
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#clientTags
+   */
+  readonly clientTags?: string[];
+
+  /**
+   * Whether to continue executing queries if a query fails. The default value is false. Setting to true can be useful when executing independent parallel queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#continueOnFailure
+   */
+  readonly continueOnFailure?: boolean;
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig[];
+
+  /**
+   * The format in which query output will be displayed. See the Presto documentation for supported output formats
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#outputFormat
+   */
+  readonly outputFormat?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * A list of queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJob#queryList
+   */
+  readonly queryList?: WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPrestoJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPrestoJob(obj: WorkflowTemplateSpecInitProviderJobsPrestoJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientTags': obj.clientTags?.map(y => y),
+    'continueOnFailure': obj.continueOnFailure,
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig(y)),
+    'outputFormat': obj.outputFormat,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPysparkJob {
+  /**
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig[];
+
+  /**
+   * Required. The HCFS URI of the main Python file to use as the driver. Must be a .py file.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#mainPythonFileUri
+   */
+  readonly mainPythonFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * HCFS file URIs of Python files to pass to the PySpark framework. Supported file types: .py, .egg, and .zip.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJob#pythonFileUris
+   */
+  readonly pythonFileUris?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPysparkJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPysparkJob(obj: WorkflowTemplateSpecInitProviderJobsPysparkJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig(y)),
+    'mainPythonFileUri': obj.mainPythonFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'pythonFileUris': obj.pythonFileUris?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsScheduling
+ */
+export interface WorkflowTemplateSpecInitProviderJobsScheduling {
+  /**
+   * Maximum number of times per hour a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. A job may be reported as thrashing if driver exits with non-zero code 4 times within 10 minute window. Maximum value is 10.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsScheduling#maxFailuresPerHour
+   */
+  readonly maxFailuresPerHour?: number;
+
+  /**
+   * Maximum number of times in total a driver may be restarted as a result of driver exiting with non-zero code before job is reported failed. Maximum value is 240
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsScheduling#maxFailuresTotal
+   */
+  readonly maxFailuresTotal?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsScheduling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsScheduling(obj: WorkflowTemplateSpecInitProviderJobsScheduling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxFailuresPerHour': obj.maxFailuresPerHour,
+    'maxFailuresTotal': obj.maxFailuresTotal,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkJob {
+  /**
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig[];
+
+  /**
+   * The name of the driver's main class. The jar file that contains the class must be in the default CLASSPATH or specified in jar_file_uris.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#mainClass
+   */
+  readonly mainClass?: string;
+
+  /**
+   * The HCFS URI of the jar file that contains the main class.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#mainJarFileUri
+   */
+  readonly mainJarFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkJob(obj: WorkflowTemplateSpecInitProviderJobsSparkJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig(y)),
+    'mainClass': obj.mainClass,
+    'mainJarFileUri': obj.mainJarFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkRJob {
+  /**
+   * HCFS URIs of archives to be extracted into the working directory of each executor. Supported file types: .jar, .tar, .tar.gz, .tgz, and .zip.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#archiveUris
+   */
+  readonly archiveUris?: string[];
+
+  /**
+   * The arguments to pass to the driver. Do not include arguments, such as --conf, that can be set as job properties, since a collision may occur that causes an incorrect job submission.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#args
+   */
+  readonly args?: string[];
+
+  /**
+   * HCFS URIs of files to be placed in the working directory of each executor. Useful for naively parallel tasks.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#fileUris
+   */
+  readonly fileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig[];
+
+  /**
+   * Required. The HCFS URI of the main R file to use as the driver. Must be a .R file.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#mainRFileUri
+   */
+  readonly mainRFileUri?: string;
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkRJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkRJob(obj: WorkflowTemplateSpecInitProviderJobsSparkRJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveUris': obj.archiveUris?.map(y => y),
+    'args': obj.args?.map(y => y),
+    'fileUris': obj.fileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig(y)),
+    'mainRFileUri': obj.mainRFileUri,
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkSqlJob {
+  /**
+   * HCFS URIs of jar files to be added to the Spark CLASSPATH.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#jarFileUris
+   */
+  readonly jarFileUris?: string[];
+
+  /**
+   * The runtime log config for job execution.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#loggingConfig
+   */
+  readonly loggingConfig?: WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig[];
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+  /**
+   * The HCFS URI of the script that contains SQL queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#queryFileUri
+   */
+  readonly queryFileUri?: string;
+
+  /**
+   * A list of queries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#queryList
+   */
+  readonly queryList?: WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList[];
+
+  /**
+   * Mapping of query variable names to values (equivalent to the Spark SQL command: SET name="value";).
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJob#scriptVariables
+   */
+  readonly scriptVariables?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkSqlJob' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJob(obj: WorkflowTemplateSpecInitProviderJobsSparkSqlJob | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jarFileUris': obj.jarFileUris?.map(y => y),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig(y)),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'queryFileUri': obj.queryFileUri,
+    'queryList': obj.queryList?.map(y => toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList(y)),
+    'scriptVariables': ((obj.scriptVariables) === undefined) ? undefined : (Object.entries(obj.scriptVariables).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderParametersValidation
+ */
+export interface WorkflowTemplateSpecInitProviderParametersValidation {
+  /**
+   * Validation based on regular expressions.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParametersValidation#regex
+   */
+  readonly regex?: WorkflowTemplateSpecInitProviderParametersValidationRegex[];
+
+  /**
+   * Required. List of allowed values for the parameter.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParametersValidation#values
+   */
+  readonly values?: WorkflowTemplateSpecInitProviderParametersValidationValues[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderParametersValidation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderParametersValidation(obj: WorkflowTemplateSpecInitProviderParametersValidation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'regex': obj.regex?.map(y => toJson_WorkflowTemplateSpecInitProviderParametersValidationRegex(y)),
+    'values': obj.values?.map(y => toJson_WorkflowTemplateSpecInitProviderParametersValidationValues(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementClusterSelector
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementClusterSelector {
+  /**
+   * Required. The cluster labels. Cluster must have all labels to match.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementClusterSelector#clusterLabels
+   */
+  readonly clusterLabels?: { [key: string]: string };
+
+  /**
+   * The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementClusterSelector#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementClusterSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementClusterSelector(obj: WorkflowTemplateSpecInitProviderPlacementClusterSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterLabels': ((obj.clusterLabels) === undefined) ? undefined : (Object.entries(obj.clusterLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedCluster
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedCluster {
+  /**
+   * Required. The cluster name prefix. A unique cluster name will be formed by appending a random suffix. The name must contain only lower-case letters (a-z), numbers (0-9), and hyphens (-). Must begin with a letter. Cannot begin or end with hyphen. Must consist of between 2 and 35 characters.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedCluster#clusterName
+   */
+  readonly clusterName?: string;
+
+  /**
+   * Required. The cluster configuration.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedCluster#config
+   */
+  readonly config?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig[];
+
+  /**
+   * The labels to associate with this cluster. Label keys must be between 1 and 63 characters long, and must conform to the following PCRE regular expression: {0,63} No more than 32 labels can be associated with a given cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedCluster#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedCluster' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedCluster(obj: WorkflowTemplateSpecInitProviderPlacementManagedCluster | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterName': obj.clusterName,
+    'config': obj.config?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig(y)),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
   };
   // filter undefined values
@@ -8301,30 +11984,6 @@ export enum WorkflowTemplateSpecProviderConfigRefPolicyResolution {
  * @schema WorkflowTemplateSpecProviderConfigRefPolicyResolve
  */
 export enum WorkflowTemplateSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkflowTemplateSpecProviderRefPolicyResolution
- */
-export enum WorkflowTemplateSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkflowTemplateSpecProviderRefPolicyResolve
- */
-export enum WorkflowTemplateSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8404,7 +12063,7 @@ export interface WorkflowTemplateSpecForProviderJobsHiveJobQueryList {
    *
    * @schema WorkflowTemplateSpecForProviderJobsHiveJobQueryList#queries
    */
-  readonly queries: string[];
+  readonly queries?: string[];
 
 }
 
@@ -8458,7 +12117,7 @@ export interface WorkflowTemplateSpecForProviderJobsPigJobQueryList {
    *
    * @schema WorkflowTemplateSpecForProviderJobsPigJobQueryList#queries
    */
-  readonly queries: string[];
+  readonly queries?: string[];
 
 }
 
@@ -8512,7 +12171,7 @@ export interface WorkflowTemplateSpecForProviderJobsPrestoJobQueryList {
    *
    * @schema WorkflowTemplateSpecForProviderJobsPrestoJobQueryList#queries
    */
-  readonly queries: string[];
+  readonly queries?: string[];
 
 }
 
@@ -8647,7 +12306,7 @@ export interface WorkflowTemplateSpecForProviderJobsSparkSqlJobQueryList {
    *
    * @schema WorkflowTemplateSpecForProviderJobsSparkSqlJobQueryList#queries
    */
-  readonly queries: string[];
+  readonly queries?: string[];
 
 }
 
@@ -8674,7 +12333,7 @@ export interface WorkflowTemplateSpecForProviderParametersValidationRegex {
    *
    * @schema WorkflowTemplateSpecForProviderParametersValidationRegex#regexes
    */
-  readonly regexes: string[];
+  readonly regexes?: string[];
 
 }
 
@@ -8701,7 +12360,7 @@ export interface WorkflowTemplateSpecForProviderParametersValidationValues {
    *
    * @schema WorkflowTemplateSpecForProviderParametersValidationValues#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -8724,91 +12383,91 @@ export function toJson_WorkflowTemplateSpecForProviderParametersValidationValues
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfig {
   /**
-   * Optional. Autoscaling config for the policy associated with the cluster. Cluster does not autoscale if this field is unset.
+   * Autoscaling config for the policy associated with the cluster. Cluster does not autoscale if this field is unset.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#autoscalingConfig
    */
   readonly autoscalingConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigAutoscalingConfig[];
 
   /**
-   * Optional. Encryption settings for the cluster.
+   * Encryption settings for the cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#encryptionConfig
    */
   readonly encryptionConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEncryptionConfig[];
 
   /**
-   * Optional. Port/endpoint configuration for this cluster
+   * Port/endpoint configuration for this cluster
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#endpointConfig
    */
   readonly endpointConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEndpointConfig[];
 
   /**
-   * Optional. The shared Compute Engine config settings for all instances in a cluster.
+   * The shared Compute Engine config settings for all instances in a cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#gceClusterConfig
    */
   readonly gceClusterConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig[];
 
   /**
-   * Optional. Commands to execute on each node after config is completed. By default, executables are run on master and all worker nodes. You can test a node's role metadata to run an executable on a master or worker node, as shown below using curl (you can also use wget): ROLE=$(curl -H Metadata-Flavor:Google http://metadata/computeMetadata/v1/instance/attributes/dataproc-role) if ; then ... master specific actions ... else ... worker specific actions ... fi
+   * Commands to execute on each node after config is completed. By default, executables are run on master and all worker nodes. You can test a node's role metadata to run an executable on a master or worker node, as shown below using curl (you can also use wget): ROLE=$(curl -H Metadata-Flavor:Google http://metadata/computeMetadata/v1/instance/attributes/dataproc-role) if ; then ... master specific actions ... else ... worker specific actions ... fi
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#initializationActions
    */
   readonly initializationActions?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigInitializationActions[];
 
   /**
-   * Optional. Lifecycle setting for the cluster.
+   * Lifecycle setting for the cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#lifecycleConfig
    */
   readonly lifecycleConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigLifecycleConfig[];
 
   /**
-   * Optional. The Compute Engine config settings for additional worker instances in a cluster.
+   * The Compute Engine config settings for additional worker instances in a cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#masterConfig
    */
   readonly masterConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig[];
 
   /**
-   * Optional. The Compute Engine config settings for additional worker instances in a cluster.
+   * The Compute Engine config settings for additional worker instances in a cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#secondaryWorkerConfig
    */
   readonly secondaryWorkerConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig[];
 
   /**
-   * Optional. Security settings for the cluster.
+   * Security settings for the cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#securityConfig
    */
   readonly securityConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfig[];
 
   /**
-   * Optional. The config settings for software inside the cluster.
+   * The config settings for software inside the cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#softwareConfig
    */
   readonly softwareConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSoftwareConfig[];
 
   /**
-   * Optional. A Cloud Storage bucket used to stage job dependencies, config files, and job driver console output. If you do not specify a staging bucket, Cloud Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's staging bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket (see (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/staging-bucket)).
+   * A Cloud Storage bucket used to stage job dependencies, config files, and job driver console output. If you do not specify a staging bucket, Cloud Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's staging bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket (see (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/staging-bucket)).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#stagingBucket
    */
   readonly stagingBucket?: string;
 
   /**
-   * Optional. A Cloud Storage bucket used to store ephemeral cluster and jobs data, such as Spark and MapReduce history files. If you do not specify a temp bucket, Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's temp bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket. The default bucket has a TTL of 90 days, but you can use any TTL (or none) if you specify a bucket.
+   * A Cloud Storage bucket used to store ephemeral cluster and jobs data, such as Spark and MapReduce history files. If you do not specify a temp bucket, Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's temp bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket. The default bucket has a TTL of 90 days, but you can use any TTL (or none) if you specify a bucket.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#tempBucket
    */
   readonly tempBucket?: string;
 
   /**
-   * Optional. The Compute Engine config settings for additional worker instances in a cluster.
+   * The Compute Engine config settings for additional worker instances in a cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfig#workerConfig
    */
@@ -8836,6 +12495,480 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
     'stagingBucket': obj.stagingBucket,
     'tempBucket': obj.tempBucket,
     'workerConfig': obj.workerConfig?.map(y => toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsHadoopJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsHiveJobQueryList
+ */
+export interface WorkflowTemplateSpecInitProviderJobsHiveJobQueryList {
+  /**
+   * Required. The queries to execute. You do not need to end a query expression with a semicolon. Multiple queries can be specified in one string by separating each with a semicolon. Here is an example of a Dataproc API snippet that uses a QueryList to specify a HiveJob: "hiveJob": { "queryList": { "queries": } }
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsHiveJobQueryList#queries
+   */
+  readonly queries?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsHiveJobQueryList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsHiveJobQueryList(obj: WorkflowTemplateSpecInitProviderJobsHiveJobQueryList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queries': obj.queries?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsPigJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPigJobQueryList
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPigJobQueryList {
+  /**
+   * Required. The queries to execute. You do not need to end a query expression with a semicolon. Multiple queries can be specified in one string by separating each with a semicolon. Here is an example of a Dataproc API snippet that uses a QueryList to specify a HiveJob: "hiveJob": { "queryList": { "queries": } }
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPigJobQueryList#queries
+   */
+  readonly queries?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPigJobQueryList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPigJobQueryList(obj: WorkflowTemplateSpecInitProviderJobsPigJobQueryList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queries': obj.queries?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsPrestoJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList {
+  /**
+   * Required. The queries to execute. You do not need to end a query expression with a semicolon. Multiple queries can be specified in one string by separating each with a semicolon. Here is an example of a Dataproc API snippet that uses a QueryList to specify a HiveJob: "hiveJob": { "queryList": { "queries": } }
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList#queries
+   */
+  readonly queries?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList(obj: WorkflowTemplateSpecInitProviderJobsPrestoJobQueryList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queries': obj.queries?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsPysparkJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsSparkJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsSparkRJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig {
+  /**
+   * The per-package log levels for the driver. This may include "root" package name to configure rootLogger. Examples: 'com.google = FATAL', 'root = INFO', 'org.apache = DEBUG'
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig#driverLogLevels
+   */
+  readonly driverLogLevels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig(obj: WorkflowTemplateSpecInitProviderJobsSparkSqlJobLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'driverLogLevels': ((obj.driverLogLevels) === undefined) ? undefined : (Object.entries(obj.driverLogLevels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList
+ */
+export interface WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList {
+  /**
+   * Required. The queries to execute. You do not need to end a query expression with a semicolon. Multiple queries can be specified in one string by separating each with a semicolon. Here is an example of a Dataproc API snippet that uses a QueryList to specify a HiveJob: "hiveJob": { "queryList": { "queries": } }
+   *
+   * @schema WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList#queries
+   */
+  readonly queries?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList(obj: WorkflowTemplateSpecInitProviderJobsSparkSqlJobQueryList | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'queries': obj.queries?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderParametersValidationRegex
+ */
+export interface WorkflowTemplateSpecInitProviderParametersValidationRegex {
+  /**
+   * Required. RE2 regular expressions used to validate the parameter's value. The value must match the regex in its entirety (substring matches are not sufficient).
+   *
+   * @schema WorkflowTemplateSpecInitProviderParametersValidationRegex#regexes
+   */
+  readonly regexes?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderParametersValidationRegex' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderParametersValidationRegex(obj: WorkflowTemplateSpecInitProviderParametersValidationRegex | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'regexes': obj.regexes?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderParametersValidationValues
+ */
+export interface WorkflowTemplateSpecInitProviderParametersValidationValues {
+  /**
+   * Required. List of allowed values for the parameter.
+   *
+   * @schema WorkflowTemplateSpecInitProviderParametersValidationValues#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderParametersValidationValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderParametersValidationValues(obj: WorkflowTemplateSpecInitProviderParametersValidationValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig {
+  /**
+   * Autoscaling config for the policy associated with the cluster. Cluster does not autoscale if this field is unset.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#autoscalingConfig
+   */
+  readonly autoscalingConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig[];
+
+  /**
+   * Encryption settings for the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#encryptionConfig
+   */
+  readonly encryptionConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig[];
+
+  /**
+   * Port/endpoint configuration for this cluster
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#endpointConfig
+   */
+  readonly endpointConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig[];
+
+  /**
+   * The shared Compute Engine config settings for all instances in a cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#gceClusterConfig
+   */
+  readonly gceClusterConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig[];
+
+  /**
+   * Commands to execute on each node after config is completed. By default, executables are run on master and all worker nodes. You can test a node's role metadata to run an executable on a master or worker node, as shown below using curl (you can also use wget): ROLE=$(curl -H Metadata-Flavor:Google http://metadata/computeMetadata/v1/instance/attributes/dataproc-role) if ; then ... master specific actions ... else ... worker specific actions ... fi
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#initializationActions
+   */
+  readonly initializationActions?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions[];
+
+  /**
+   * Lifecycle setting for the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#lifecycleConfig
+   */
+  readonly lifecycleConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig[];
+
+  /**
+   * The Compute Engine config settings for additional worker instances in a cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#masterConfig
+   */
+  readonly masterConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig[];
+
+  /**
+   * The Compute Engine config settings for additional worker instances in a cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#secondaryWorkerConfig
+   */
+  readonly secondaryWorkerConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig[];
+
+  /**
+   * Security settings for the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#securityConfig
+   */
+  readonly securityConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig[];
+
+  /**
+   * The config settings for software inside the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#softwareConfig
+   */
+  readonly softwareConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig[];
+
+  /**
+   * A Cloud Storage bucket used to stage job dependencies, config files, and job driver console output. If you do not specify a staging bucket, Cloud Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's staging bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket (see (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/staging-bucket)).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#stagingBucket
+   */
+  readonly stagingBucket?: string;
+
+  /**
+   * A Cloud Storage bucket used to store ephemeral cluster and jobs data, such as Spark and MapReduce history files. If you do not specify a temp bucket, Dataproc will determine a Cloud Storage location (US, ASIA, or EU) for your cluster's temp bucket according to the Compute Engine zone where your cluster is deployed, and then create and manage this project-level, per-location bucket. The default bucket has a TTL of 90 days, but you can use any TTL (or none) if you specify a bucket.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#tempBucket
+   */
+  readonly tempBucket?: string;
+
+  /**
+   * The Compute Engine config settings for additional worker instances in a cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig#workerConfig
+   */
+  readonly workerConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoscalingConfig': obj.autoscalingConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig(y)),
+    'encryptionConfig': obj.encryptionConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig(y)),
+    'endpointConfig': obj.endpointConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig(y)),
+    'gceClusterConfig': obj.gceClusterConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig(y)),
+    'initializationActions': obj.initializationActions?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions(y)),
+    'lifecycleConfig': obj.lifecycleConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig(y)),
+    'masterConfig': obj.masterConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig(y)),
+    'secondaryWorkerConfig': obj.secondaryWorkerConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig(y)),
+    'securityConfig': obj.securityConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig(y)),
+    'softwareConfig': obj.softwareConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig(y)),
+    'stagingBucket': obj.stagingBucket,
+    'tempBucket': obj.tempBucket,
+    'workerConfig': obj.workerConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8871,7 +13004,7 @@ export enum WorkflowTemplateSpecPublishConnectionDetailsToConfigRefPolicyResolve
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigAutoscalingConfig {
   /**
-   * Optional. The autoscaling policy used by the cluster. Only resource names including projectid and location (region) are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ Note that the policy must be in the same project and Dataproc region.
+   * The autoscaling policy used by the cluster. Only resource names including projectid and location (region) are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ Note that the policy must be in the same project and Dataproc region.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigAutoscalingConfig#policy
    */
@@ -8898,7 +13031,7 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEncryptionConfig {
   /**
-   * Optional. The Cloud KMS key name to use for PD disk encryption for all instances in the cluster.
+   * The Cloud KMS key name to use for PD disk encryption for all instances in the cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEncryptionConfig#gcePdKmsKeyName
    */
@@ -8925,7 +13058,7 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEndpointConfig {
   /**
-   * Optional. If true, enable http access to specific ports on the cluster from external sources. Defaults to false.
+   * If true, enable http access to specific ports on the cluster from external sources. Defaults to false.
    *
    * @default false.
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigEndpointConfig#enableHttpPortAccess
@@ -8953,7 +13086,7 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig {
   /**
-   * Optional. If true, all instances in the cluster will only have internal IP addresses. By default, clusters are not restricted to internal IP addresses, and will have ephemeral external IP addresses assigned to each instance. This internal_ip_only restriction can only be enabled for subnetwork enabled networks, and all off-cluster dependencies must be configured to be accessible without external IP addresses.
+   * If true, all instances in the cluster will only have internal IP addresses. By default, clusters are not restricted to internal IP addresses, and will have ephemeral external IP addresses assigned to each instance. This internal_ip_only restriction can only be enabled for subnetwork enabled networks, and all off-cluster dependencies must be configured to be accessible without external IP addresses.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#internalIpOnly
    */
@@ -8967,56 +13100,56 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGce
   readonly metadata?: { [key: string]: string };
 
   /**
-   * Optional. The Compute Engine network to be used for machine communications. Cannot be specified with subnetwork_uri. If neither network_uri nor subnetwork_uri is specified, the "default" network of the project is used, if it exists. Cannot be a "Custom Subnet Network" (see /regions/global/default*default`
+   * The Compute Engine network to be used for machine communications. Cannot be specified with subnetwork_uri. If neither network_uri nor subnetwork_uri is specified, the "default" network of the project is used, if it exists. Cannot be a "Custom Subnet Network" (see /regions/global/default*default`
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#network
    */
   readonly network?: string;
 
   /**
-   * Optional. Node Group Affinity for sole-tenant clusters.
+   * Node Group Affinity for sole-tenant clusters.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#nodeGroupAffinity
    */
   readonly nodeGroupAffinity?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity[];
 
   /**
-   * Optional. The type of IPv6 access for a cluster. Possible values: PRIVATE_IPV6_GOOGLE_ACCESS_UNSPECIFIED, INHERIT_FROM_SUBNETWORK, OUTBOUND, BIDIRECTIONAL
+   * The type of IPv6 access for a cluster. Possible values: PRIVATE_IPV6_GOOGLE_ACCESS_UNSPECIFIED, INHERIT_FROM_SUBNETWORK, OUTBOUND, BIDIRECTIONAL
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#privateIpv6GoogleAccess
    */
   readonly privateIpv6GoogleAccess?: string;
 
   /**
-   * Optional. Reservation Affinity for consuming Zonal reservation.
+   * Reservation Affinity for consuming Zonal reservation.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#reservationAffinity
    */
   readonly reservationAffinity?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity[];
 
   /**
-   * Optional. The (https://cloud.google.com/compute/docs/access/service-accounts#default_service_account) is used.
+   * The (https://cloud.google.com/compute/docs/access/service-accounts#default_service_account) is used.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#serviceAccount
    */
   readonly serviceAccount?: string;
 
   /**
-   * Optional. The URIs of service account scopes to be included in Compute Engine instances. The following base set of scopes is always included: * https://www.googleapis.com/auth/cloud.useraccounts.readonly * https://www.googleapis.com/auth/devstorage.read_write * https://www.googleapis.com/auth/logging.write If no scopes are specified, the following defaults are also provided: * https://www.googleapis.com/auth/bigquery * https://www.googleapis.com/auth/bigtable.admin.table * https://www.googleapis.com/auth/bigtable.data * https://www.googleapis.com/auth/devstorage.full_control
+   * The URIs of service account scopes to be included in Compute Engine instances. The following base set of scopes is always included: * https://www.googleapis.com/auth/cloud.useraccounts.readonly * https://www.googleapis.com/auth/devstorage.read_write * https://www.googleapis.com/auth/logging.write If no scopes are specified, the following defaults are also provided: * https://www.googleapis.com/auth/bigquery * https://www.googleapis.com/auth/bigtable.admin.table * https://www.googleapis.com/auth/bigtable.data * https://www.googleapis.com/auth/devstorage.full_control
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#serviceAccountScopes
    */
   readonly serviceAccountScopes?: string[];
 
   /**
-   * Optional. Shielded Instance Config for clusters using Compute Engine Shielded VMs. Structure defined below.
+   * Shielded Instance Config for clusters using Compute Engine Shielded VMs. Structure defined below.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#shieldedInstanceConfig
    */
   readonly shieldedInstanceConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig[];
 
   /**
-   * Optional. The Compute Engine subnetwork to be used for machine communications. Cannot be specified with network_uri. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects//regions/us-east1/subnetworks/sub0 * sub0
+   * The Compute Engine subnetwork to be used for machine communications. Cannot be specified with network_uri. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects//regions/us-east1/subnetworks/sub0 * sub0
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#subnetwork
    */
@@ -9030,7 +13163,7 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGce
   readonly tags?: string[];
 
   /**
-   * Optional. The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
+   * The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfig#zone
    */
@@ -9075,7 +13208,7 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigIni
   readonly executableFile?: string;
 
   /**
-   * Optional. Amount of time executable has to complete. Default is 10 minutes (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)). Cluster creation fails with an explanatory error message (the name of the executable that caused the error and the exceeded timeout period) if the executable is not completed at end of the timeout period.
+   * Amount of time executable has to complete. Default is 10 minutes (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)). Cluster creation fails with an explanatory error message (the name of the executable that caused the error and the exceeded timeout period) if the executable is not completed at end of the timeout period.
    *
    * @default 10 minutes (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)). Cluster creation fails with an explanatory error message (the name of the executable that caused the error and the exceeded timeout period) if the executable is not completed at end of the timeout period.
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigInitializationActions#executionTimeout
@@ -9104,21 +13237,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigLifecycleConfig {
   /**
-   * Optional. The time when cluster will be auto-deleted (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+   * The time when cluster will be auto-deleted (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigLifecycleConfig#autoDeleteTime
    */
   readonly autoDeleteTime?: string;
 
   /**
-   * Optional. The lifetime duration of cluster. The cluster will be auto-deleted at the end of this period. Minimum value is 10 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+   * The lifetime duration of cluster. The cluster will be auto-deleted at the end of this period. Minimum value is 10 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigLifecycleConfig#autoDeleteTtl
    */
   readonly autoDeleteTtl?: string;
 
   /**
-   * Optional. The duration to keep the cluster alive while idling (when no jobs are running). Passing this threshold will cause the cluster to be deleted. Minimum value is 5 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json).
+   * The duration to keep the cluster alive while idling (when no jobs are running). Passing this threshold will cause the cluster to be deleted. Minimum value is 5 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigLifecycleConfig#idleDeleteTtl
    */
@@ -9147,49 +13280,49 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig {
   /**
-   * Optional. The Compute Engine accelerator configuration for these instances.
+   * The Compute Engine accelerator configuration for these instances.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#accelerators
    */
   readonly accelerators?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigAccelerators[];
 
   /**
-   * Optional. Disk option config settings.
+   * Disk option config settings.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#diskConfig
    */
   readonly diskConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigDiskConfig[];
 
   /**
-   * Optional. The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#image
    */
   readonly image?: string;
 
   /**
-   * Optional. The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#machineType
    */
   readonly machineType?: string;
 
   /**
-   * Optional. Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#minCpuPlatform
    */
   readonly minCpuPlatform?: string;
 
   /**
-   * Optional. The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#numInstances
    */
   readonly numInstances?: number;
 
   /**
-   * Optional. Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfig#preemptibility
    */
@@ -9222,49 +13355,49 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig {
   /**
-   * Optional. The Compute Engine accelerator configuration for these instances.
+   * The Compute Engine accelerator configuration for these instances.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#accelerators
    */
   readonly accelerators?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators[];
 
   /**
-   * Optional. Disk option config settings.
+   * Disk option config settings.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#diskConfig
    */
   readonly diskConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig[];
 
   /**
-   * Optional. The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#image
    */
   readonly image?: string;
 
   /**
-   * Optional. The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#machineType
    */
   readonly machineType?: string;
 
   /**
-   * Optional. Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#minCpuPlatform
    */
   readonly minCpuPlatform?: string;
 
   /**
-   * Optional. The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#numInstances
    */
   readonly numInstances?: number;
 
   /**
-   * Optional. Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfig#preemptibility
    */
@@ -9324,19 +13457,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSoftwareConfig {
   /**
-   * Optional. The version of software inside the cluster. It must be one of the supported (https://cloud.google.com/dataproc/docs/concepts/versioning/dataproc-versions#other_versions). If unspecified, it defaults to the latest Debian version.
+   * The version of software inside the cluster. It must be one of the supported Dataproc Versions, such as "1.2" (including a subminor version, such as "1.2.29"), or the "preview" version. If unspecified, it defaults to the latest Debian version.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSoftwareConfig#imageVersion
    */
   readonly imageVersion?: string;
 
   /**
+   * The set of components to activate on the cluster.
+   *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSoftwareConfig#optionalComponents
    */
   readonly optionalComponents?: string[];
 
   /**
-   * Optional. A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSoftwareConfig#properties
    */
@@ -9365,49 +13500,49 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig {
   /**
-   * Optional. The Compute Engine accelerator configuration for these instances.
+   * The Compute Engine accelerator configuration for these instances.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#accelerators
    */
   readonly accelerators?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigAccelerators[];
 
   /**
-   * Optional. Disk option config settings.
+   * Disk option config settings.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#diskConfig
    */
   readonly diskConfig?: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig[];
 
   /**
-   * Optional. The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#image
    */
   readonly image?: string;
 
   /**
-   * Optional. The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#machineType
    */
   readonly machineType?: string;
 
   /**
-   * Optional. Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#minCpuPlatform
    */
   readonly minCpuPlatform?: string;
 
   /**
-   * Optional. The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#numInstances
    */
   readonly numInstances?: number;
 
   /**
-   * Optional. Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfig#preemptibility
    */
@@ -9436,6 +13571,577 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig {
+  /**
+   * The autoscaling policy used by the cluster. Only resource names including projectid and location (region) are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ Note that the policy must be in the same project and Dataproc region.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig#policy
+   */
+  readonly policy?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigAutoscalingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policy': obj.policy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig {
+  /**
+   * The Cloud KMS key name to use for PD disk encryption for all instances in the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig#gcePdKmsKeyName
+   */
+  readonly gcePdKmsKeyName?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEncryptionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gcePdKmsKeyName': obj.gcePdKmsKeyName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig {
+  /**
+   * If true, enable http access to specific ports on the cluster from external sources. Defaults to false.
+   *
+   * @default false.
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig#enableHttpPortAccess
+   */
+  readonly enableHttpPortAccess?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigEndpointConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableHttpPortAccess': obj.enableHttpPortAccess,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig {
+  /**
+   * If true, all instances in the cluster will only have internal IP addresses. By default, clusters are not restricted to internal IP addresses, and will have ephemeral external IP addresses assigned to each instance. This internal_ip_only restriction can only be enabled for subnetwork enabled networks, and all off-cluster dependencies must be configured to be accessible without external IP addresses.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#internalIpOnly
+   */
+  readonly internalIpOnly?: boolean;
+
+  /**
+   * The Compute Engine metadata entries to add to all instances (see (https://cloud.google.com/compute/docs/storing-retrieving-metadata#project_and_instance_metadata)).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * The Compute Engine network to be used for machine communications. Cannot be specified with subnetwork_uri. If neither network_uri nor subnetwork_uri is specified, the "default" network of the project is used, if it exists. Cannot be a "Custom Subnet Network" (see /regions/global/default*default`
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#network
+   */
+  readonly network?: string;
+
+  /**
+   * Node Group Affinity for sole-tenant clusters.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#nodeGroupAffinity
+   */
+  readonly nodeGroupAffinity?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity[];
+
+  /**
+   * The type of IPv6 access for a cluster. Possible values: PRIVATE_IPV6_GOOGLE_ACCESS_UNSPECIFIED, INHERIT_FROM_SUBNETWORK, OUTBOUND, BIDIRECTIONAL
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#privateIpv6GoogleAccess
+   */
+  readonly privateIpv6GoogleAccess?: string;
+
+  /**
+   * Reservation Affinity for consuming Zonal reservation.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#reservationAffinity
+   */
+  readonly reservationAffinity?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity[];
+
+  /**
+   * The (https://cloud.google.com/compute/docs/access/service-accounts#default_service_account) is used.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * The URIs of service account scopes to be included in Compute Engine instances. The following base set of scopes is always included: * https://www.googleapis.com/auth/cloud.useraccounts.readonly * https://www.googleapis.com/auth/devstorage.read_write * https://www.googleapis.com/auth/logging.write If no scopes are specified, the following defaults are also provided: * https://www.googleapis.com/auth/bigquery * https://www.googleapis.com/auth/bigtable.admin.table * https://www.googleapis.com/auth/bigtable.data * https://www.googleapis.com/auth/devstorage.full_control
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#serviceAccountScopes
+   */
+  readonly serviceAccountScopes?: string[];
+
+  /**
+   * Shielded Instance Config for clusters using Compute Engine Shielded VMs. Structure defined below.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig[];
+
+  /**
+   * The Compute Engine subnetwork to be used for machine communications. Cannot be specified with network_uri. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects//regions/us-east1/subnetworks/sub0 * sub0
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#subnetwork
+   */
+  readonly subnetwork?: string;
+
+  /**
+   * The Compute Engine tags to add to all instances (see (https://cloud.google.com/compute/docs/label-or-tag-resources#tags)).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * The zone where the Compute Engine cluster will be located. On a create request, it is required in the "global" region. If omitted in a non-global Dataproc region, the service will pick a zone in the corresponding Compute Engine region. On a get request, zone will always be present. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/ * us-central1-f
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig#zone
+   */
+  readonly zone?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'internalIpOnly': obj.internalIpOnly,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'network': obj.network,
+    'nodeGroupAffinity': obj.nodeGroupAffinity?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity(y)),
+    'privateIpv6GoogleAccess': obj.privateIpv6GoogleAccess,
+    'reservationAffinity': obj.reservationAffinity?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity(y)),
+    'serviceAccount': obj.serviceAccount,
+    'serviceAccountScopes': obj.serviceAccountScopes?.map(y => y),
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig(y)),
+    'subnetwork': obj.subnetwork,
+    'tags': obj.tags?.map(y => y),
+    'zone': obj.zone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions {
+  /**
+   * Required. Cloud Storage URI of executable file.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions#executableFile
+   */
+  readonly executableFile?: string;
+
+  /**
+   * Amount of time executable has to complete. Default is 10 minutes (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)). Cluster creation fails with an explanatory error message (the name of the executable that caused the error and the exceeded timeout period) if the executable is not completed at end of the timeout period.
+   *
+   * @default 10 minutes (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)). Cluster creation fails with an explanatory error message (the name of the executable that caused the error and the exceeded timeout period) if the executable is not completed at end of the timeout period.
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions#executionTimeout
+   */
+  readonly executionTimeout?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigInitializationActions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executableFile': obj.executableFile,
+    'executionTimeout': obj.executionTimeout,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig {
+  /**
+   * The time when cluster will be auto-deleted (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig#autoDeleteTime
+   */
+  readonly autoDeleteTime?: string;
+
+  /**
+   * The lifetime duration of cluster. The cluster will be auto-deleted at the end of this period. Minimum value is 10 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json)).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig#autoDeleteTtl
+   */
+  readonly autoDeleteTtl?: string;
+
+  /**
+   * The duration to keep the cluster alive while idling (when no jobs are running). Passing this threshold will cause the cluster to be deleted. Minimum value is 5 minutes; maximum value is 14 days (see JSON representation of (https://developers.google.com/protocol-buffers/docs/proto3#json).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig#idleDeleteTtl
+   */
+  readonly idleDeleteTtl?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigLifecycleConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoDeleteTime': obj.autoDeleteTime,
+    'autoDeleteTtl': obj.autoDeleteTtl,
+    'idleDeleteTtl': obj.idleDeleteTtl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig {
+  /**
+   * The Compute Engine accelerator configuration for these instances.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#accelerators
+   */
+  readonly accelerators?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators[];
+
+  /**
+   * Disk option config settings.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#diskConfig
+   */
+  readonly diskConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig[];
+
+  /**
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#image
+   */
+  readonly image?: string;
+
+  /**
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+  /**
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig#preemptibility
+   */
+  readonly preemptibility?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accelerators': obj.accelerators?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators(y)),
+    'diskConfig': obj.diskConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig(y)),
+    'image': obj.image,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'numInstances': obj.numInstances,
+    'preemptibility': obj.preemptibility,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig {
+  /**
+   * The Compute Engine accelerator configuration for these instances.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#accelerators
+   */
+  readonly accelerators?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators[];
+
+  /**
+   * Disk option config settings.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#diskConfig
+   */
+  readonly diskConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig[];
+
+  /**
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#image
+   */
+  readonly image?: string;
+
+  /**
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+  /**
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig#preemptibility
+   */
+  readonly preemptibility?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accelerators': obj.accelerators?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators(y)),
+    'diskConfig': obj.diskConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig(y)),
+    'image': obj.image,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'numInstances': obj.numInstances,
+    'preemptibility': obj.preemptibility,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig {
+  /**
+   * Kerberos related configuration.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig#kerberosConfig
+   */
+  readonly kerberosConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kerberosConfig': obj.kerberosConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig {
+  /**
+   * The version of software inside the cluster. It must be one of the supported Dataproc Versions, such as "1.2" (including a subminor version, such as "1.2.29"), or the "preview" version. If unspecified, it defaults to the latest Debian version.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig#imageVersion
+   */
+  readonly imageVersion?: string;
+
+  /**
+   * The set of components to activate on the cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig#optionalComponents
+   */
+  readonly optionalComponents?: string[];
+
+  /**
+   * A mapping of property names to values, used to configure Spark SQL's SparkConf. Properties that conflict with values set by the Dataproc API may be overwritten.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig#properties
+   */
+  readonly properties?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSoftwareConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageVersion': obj.imageVersion,
+    'optionalComponents': obj.optionalComponents?.map(y => y),
+    'properties': ((obj.properties) === undefined) ? undefined : (Object.entries(obj.properties).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig {
+  /**
+   * The Compute Engine accelerator configuration for these instances.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#accelerators
+   */
+  readonly accelerators?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators[];
+
+  /**
+   * Disk option config settings.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#diskConfig
+   */
+  readonly diskConfig?: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig[];
+
+  /**
+   * The Compute Engine image resource used for cluster instances. The URI can represent an image or image family. Image examples: * https://www.googleapis.com/compute/beta/projects/ If the URI is unspecified, it will be inferred from SoftwareConfig.image_version or the system default.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#image
+   */
+  readonly image?: string;
+
+  /**
+   * The Compute Engine machine type used for cluster instances. A full URL, partial URI, or short name are valid. Examples: * https://www.googleapis.com/compute/v1/projects/(https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the machine type resource, for example, n1-standard-2`.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * Specifies the minimum cpu platform for the Instance Group. See (https://cloud.google.com/dataproc/docs/concepts/compute/dataproc-min-cpu).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * The number of VM instances in the instance group. For master instance groups, must be set to 1.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#numInstances
+   */
+  readonly numInstances?: number;
+
+  /**
+   * Specifies the preemptibility of the instance group. The default value for master and worker groups is NON_PREEMPTIBLE. This default cannot be changed. The default value for secondary instances is PREEMPTIBLE. Possible values: PREEMPTIBILITY_UNSPECIFIED, NON_PREEMPTIBLE, PREEMPTIBLE
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig#preemptibility
+   */
+  readonly preemptibility?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accelerators': obj.accelerators?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators(y)),
+    'diskConfig': obj.diskConfig?.map(y => toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig(y)),
+    'image': obj.image,
+    'machineType': obj.machineType,
+    'minCpuPlatform': obj.minCpuPlatform,
+    'numInstances': obj.numInstances,
+    'preemptibility': obj.preemptibility,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity {
@@ -9444,7 +14150,7 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGce
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity#nodeGroup
    */
-  readonly nodeGroup: string;
+  readonly nodeGroup?: string;
 
 }
 
@@ -9467,14 +14173,14 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity {
   /**
-   * Optional. Type of reservation to consume Possible values: TYPE_UNSPECIFIED, NO_RESERVATION, ANY_RESERVATION, SPECIFIC_RESERVATION
+   * Type of reservation to consume Possible values: TYPE_UNSPECIFIED, NO_RESERVATION, ANY_RESERVATION, SPECIFIC_RESERVATION
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity#consumeReservationType
    */
   readonly consumeReservationType?: string;
 
   /**
-   * Optional. Corresponds to the label key of reservation resource.
+   * Corresponds to the label key of reservation resource.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity#key
    */
@@ -9510,21 +14216,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig {
   /**
-   * Optional. Defines whether instances have Integrity Monitoring enabled.
+   * Defines whether instances have Integrity Monitoring enabled.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableIntegrityMonitoring
    */
   readonly enableIntegrityMonitoring?: boolean;
 
   /**
-   * Optional. Defines whether instances have Secure Boot enabled.
+   * Defines whether instances have Secure Boot enabled.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableSecureBoot
    */
   readonly enableSecureBoot?: boolean;
 
   /**
-   * Optional. Defines whether instances have the vTPM enabled.
+   * Defines whether instances have the vTPM enabled.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableVtpm
    */
@@ -9588,21 +14294,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigDiskConfig {
   /**
-   * Optional. Size in GB of the boot disk (default is 500GB).
+   * Size in GB of the boot disk (default is 500GB).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigDiskConfig#bootDiskSizeGb
    */
   readonly bootDiskSizeGb?: number;
 
   /**
-   * Optional. Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigDiskConfig#bootDiskType
    */
   readonly bootDiskType?: string;
 
   /**
-   * Optional. Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigMasterConfigDiskConfig#numLocalSsds
    */
@@ -9666,21 +14372,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig {
   /**
-   * Optional. Size in GB of the boot disk (default is 500GB).
+   * Size in GB of the boot disk (default is 500GB).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#bootDiskSizeGb
    */
   readonly bootDiskSizeGb?: number;
 
   /**
-   * Optional. Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#bootDiskType
    */
   readonly bootDiskType?: string;
 
   /**
-   * Optional. Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#numLocalSsds
    */
@@ -9709,105 +14415,105 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig {
   /**
-   * Optional. The admin server (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   * The admin server (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustAdminServer
    */
   readonly crossRealmTrustAdminServer?: string;
 
   /**
-   * Optional. The KDC (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   * The KDC (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustKdc
    */
   readonly crossRealmTrustKdc?: string;
 
   /**
-   * Optional. The remote realm the Dataproc on-cluster KDC will trust, should the user enable cross realm trust.
+   * The remote realm the Dataproc on-cluster KDC will trust, should the user enable cross realm trust.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustRealm
    */
   readonly crossRealmTrustRealm?: string;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the shared password between the on-cluster Kerberos realm and the remote trusted realm, in a cross realm trust relationship.
+   * The Cloud Storage URI of a KMS encrypted file containing the shared password between the on-cluster Kerberos realm and the remote trusted realm, in a cross realm trust relationship.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustSharedPassword
    */
   readonly crossRealmTrustSharedPassword?: string;
 
   /**
-   * Optional. Flag to indicate whether to Kerberize the cluster (default: false). Set this field to true to enable Kerberos on a cluster.
+   * Flag to indicate whether to Kerberize the cluster (default: false). Set this field to true to enable Kerberos on a cluster.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#enableKerberos
    */
   readonly enableKerberos?: boolean;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the master key of the KDC database.
+   * The Cloud Storage URI of a KMS encrypted file containing the master key of the KDC database.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#kdcDbKey
    */
   readonly kdcDbKey?: string;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the password to the user provided key. For the self-signed certificate, this password is generated by Dataproc.
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided key. For the self-signed certificate, this password is generated by Dataproc.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keyPassword
    */
   readonly keyPassword?: string;
 
   /**
-   * Optional. The Cloud Storage URI of the keystore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   * The Cloud Storage URI of the keystore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keystore
    */
   readonly keystore?: string;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the password to the user provided keystore. For the self-signed certificate, this password is generated by Dataproc.
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided keystore. For the self-signed certificate, this password is generated by Dataproc.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keystorePassword
    */
   readonly keystorePassword?: string;
 
   /**
-   * Optional. The uri of the KMS key used to encrypt various sensitive files.
+   * The uri of the KMS key used to encrypt various sensitive files.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#kmsKey
    */
   readonly kmsKey?: string;
 
   /**
-   * Optional. The name of the on-cluster Kerberos realm. If not specified, the uppercased domain of hostnames will be the realm.
+   * The name of the on-cluster Kerberos realm. If not specified, the uppercased domain of hostnames will be the realm.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#realm
    */
   readonly realm?: string;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the root principal password.
+   * The Cloud Storage URI of a KMS encrypted file containing the root principal password.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#rootPrincipalPassword
    */
   readonly rootPrincipalPassword?: string;
 
   /**
-   * Optional. The lifetime of the ticket granting ticket, in hours. If not specified, or user specifies 0, then default value 10 will be used.
+   * The lifetime of the ticket granting ticket, in hours. If not specified, or user specifies 0, then default value 10 will be used.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#tgtLifetimeHours
    */
   readonly tgtLifetimeHours?: number;
 
   /**
-   * Optional. The Cloud Storage URI of the truststore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   * The Cloud Storage URI of the truststore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#truststore
    */
   readonly truststore?: string;
 
   /**
-   * Optional. The Cloud Storage URI of a KMS encrypted file containing the password to the user provided truststore. For the self-signed certificate, this password is generated by Dataproc.
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided truststore. For the self-signed certificate, this password is generated by Dataproc.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#truststorePassword
    */
@@ -9883,21 +14589,21 @@ export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterCon
  */
 export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig {
   /**
-   * Optional. Size in GB of the boot disk (default is 500GB).
+   * Size in GB of the boot disk (default is 500GB).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#bootDiskSizeGb
    */
   readonly bootDiskSizeGb?: number;
 
   /**
-   * Optional. Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#bootDiskType
    */
   readonly bootDiskType?: string;
 
   /**
-   * Optional. Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
    *
    * @schema WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#numLocalSsds
    */
@@ -9910,6 +14616,492 @@ export interface WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWor
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig(obj: WorkflowTemplateSpecForProviderPlacementManagedClusterConfigWorkerConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity {
+  /**
+   * Required. The URI of a sole-tenant /zones/us-central1-a/nodeGroups/node-group-1*node-group-1`
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity#nodeGroup
+   */
+  readonly nodeGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigNodeGroupAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeGroup': obj.nodeGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity {
+  /**
+   * Type of reservation to consume Possible values: TYPE_UNSPECIFIED, NO_RESERVATION, ANY_RESERVATION, SPECIFIC_RESERVATION
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity#consumeReservationType
+   */
+  readonly consumeReservationType?: string;
+
+  /**
+   * Corresponds to the label key of reservation resource.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * Required. List of allowed values for the parameter.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigReservationAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumeReservationType': obj.consumeReservationType,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig {
+  /**
+   * Defines whether instances have Integrity Monitoring enabled.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines whether instances have Secure Boot enabled.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+  /**
+   * Defines whether instances have the vTPM enabled.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig#enableVtpm
+   */
+  readonly enableVtpm?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigGceClusterConfigShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+    'enableVtpm': obj.enableVtpm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators {
+  /**
+   * The number of the accelerator cards of this type exposed to this instance.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators#acceleratorCount
+   */
+  readonly acceleratorCount?: number;
+
+  /**
+   * Full URL, partial URI, or short name of the accelerator type resource to expose to this instance. See (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the accelerator type resource, for example, nvidia-tesla-k80.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigAccelerators | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorCount': obj.acceleratorCount,
+    'acceleratorType': obj.acceleratorType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig {
+  /**
+   * Size in GB of the boot disk (default is 500GB).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigMasterConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators {
+  /**
+   * The number of the accelerator cards of this type exposed to this instance.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators#acceleratorCount
+   */
+  readonly acceleratorCount?: number;
+
+  /**
+   * Full URL, partial URI, or short name of the accelerator type resource to expose to this instance. See (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the accelerator type resource, for example, nvidia-tesla-k80.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigAccelerators | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorCount': obj.acceleratorCount,
+    'acceleratorType': obj.acceleratorType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig {
+  /**
+   * Size in GB of the boot disk (default is 500GB).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecondaryWorkerConfigDiskConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskSizeGb': obj.bootDiskSizeGb,
+    'bootDiskType': obj.bootDiskType,
+    'numLocalSsds': obj.numLocalSsds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig {
+  /**
+   * The admin server (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustAdminServer
+   */
+  readonly crossRealmTrustAdminServer?: string;
+
+  /**
+   * The KDC (IP or hostname) for the remote trusted realm in a cross realm trust relationship.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustKdc
+   */
+  readonly crossRealmTrustKdc?: string;
+
+  /**
+   * The remote realm the Dataproc on-cluster KDC will trust, should the user enable cross realm trust.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustRealm
+   */
+  readonly crossRealmTrustRealm?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the shared password between the on-cluster Kerberos realm and the remote trusted realm, in a cross realm trust relationship.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#crossRealmTrustSharedPassword
+   */
+  readonly crossRealmTrustSharedPassword?: string;
+
+  /**
+   * Flag to indicate whether to Kerberize the cluster (default: false). Set this field to true to enable Kerberos on a cluster.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#enableKerberos
+   */
+  readonly enableKerberos?: boolean;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the master key of the KDC database.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#kdcDbKey
+   */
+  readonly kdcDbKey?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided key. For the self-signed certificate, this password is generated by Dataproc.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keyPassword
+   */
+  readonly keyPassword?: string;
+
+  /**
+   * The Cloud Storage URI of the keystore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keystore
+   */
+  readonly keystore?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided keystore. For the self-signed certificate, this password is generated by Dataproc.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#keystorePassword
+   */
+  readonly keystorePassword?: string;
+
+  /**
+   * The uri of the KMS key used to encrypt various sensitive files.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#kmsKey
+   */
+  readonly kmsKey?: string;
+
+  /**
+   * The name of the on-cluster Kerberos realm. If not specified, the uppercased domain of hostnames will be the realm.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#realm
+   */
+  readonly realm?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the root principal password.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#rootPrincipalPassword
+   */
+  readonly rootPrincipalPassword?: string;
+
+  /**
+   * The lifetime of the ticket granting ticket, in hours. If not specified, or user specifies 0, then default value 10 will be used.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#tgtLifetimeHours
+   */
+  readonly tgtLifetimeHours?: number;
+
+  /**
+   * The Cloud Storage URI of the truststore file used for SSL encryption. If not provided, Dataproc will provide a self-signed certificate.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#truststore
+   */
+  readonly truststore?: string;
+
+  /**
+   * The Cloud Storage URI of a KMS encrypted file containing the password to the user provided truststore. For the self-signed certificate, this password is generated by Dataproc.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig#truststorePassword
+   */
+  readonly truststorePassword?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigSecurityConfigKerberosConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossRealmTrustAdminServer': obj.crossRealmTrustAdminServer,
+    'crossRealmTrustKdc': obj.crossRealmTrustKdc,
+    'crossRealmTrustRealm': obj.crossRealmTrustRealm,
+    'crossRealmTrustSharedPassword': obj.crossRealmTrustSharedPassword,
+    'enableKerberos': obj.enableKerberos,
+    'kdcDbKey': obj.kdcDbKey,
+    'keyPassword': obj.keyPassword,
+    'keystore': obj.keystore,
+    'keystorePassword': obj.keystorePassword,
+    'kmsKey': obj.kmsKey,
+    'realm': obj.realm,
+    'rootPrincipalPassword': obj.rootPrincipalPassword,
+    'tgtLifetimeHours': obj.tgtLifetimeHours,
+    'truststore': obj.truststore,
+    'truststorePassword': obj.truststorePassword,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators {
+  /**
+   * The number of the accelerator cards of this type exposed to this instance.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators#acceleratorCount
+   */
+  readonly acceleratorCount?: number;
+
+  /**
+   * Full URL, partial URI, or short name of the accelerator type resource to expose to this instance. See (https://cloud.google.com/dataproc/docs/concepts/configuring-clusters/auto-zone#using_auto_zone_placement) feature, you must use the short name of the accelerator type resource, for example, nvidia-tesla-k80.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigAccelerators | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorCount': obj.acceleratorCount,
+    'acceleratorType': obj.acceleratorType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig
+ */
+export interface WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig {
+  /**
+   * Size in GB of the boot disk (default is 500GB).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#bootDiskSizeGb
+   */
+  readonly bootDiskSizeGb?: number;
+
+  /**
+   * Type of the boot disk (default is "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#bootDiskType
+   */
+  readonly bootDiskType?: string;
+
+  /**
+   * Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.
+   *
+   * @schema WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig#numLocalSsds
+   */
+  readonly numLocalSsds?: number;
+
+}
+
+/**
+ * Converts an object of type 'WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig(obj: WorkflowTemplateSpecInitProviderPlacementManagedClusterConfigWorkerConfigDiskConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'bootDiskSizeGb': obj.bootDiskSizeGb,

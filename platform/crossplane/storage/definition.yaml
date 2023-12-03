@@ -27,9 +27,9 @@ spec:
             spec:
               type: object
               properties:
-#                id:
-#                  type: string
-#                  description: Id of the bucket that should be created.
+                id:
+                  type: string
+                  description: Id of the bucket that should be created.
                 location:
                   type: string
                   description: Location where the bucket should be created.
@@ -57,7 +57,7 @@ spec:
 #                        type: string
 #                        description: Label value.
               required:
-#                - id
+                - id
                 - location
 
             status:

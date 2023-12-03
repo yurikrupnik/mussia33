@@ -4,7 +4,7 @@ import { Construct } from 'constructs';
 
 
 /**
- * OsPolicyAssignment is the Schema for the OsPolicyAssignments API. Represents an OSPolicyAssignment resource.
+ * OsPolicyAssignment is the Schema for the OsPolicyAssignments API.
  *
  * @schema OsPolicyAssignment
  */
@@ -58,7 +58,7 @@ export class OsPolicyAssignment extends ApiObject {
 }
 
 /**
- * OsPolicyAssignment is the Schema for the OsPolicyAssignments API. Represents an OSPolicyAssignment resource.
+ * OsPolicyAssignment is the Schema for the OsPolicyAssignments API.
  *
  * @schema OsPolicyAssignment
  */
@@ -99,7 +99,7 @@ export function toJson_OsPolicyAssignmentProps(obj: OsPolicyAssignmentProps | un
  */
 export interface OsPolicyAssignmentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema OsPolicyAssignmentSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface OsPolicyAssignmentSpec {
   readonly forProvider: OsPolicyAssignmentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema OsPolicyAssignmentSpec#managementPolicy
+   * @schema OsPolicyAssignmentSpec#initProvider
    */
-  readonly managementPolicy?: OsPolicyAssignmentSpecManagementPolicy;
+  readonly initProvider?: OsPolicyAssignmentSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema OsPolicyAssignmentSpec#managementPolicies
+   */
+  readonly managementPolicies?: OsPolicyAssignmentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface OsPolicyAssignmentSpec {
    * @schema OsPolicyAssignmentSpec#providerConfigRef
    */
   readonly providerConfigRef?: OsPolicyAssignmentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema OsPolicyAssignmentSpec#providerRef
-   */
-  readonly providerRef?: OsPolicyAssignmentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_OsPolicyAssignmentSpec(obj: OsPolicyAssignmentSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_OsPolicyAssignmentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_OsPolicyAssignmentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_OsPolicyAssignmentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_OsPolicyAssignmentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_OsPolicyAssignmentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_OsPolicyAssignmentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_OsPolicyAssignmentSpec(obj: OsPolicyAssignmentSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema OsPolicyAssignmentSpecDeletionPolicy
  */
@@ -191,7 +191,7 @@ export interface OsPolicyAssignmentSpecForProvider {
   readonly description?: string;
 
   /**
-   * Required. Filter to select VMs.
+   * Filter to select VMs. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProvider#instanceFilter
    */
@@ -205,21 +205,21 @@ export interface OsPolicyAssignmentSpecForProvider {
   readonly location: string;
 
   /**
-   * Required. List of OS policies to be applied to the VMs.
+   * List of OS policies to be applied to the VMs. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProvider#osPolicies
    */
   readonly osPolicies?: OsPolicyAssignmentSpecForProviderOsPolicies[];
 
   /**
-   * The project for the resource
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
    *
    * @schema OsPolicyAssignmentSpecForProvider#project
    */
   readonly project?: string;
 
   /**
-   * Required. Rollout to deploy the OS policy assignment. A rollout is triggered in the following situations: 1) OSPolicyAssignment is created. 2) OSPolicyAssignment is updated and the update contains changes to one of the following fields: - instance_filter - os_policies 3) OSPolicyAssignment is deleted.
+   * Rollout to deploy the OS policy assignment. A rollout is triggered in the following situations: 1) OSPolicyAssignment is created. 2) OSPolicyAssignment is updated and the update contains changes to one of the following fields: - instance_filter - os_policies 3) OSPolicyAssignment is deleted. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProvider#rollout
    */
@@ -255,17 +255,92 @@ export function toJson_OsPolicyAssignmentSpecForProvider(obj: OsPolicyAssignment
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema OsPolicyAssignmentSpecManagementPolicy
+ * @schema OsPolicyAssignmentSpecInitProvider
  */
-export enum OsPolicyAssignmentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface OsPolicyAssignmentSpecInitProvider {
+  /**
+   * Policy description. Length of the description is limited to 1024 characters.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Filter to select VMs. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#instanceFilter
+   */
+  readonly instanceFilter?: OsPolicyAssignmentSpecInitProviderInstanceFilter[];
+
+  /**
+   * List of OS policies to be applied to the VMs. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#osPolicies
+   */
+  readonly osPolicies?: OsPolicyAssignmentSpecInitProviderOsPolicies[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Rollout to deploy the OS policy assignment. A rollout is triggered in the following situations: 1) OSPolicyAssignment is created. 2) OSPolicyAssignment is updated and the update contains changes to one of the following fields: - instance_filter - os_policies 3) OSPolicyAssignment is deleted. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#rollout
+   */
+  readonly rollout?: OsPolicyAssignmentSpecInitProviderRollout[];
+
+  /**
+   * Set to true to skip awaiting rollout during resource creation and update.
+   *
+   * @schema OsPolicyAssignmentSpecInitProvider#skipAwaitRollout
+   */
+  readonly skipAwaitRollout?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProvider(obj: OsPolicyAssignmentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'instanceFilter': obj.instanceFilter?.map(y => toJson_OsPolicyAssignmentSpecInitProviderInstanceFilter(y)),
+    'osPolicies': obj.osPolicies?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPolicies(y)),
+    'project': obj.project,
+    'rollout': obj.rollout?.map(y => toJson_OsPolicyAssignmentSpecInitProviderRollout(y)),
+    'skipAwaitRollout': obj.skipAwaitRollout,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema OsPolicyAssignmentSpecManagementPolicies
+ */
+export enum OsPolicyAssignmentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -299,43 +374,6 @@ export function toJson_OsPolicyAssignmentSpecProviderConfigRef(obj: OsPolicyAssi
   const result = {
     'name': obj.name,
     'policy': toJson_OsPolicyAssignmentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema OsPolicyAssignmentSpecProviderRef
- */
-export interface OsPolicyAssignmentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema OsPolicyAssignmentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema OsPolicyAssignmentSpecProviderRef#policy
-   */
-  readonly policy?: OsPolicyAssignmentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'OsPolicyAssignmentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_OsPolicyAssignmentSpecProviderRef(obj: OsPolicyAssignmentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_OsPolicyAssignmentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -436,21 +474,21 @@ export interface OsPolicyAssignmentSpecForProviderInstanceFilter {
   readonly all?: boolean;
 
   /**
-   * List of label sets used for VM exclusion. If the list has more than one label set, the VM is excluded if any of the label sets are applicable for the VM.
+   * List of label sets used for VM exclusion. If the list has more than one label set, the VM is excluded if any of the label sets are applicable for the VM. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderInstanceFilter#exclusionLabels
    */
   readonly exclusionLabels?: OsPolicyAssignmentSpecForProviderInstanceFilterExclusionLabels[];
 
   /**
-   * List of label sets used for VM inclusion. If the list has more than one LabelSet, the VM is included if any of the label sets are applicable for the VM.
+   * List of label sets used for VM inclusion. If the list has more than one LabelSet, the VM is included if any of the label sets are applicable for the VM. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderInstanceFilter#inclusionLabels
    */
   readonly inclusionLabels?: OsPolicyAssignmentSpecForProviderInstanceFilterInclusionLabels[];
 
   /**
-   * List of inventories to select VMs. A VM is selected if its inventory data matches at least one of the following inventories.
+   * List of inventories to select VMs. A VM is selected if its inventory data matches at least one of the following inventories. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderInstanceFilter#inventories
    */
@@ -494,25 +532,25 @@ export interface OsPolicyAssignmentSpecForProviderOsPolicies {
   readonly description?: string;
 
   /**
-   * Required. The id of the OS policy with the following restrictions: * Must contain only lowercase letters, numbers, and hyphens. * Must start with a letter. * Must be between 1-63 characters. * Must end with a number or a letter. * Must be unique within the assignment.
+   * The id of the OS policy with the following restrictions:
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPolicies#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
-   * Required. Policy mode Possible values: MODE_UNSPECIFIED, VALIDATION, ENFORCEMENT
+   * Policy mode Possible values are: MODE_UNSPECIFIED, VALIDATION, ENFORCEMENT.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPolicies#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
   /**
-   * Required. List of resource groups for the policy. For a particular VM, resource groups are evaluated in the order specified and the first resource group that is applicable is selected and the rest are ignored. If none of the resource groups are applicable for a VM, the VM is considered to be non-compliant w.r.t this policy. This behavior can be toggled by the flag allow_no_resource_group_match
+   * List of resource groups for the policy. For a particular VM, resource groups are evaluated in the order specified and the first resource group that is applicable is selected and the rest are ignored. If none of the resource groups are applicable for a VM, the VM is considered to be non-compliant w.r.t this policy. This behavior can be toggled by the flag allow_no_resource_group_match Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPolicies#resourceGroups
    */
-  readonly resourceGroups: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups[];
+  readonly resourceGroups?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups[];
 
 }
 
@@ -539,18 +577,18 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPolicies(obj: OsPolicy
  */
 export interface OsPolicyAssignmentSpecForProviderRollout {
   /**
-   * Required. The maximum number (or percentage) of VMs per zone to disrupt at any given moment.
+   * The maximum number (or percentage) of VMs per zone to disrupt at any given moment. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderRollout#disruptionBudget
    */
-  readonly disruptionBudget: OsPolicyAssignmentSpecForProviderRolloutDisruptionBudget[];
+  readonly disruptionBudget?: OsPolicyAssignmentSpecForProviderRolloutDisruptionBudget[];
 
   /**
-   * Required. This determines the minimum duration of time to wait after the configuration changes are applied through the current rollout. A VM continues to count towards the disruption_budget at least until this duration of time has passed after configuration changes are applied.
+   * This determines the minimum duration of time to wait after the configuration changes are applied through the current rollout. A VM continues to count towards the disruption_budget at least until this duration of time has passed after configuration changes are applied.
    *
    * @schema OsPolicyAssignmentSpecForProviderRollout#minWaitDuration
    */
-  readonly minWaitDuration: string;
+  readonly minWaitDuration?: string;
 
 }
 
@@ -562,6 +600,151 @@ export function toJson_OsPolicyAssignmentSpecForProviderRollout(obj: OsPolicyAss
   if (obj === undefined) { return undefined; }
   const result = {
     'disruptionBudget': obj.disruptionBudget?.map(y => toJson_OsPolicyAssignmentSpecForProviderRolloutDisruptionBudget(y)),
+    'minWaitDuration': obj.minWaitDuration,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderInstanceFilter
+ */
+export interface OsPolicyAssignmentSpecInitProviderInstanceFilter {
+  /**
+   * Target all VMs in the project. If true, no other criteria is permitted.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilter#all
+   */
+  readonly all?: boolean;
+
+  /**
+   * List of label sets used for VM exclusion. If the list has more than one label set, the VM is excluded if any of the label sets are applicable for the VM. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilter#exclusionLabels
+   */
+  readonly exclusionLabels?: OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels[];
+
+  /**
+   * List of label sets used for VM inclusion. If the list has more than one LabelSet, the VM is included if any of the label sets are applicable for the VM. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilter#inclusionLabels
+   */
+  readonly inclusionLabels?: OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels[];
+
+  /**
+   * List of inventories to select VMs. A VM is selected if its inventory data matches at least one of the following inventories. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilter#inventories
+   */
+  readonly inventories?: OsPolicyAssignmentSpecInitProviderInstanceFilterInventories[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderInstanceFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderInstanceFilter(obj: OsPolicyAssignmentSpecInitProviderInstanceFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'all': obj.all,
+    'exclusionLabels': obj.exclusionLabels?.map(y => toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels(y)),
+    'inclusionLabels': obj.inclusionLabels?.map(y => toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels(y)),
+    'inventories': obj.inventories?.map(y => toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterInventories(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPolicies
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPolicies {
+  /**
+   * This flag determines the OS policy compliance status when none of the resource groups within the policy are applicable for a VM. Set this value to true if the policy needs to be reported as compliant even if the policy has nothing to validate or enforce.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPolicies#allowNoResourceGroupMatch
+   */
+  readonly allowNoResourceGroupMatch?: boolean;
+
+  /**
+   * Policy description. Length of the description is limited to 1024 characters.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPolicies#description
+   */
+  readonly description?: string;
+
+  /**
+   * The id of the OS policy with the following restrictions:
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPolicies#id
+   */
+  readonly id?: string;
+
+  /**
+   * Policy mode Possible values are: MODE_UNSPECIFIED, VALIDATION, ENFORCEMENT.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPolicies#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * List of resource groups for the policy. For a particular VM, resource groups are evaluated in the order specified and the first resource group that is applicable is selected and the rest are ignored. If none of the resource groups are applicable for a VM, the VM is considered to be non-compliant w.r.t this policy. This behavior can be toggled by the flag allow_no_resource_group_match Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPolicies#resourceGroups
+   */
+  readonly resourceGroups?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPolicies' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPolicies(obj: OsPolicyAssignmentSpecInitProviderOsPolicies | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowNoResourceGroupMatch': obj.allowNoResourceGroupMatch,
+    'description': obj.description,
+    'id': obj.id,
+    'mode': obj.mode,
+    'resourceGroups': obj.resourceGroups?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderRollout
+ */
+export interface OsPolicyAssignmentSpecInitProviderRollout {
+  /**
+   * The maximum number (or percentage) of VMs per zone to disrupt at any given moment. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderRollout#disruptionBudget
+   */
+  readonly disruptionBudget?: OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget[];
+
+  /**
+   * This determines the minimum duration of time to wait after the configuration changes are applied through the current rollout. A VM continues to count towards the disruption_budget at least until this duration of time has passed after configuration changes are applied.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderRollout#minWaitDuration
+   */
+  readonly minWaitDuration?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderRollout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderRollout(obj: OsPolicyAssignmentSpecInitProviderRollout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disruptionBudget': obj.disruptionBudget?.map(y => toJson_OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget(y)),
     'minWaitDuration': obj.minWaitDuration,
   };
   // filter undefined values
@@ -596,43 +779,6 @@ export interface OsPolicyAssignmentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_OsPolicyAssignmentSpecProviderConfigRefPolicy(obj: OsPolicyAssignmentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema OsPolicyAssignmentSpecProviderRefPolicy
- */
-export interface OsPolicyAssignmentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema OsPolicyAssignmentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: OsPolicyAssignmentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema OsPolicyAssignmentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: OsPolicyAssignmentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'OsPolicyAssignmentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_OsPolicyAssignmentSpecProviderRefPolicy(obj: OsPolicyAssignmentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -784,11 +930,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderInstanceFilterInclusionL
  */
 export interface OsPolicyAssignmentSpecForProviderInstanceFilterInventories {
   /**
-   * Required. The OS short name
+   * The OS short name
    *
    * @schema OsPolicyAssignmentSpecForProviderInstanceFilterInventories#osShortName
    */
-  readonly osShortName: string;
+  readonly osShortName?: string;
 
   /**
    * The OS version Prefix matches are supported if asterisk(*) is provided as the last character. For example, to match all versions with a major version of 7, specify the following value for this field 7.* An empty string matches all OS versions.
@@ -819,18 +965,18 @@ export function toJson_OsPolicyAssignmentSpecForProviderInstanceFilterInventorie
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups {
   /**
-   * List of inventory filters for the resource group. The resources in this resource group are applied to the target VM if it satisfies at least one of the following inventory filters. For example, to apply this resource group to VMs running either RHEL or CentOS operating systems, specify 2 items for the list with following values: inventory_filters[0].os_short_name='rhel' and inventory_filters[1].os_short_name='centos' If the list is empty, this resource group will be applied to the target VM unconditionally.
+   * List of inventory filters for the resource group. The resources in this resource group are applied to the target VM if it satisfies at least one of the following inventory filters. For example, to apply this resource group to VMs running either RHEL or CentOS operating systems, specify 2 items for the list with following values: inventory_filters[0].os_short_name='rhel' and inventory_filters[1].os_short_name='centos' If the list is empty, this resource group will be applied to the target VM unconditionally. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups#inventoryFilters
    */
   readonly inventoryFilters?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsInventoryFilters[];
 
   /**
-   * Required. List of resources configured for this resource group. The resources are executed in the exact order specified here.
+   * List of resources configured for this resource group. The resources are executed in the exact order specified here. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups#resources
    */
-  readonly resources: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources[];
+  readonly resources?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources[];
 
 }
 
@@ -885,6 +1031,165 @@ export function toJson_OsPolicyAssignmentSpecForProviderRolloutDisruptionBudget(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels
+ */
+export interface OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels {
+  /**
+   * Labels are identified by key/value pairs in this map. A VM should contain all the key/value pairs specified in this map to be selected.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels(obj: OsPolicyAssignmentSpecInitProviderInstanceFilterExclusionLabels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels
+ */
+export interface OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels {
+  /**
+   * Labels are identified by key/value pairs in this map. A VM should contain all the key/value pairs specified in this map to be selected.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels(obj: OsPolicyAssignmentSpecInitProviderInstanceFilterInclusionLabels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterInventories
+ */
+export interface OsPolicyAssignmentSpecInitProviderInstanceFilterInventories {
+  /**
+   * The OS short name
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterInventories#osShortName
+   */
+  readonly osShortName?: string;
+
+  /**
+   * The OS version Prefix matches are supported if asterisk(*) is provided as the last character. For example, to match all versions with a major version of 7, specify the following value for this field 7.* An empty string matches all OS versions.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderInstanceFilterInventories#osVersion
+   */
+  readonly osVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderInstanceFilterInventories' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderInstanceFilterInventories(obj: OsPolicyAssignmentSpecInitProviderInstanceFilterInventories | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'osShortName': obj.osShortName,
+    'osVersion': obj.osVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups {
+  /**
+   * List of inventory filters for the resource group. The resources in this resource group are applied to the target VM if it satisfies at least one of the following inventory filters. For example, to apply this resource group to VMs running either RHEL or CentOS operating systems, specify 2 items for the list with following values: inventory_filters[0].os_short_name='rhel' and inventory_filters[1].os_short_name='centos' If the list is empty, this resource group will be applied to the target VM unconditionally. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups#inventoryFilters
+   */
+  readonly inventoryFilters?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters[];
+
+  /**
+   * List of resources configured for this resource group. The resources are executed in the exact order specified here. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups#resources
+   */
+  readonly resources?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroups | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'inventoryFilters': obj.inventoryFilters?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters(y)),
+    'resources': obj.resources?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget
+ */
+export interface OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget {
+  /**
+   * Specifies a fixed value.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget#fixed
+   */
+  readonly fixed?: number;
+
+  /**
+   * Specifies the relative value defined as a percentage, which will be multiplied by a reference value.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget#percent
+   */
+  readonly percent?: number;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget(obj: OsPolicyAssignmentSpecInitProviderRolloutDisruptionBudget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fixed': obj.fixed,
+    'percent': obj.percent,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema OsPolicyAssignmentSpecProviderConfigRefPolicyResolution
@@ -902,30 +1207,6 @@ export enum OsPolicyAssignmentSpecProviderConfigRefPolicyResolution {
  * @schema OsPolicyAssignmentSpecProviderConfigRefPolicyResolve
  */
 export enum OsPolicyAssignmentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema OsPolicyAssignmentSpecProviderRefPolicyResolution
- */
-export enum OsPolicyAssignmentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema OsPolicyAssignmentSpecProviderRefPolicyResolve
- */
-export enum OsPolicyAssignmentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -974,11 +1255,11 @@ export function toJson_OsPolicyAssignmentSpecPublishConnectionDetailsToConfigRef
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsInventoryFilters {
   /**
-   * Required. The OS short name
+   * The OS short name
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsInventoryFilters#osShortName
    */
-  readonly osShortName: string;
+  readonly osShortName?: string;
 
   /**
    * The OS version Prefix matches are supported if asterisk(*) is provided as the last character. For example, to match all versions with a major version of 7, specify the following value for this field 7.* An empty string matches all OS versions.
@@ -1009,35 +1290,35 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources {
   /**
-   * Exec resource
+   * Exec resource Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources#exec
    */
   readonly exec?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExec[];
 
   /**
-   * A remote or local file.
+   * A remote or local file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources#file
    */
   readonly file?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFile[];
 
   /**
-   * Required. A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
-   * Package resource
+   * Package resource Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources#pkg
    */
   readonly pkg?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg[];
 
   /**
-   * Package repository resource
+   * Package repository resource Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResources#repository
    */
@@ -1057,6 +1338,100 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
     'id': obj.id,
     'pkg': obj.pkg?.map(y => toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg(y)),
     'repository': obj.repository?.map(y => toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters {
+  /**
+   * The OS short name
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters#osShortName
+   */
+  readonly osShortName?: string;
+
+  /**
+   * The OS version Prefix matches are supported if asterisk(*) is provided as the last character. For example, to match all versions with a major version of 7, specify the following value for this field 7.* An empty string matches all OS versions.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters#osVersion
+   */
+  readonly osVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsInventoryFilters | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'osShortName': obj.osShortName,
+    'osVersion': obj.osVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources {
+  /**
+   * Exec resource Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources#exec
+   */
+  readonly exec?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec[];
+
+  /**
+   * A remote or local file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources#file
+   */
+  readonly file?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile[];
+
+  /**
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources#id
+   */
+  readonly id?: string;
+
+  /**
+   * Package resource Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources#pkg
+   */
+  readonly pkg?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg[];
+
+  /**
+   * Package repository resource Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources#repository
+   */
+  readonly repository?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'exec': obj.exec?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec(y)),
+    'file': obj.file?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile(y)),
+    'id': obj.id,
+    'pkg': obj.pkg?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg(y)),
+    'repository': obj.repository?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1092,18 +1467,18 @@ export enum OsPolicyAssignmentSpecPublishConnectionDetailsToConfigRefPolicyResol
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExec {
   /**
-   * What to run to bring this resource into the desired state. An exit code of 100 indicates "success", any other exit code indicates a failure running enforce.
+   * What to run to bring this resource into the desired state. An exit code of 100 indicates "success", any other exit code indicates a failure running enforce. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExec#enforce
    */
   readonly enforce?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforce[];
 
   /**
-   * Required. What to run to validate this resource is in the desired state. An exit code of 100 indicates "in desired state", and exit code of 101 indicates "not in desired state". Any other exit code indicates a failure running validate.
+   * What to run to validate this resource is in the desired state. An exit code of 100 indicates "in desired state", and exit code of 101 indicates "not in desired state". Any other exit code indicates a failure running validate. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExec#validate
    */
-  readonly validate: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidate[];
+  readonly validate?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidate[];
 
 }
 
@@ -1134,25 +1509,25 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly content?: string;
 
   /**
-   * A remote or local file.
+   * A remote or local file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFile#file
    */
   readonly file?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFile[];
 
   /**
-   * Required. The absolute path of the file within the VM.
+   * The absolute path of the file within the VM.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFile#path
    */
-  readonly path: string;
+  readonly path?: string;
 
   /**
-   * Required. Desired state of the file. Possible values: OS_POLICY_COMPLIANCE_STATE_UNSPECIFIED, COMPLIANT, NON_COMPLIANT, UNKNOWN, NO_OS_POLICIES_APPLICABLE
+   * Desired state of the file. Possible values are: DESIRED_STATE_UNSPECIFIED, PRESENT, ABSENT, CONTENTS_MATCH.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFile#state
    */
-  readonly state: string;
+  readonly state?: string;
 
 }
 
@@ -1178,56 +1553,56 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg {
   /**
-   * An Apt Repository.
+   * An Apt Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#apt
    */
   readonly apt?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgApt[];
 
   /**
-   * A deb package file.
+   * A deb package file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#deb
    */
   readonly deb?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDeb[];
 
   /**
-   * Required. The desired state the agent should maintain for this package. Possible values: DESIRED_STATE_UNSPECIFIED, INSTALLED, REMOVED
+   * The desired state the agent should maintain for this package. Possible values are: DESIRED_STATE_UNSPECIFIED, INSTALLED, REMOVED.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#desiredState
    */
-  readonly desiredState: string;
+  readonly desiredState?: string;
 
   /**
-   * A package managed by GooGet.
+   * A package managed by GooGet. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#googet
    */
   readonly googet?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgGooget[];
 
   /**
-   * An MSI package.
+   * An MSI package. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#msi
    */
   readonly msi?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsi[];
 
   /**
-   * An rpm package file.
+   * An rpm package file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#rpm
    */
   readonly rpm?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpm[];
 
   /**
-   * A Yum Repository.
+   * A Yum Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#yum
    */
   readonly yum?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgYum[];
 
   /**
-   * A Zypper Repository.
+   * A Zypper Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkg#zypper
    */
@@ -1261,28 +1636,28 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository {
   /**
-   * An Apt Repository.
+   * An Apt Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository#apt
    */
   readonly apt?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt[];
 
   /**
-   * A Goo Repository.
+   * A Goo Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository#goo
    */
   readonly goo?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryGoo[];
 
   /**
-   * A Yum Repository.
+   * A Yum Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository#yum
    */
   readonly yum?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryYum[];
 
   /**
-   * A Zypper Repository.
+   * A Zypper Repository. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepository#zypper
    */
@@ -1308,6 +1683,226 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec {
+  /**
+   * What to run to bring this resource into the desired state. An exit code of 100 indicates "success", any other exit code indicates a failure running enforce. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec#enforce
+   */
+  readonly enforce?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce[];
+
+  /**
+   * What to run to validate this resource is in the desired state. An exit code of 100 indicates "in desired state", and exit code of 101 indicates "not in desired state". Any other exit code indicates a failure running validate. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec#validate
+   */
+  readonly validate?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enforce': obj.enforce?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce(y)),
+    'validate': obj.validate?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile {
+  /**
+   * A a file with this content. The size of the content is limited to 1024 characters.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile#content
+   */
+  readonly content?: string;
+
+  /**
+   * A remote or local file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile#file
+   */
+  readonly file?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile[];
+
+  /**
+   * The absolute path of the file within the VM.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile#path
+   */
+  readonly path?: string;
+
+  /**
+   * Desired state of the file. Possible values are: DESIRED_STATE_UNSPECIFIED, PRESENT, ABSENT, CONTENTS_MATCH.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile#state
+   */
+  readonly state?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'file': obj.file?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile(y)),
+    'path': obj.path,
+    'state': obj.state,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg {
+  /**
+   * An Apt Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#apt
+   */
+  readonly apt?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt[];
+
+  /**
+   * A deb package file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#deb
+   */
+  readonly deb?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb[];
+
+  /**
+   * The desired state the agent should maintain for this package. Possible values are: DESIRED_STATE_UNSPECIFIED, INSTALLED, REMOVED.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#desiredState
+   */
+  readonly desiredState?: string;
+
+  /**
+   * A package managed by GooGet. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#googet
+   */
+  readonly googet?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget[];
+
+  /**
+   * An MSI package. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#msi
+   */
+  readonly msi?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi[];
+
+  /**
+   * An rpm package file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#rpm
+   */
+  readonly rpm?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm[];
+
+  /**
+   * A Yum Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#yum
+   */
+  readonly yum?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum[];
+
+  /**
+   * A Zypper Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg#zypper
+   */
+  readonly zypper?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkg | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apt': obj.apt?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt(y)),
+    'deb': obj.deb?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb(y)),
+    'desiredState': obj.desiredState,
+    'googet': obj.googet?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget(y)),
+    'msi': obj.msi?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi(y)),
+    'rpm': obj.rpm?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm(y)),
+    'yum': obj.yum?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum(y)),
+    'zypper': obj.zypper?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository {
+  /**
+   * An Apt Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository#apt
+   */
+  readonly apt?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt[];
+
+  /**
+   * A Goo Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository#goo
+   */
+  readonly goo?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo[];
+
+  /**
+   * A Yum Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository#yum
+   */
+  readonly yum?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum[];
+
+  /**
+   * A Zypper Repository. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository#zypper
+   */
+  readonly zypper?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apt': obj.apt?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt(y)),
+    'goo': obj.goo?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo(y)),
+    'yum': obj.yum?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum(y)),
+    'zypper': obj.zypper?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforce
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforce {
@@ -1319,18 +1914,18 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly args?: string[];
 
   /**
-   * A remote or local file.
+   * A remote or local file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforce#file
    */
   readonly file?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFile[];
 
   /**
-   * Required. The script interpreter to use. Possible values: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL
+   * The script interpreter to use. Possible values are: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforce#interpreter
    */
-  readonly interpreter: string;
+  readonly interpreter?: string;
 
   /**
    * Only recorded for enforce Exec. Path to an output file (that is created by this Exec) whose content will be recorded in OSPolicyResourceCompliance after a successful run. Absence or failure to read this file will result in this ExecResource being non-compliant. Output file size is limited to 100K bytes.
@@ -1378,18 +1973,18 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly args?: string[];
 
   /**
-   * A remote or local file.
+   * A remote or local file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidate#file
    */
   readonly file?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFile[];
 
   /**
-   * Required. The script interpreter to use. Possible values: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL
+   * The script interpreter to use. Possible values are: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidate#interpreter
    */
-  readonly interpreter: string;
+  readonly interpreter?: string;
 
   /**
    * Only recorded for enforce Exec. Path to an output file (that is created by this Exec) whose content will be recorded in OSPolicyResourceCompliance after a successful run. Absence or failure to read this file will result in this ExecResource being non-compliant. Output file size is limited to 100K bytes.
@@ -1438,7 +2033,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFile#gcs
    */
@@ -1452,7 +2047,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFile#remote
    */
@@ -1482,11 +2077,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgApt {
   /**
-   * Required. Package name.
+   * Package name.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgApt#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1516,11 +2111,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly pullDeps?: boolean;
 
   /**
-   * Required. An rpm package.
+   * An rpm package. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDeb#source
    */
-  readonly source: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSource[];
+  readonly source?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSource[];
 
 }
 
@@ -1544,11 +2139,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgGooget {
   /**
-   * Required. Package name.
+   * Package name.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgGooget#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1578,11 +2173,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly properties?: string[];
 
   /**
-   * Required. An rpm package.
+   * An rpm package. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsi#source
    */
-  readonly source: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSource[];
+  readonly source?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSource[];
 
 }
 
@@ -1613,11 +2208,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly pullDeps?: boolean;
 
   /**
-   * Required. An rpm package.
+   * An rpm package. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpm#source
    */
-  readonly source: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSource[];
+  readonly source?: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSource[];
 
 }
 
@@ -1641,11 +2236,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgYum {
   /**
-   * Required. Package name.
+   * Package name.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgYum#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1668,11 +2263,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgZypper {
   /**
-   * Required. Package name.
+   * Package name.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgZypper#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1695,25 +2290,25 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt {
   /**
-   * Required. Type of archive files in this repository. Possible values: ARCHIVE_TYPE_UNSPECIFIED, DEB, DEB_SRC
+   * Type of archive files in this repository. Possible values are: ARCHIVE_TYPE_UNSPECIFIED, DEB, DEB_SRC.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt#archiveType
    */
-  readonly archiveType: string;
+  readonly archiveType?: string;
 
   /**
-   * Required. List of components for this repository. Must contain at least one item.
+   * List of components for this repository. Must contain at least one item.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt#components
    */
-  readonly components: string[];
+  readonly components?: string[];
 
   /**
-   * Required. Distribution of this repository.
+   * Distribution of this repository.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt#distribution
    */
-  readonly distribution: string;
+  readonly distribution?: string;
 
   /**
    * URI of the key file for this repository. The agent maintains a keyring at /etc/apt/trusted.gpg.d/osconfig_agent_managed.gpg.
@@ -1723,11 +2318,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly gpgKey?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryApt#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -1754,18 +2349,18 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryGoo {
   /**
-   * Required. Package name.
+   * Package name.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryGoo#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
-   * Required. The url of the repository.
+   * The url of the repository.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryGoo#url
    */
-  readonly url: string;
+  readonly url?: string;
 
 }
 
@@ -1789,11 +2384,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryYum {
   /**
-   * Required. The location of the repository directory.
+   * The location of the repository directory.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryYum#baseUrl
    */
-  readonly baseUrl: string;
+  readonly baseUrl?: string;
 
   /**
    * The display name of the repository.
@@ -1810,11 +2405,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly gpgKeys?: string[];
 
   /**
-   * Required. A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryYum#id
    */
-  readonly id: string;
+  readonly id?: string;
 
 }
 
@@ -1840,11 +2435,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryZypper {
   /**
-   * Required. The location of the repository directory.
+   * The location of the repository directory.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#baseUrl
    */
-  readonly baseUrl: string;
+  readonly baseUrl?: string;
 
   /**
    * The display name of the repository.
@@ -1861,11 +2456,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly gpgKeys?: string[];
 
   /**
-   * Required. A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#id
    */
-  readonly id: string;
+  readonly id?: string;
 
 }
 
@@ -1874,6 +2469,585 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryZypper(obj: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesRepositoryZypper | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseUrl': obj.baseUrl,
+    'displayName': obj.displayName,
+    'gpgKeys': obj.gpgKeys?.map(y => y),
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce {
+  /**
+   * Optional arguments to pass to the source during execution.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce#args
+   */
+  readonly args?: string[];
+
+  /**
+   * A remote or local file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce#file
+   */
+  readonly file?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile[];
+
+  /**
+   * The script interpreter to use. Possible values are: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * Only recorded for enforce Exec. Path to an output file (that is created by this Exec) whose content will be recorded in OSPolicyResourceCompliance after a successful run. Absence or failure to read this file will result in this ExecResource being non-compliant. Output file size is limited to 100K bytes.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce#outputFilePath
+   */
+  readonly outputFilePath?: string;
+
+  /**
+   * An inline script. The size of the script is limited to 1024 characters.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce#script
+   */
+  readonly script?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforce | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'args': obj.args?.map(y => y),
+    'file': obj.file?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile(y)),
+    'interpreter': obj.interpreter,
+    'outputFilePath': obj.outputFilePath,
+    'script': obj.script,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate {
+  /**
+   * Optional arguments to pass to the source during execution.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate#args
+   */
+  readonly args?: string[];
+
+  /**
+   * A remote or local file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate#file
+   */
+  readonly file?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile[];
+
+  /**
+   * The script interpreter to use. Possible values are: INTERPRETER_UNSPECIFIED, NONE, SHELL, POWERSHELL.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * Only recorded for enforce Exec. Path to an output file (that is created by this Exec) whose content will be recorded in OSPolicyResourceCompliance after a successful run. Absence or failure to read this file will result in this ExecResource being non-compliant. Output file size is limited to 100K bytes.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate#outputFilePath
+   */
+  readonly outputFilePath?: string;
+
+  /**
+   * An inline script. The size of the script is limited to 1024 characters.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate#script
+   */
+  readonly script?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'args': obj.args?.map(y => y),
+    'file': obj.file?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile(y)),
+    'interpreter': obj.interpreter,
+    'outputFilePath': obj.outputFilePath,
+    'script': obj.script,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt {
+  /**
+   * Package name.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgApt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb {
+  /**
+   * Whether dependencies should also be installed. - install when false: rpm --upgrade --replacepkgs package.rpm - install when true: yum -y install package.rpm or zypper -y install package.rpm
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb#pullDeps
+   */
+  readonly pullDeps?: boolean;
+
+  /**
+   * An rpm package. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb#source
+   */
+  readonly source?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDeb | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pullDeps': obj.pullDeps,
+    'source': obj.source?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget {
+  /**
+   * Package name.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgGooget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi {
+  /**
+   * Additional properties to use during installation. This should be in the format of Property=Setting. Appended to the defaults of ACTION=INSTALL REBOOT=ReallySuppress.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi#properties
+   */
+  readonly properties?: string[];
+
+  /**
+   * An rpm package. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi#source
+   */
+  readonly source?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsi | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'properties': obj.properties?.map(y => y),
+    'source': obj.source?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm {
+  /**
+   * Whether dependencies should also be installed. - install when false: rpm --upgrade --replacepkgs package.rpm - install when true: yum -y install package.rpm or zypper -y install package.rpm
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm#pullDeps
+   */
+  readonly pullDeps?: boolean;
+
+  /**
+   * An rpm package. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm#source
+   */
+  readonly source?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pullDeps': obj.pullDeps,
+    'source': obj.source?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum {
+  /**
+   * Package name.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgYum | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper {
+  /**
+   * Package name.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgZypper | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt {
+  /**
+   * Type of archive files in this repository. Possible values are: ARCHIVE_TYPE_UNSPECIFIED, DEB, DEB_SRC.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt#archiveType
+   */
+  readonly archiveType?: string;
+
+  /**
+   * List of components for this repository. Must contain at least one item.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt#components
+   */
+  readonly components?: string[];
+
+  /**
+   * Distribution of this repository.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt#distribution
+   */
+  readonly distribution?: string;
+
+  /**
+   * URI of the key file for this repository. The agent maintains a keyring at /etc/apt/trusted.gpg.d/osconfig_agent_managed.gpg.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt#gpgKey
+   */
+  readonly gpgKey?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryApt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveType': obj.archiveType,
+    'components': obj.components?.map(y => y),
+    'distribution': obj.distribution,
+    'gpgKey': obj.gpgKey,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo {
+  /**
+   * Package name.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo#name
+   */
+  readonly name?: string;
+
+  /**
+   * The url of the repository.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo#url
+   */
+  readonly url?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryGoo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'url': obj.url,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum {
+  /**
+   * The location of the repository directory.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum#baseUrl
+   */
+  readonly baseUrl?: string;
+
+  /**
+   * The display name of the repository.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * URIs of GPG keys.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum#gpgKeys
+   */
+  readonly gpgKeys?: string[];
+
+  /**
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryYum | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseUrl': obj.baseUrl,
+    'displayName': obj.displayName,
+    'gpgKeys': obj.gpgKeys?.map(y => y),
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper {
+  /**
+   * The location of the repository directory.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#baseUrl
+   */
+  readonly baseUrl?: string;
+
+  /**
+   * The display name of the repository.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * URIs of GPG keys.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#gpgKeys
+   */
+  readonly gpgKeys?: string[];
+
+  /**
+   * A one word, unique name for this repository. This is the repo id in the zypper config file and also the display_name if display_name is omitted. This id is also used as the unique identifier when checking for GuestPolicy conflicts.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesRepositoryZypper | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'baseUrl': obj.baseUrl,
@@ -1899,7 +3073,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#gcs
    */
@@ -1913,7 +3087,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#remote
    */
@@ -1951,7 +3125,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFile#gcs
    */
@@ -1965,7 +3139,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFile#remote
    */
@@ -1995,11 +3169,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFileGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFileGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2009,11 +3183,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFileGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2045,11 +3219,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesFileFileRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2081,7 +3255,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSource#gcs
    */
@@ -2095,7 +3269,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSource#remote
    */
@@ -2133,7 +3307,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#gcs
    */
@@ -2147,7 +3321,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#remote
    */
@@ -2185,7 +3359,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly allowInsecure?: boolean;
 
   /**
-   * A Cloud Storage object.
+   * A Cloud Storage object. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#gcs
    */
@@ -2199,7 +3373,7 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly localPath?: string;
 
   /**
-   * A generic remote file.
+   * A generic remote file. Structure is documented below.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#remote
    */
@@ -2225,15 +3399,353 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFile | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesFileFileRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource {
+  /**
+   * Defaults to false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   *
+   * @default false. When false, files are subject to validations based on the file type: Remote: A checksum must be specified. Cloud Storage: An object generation number must be specified.
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#allowInsecure
+   */
+  readonly allowInsecure?: boolean;
+
+  /**
+   * A Cloud Storage object. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#gcs
+   */
+  readonly gcs?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs[];
+
+  /**
+   * A local path within the VM to use.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#localPath
+   */
+  readonly localPath?: string;
+
+  /**
+   * A generic remote file. Structure is documented below.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource#remote
+   */
+  readonly remote?: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote[];
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowInsecure': obj.allowInsecure,
+    'gcs': obj.gcs?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs(y)),
+    'localPath': obj.localPath,
+    'remote': obj.remote?.map(y => toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2243,11 +3755,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2279,11 +3791,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2307,11 +3819,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2321,11 +3833,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2357,11 +3869,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2385,11 +3897,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2399,11 +3911,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2435,11 +3947,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2463,11 +3975,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2477,11 +3989,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2513,11 +4025,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2541,11 +4053,11 @@ export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroups
  */
 export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs {
   /**
-   * Required. Bucket of the Cloud Storage object.
+   * Bucket of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object.
@@ -2555,11 +4067,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly generation?: number;
 
   /**
-   * Required. Name of the Cloud Storage object.
+   * Name of the Cloud Storage object.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -2591,11 +4103,11 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
   readonly sha256Checksum?: string;
 
   /**
-   * Required. URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
    *
    * @schema OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
 }
 
@@ -2604,6 +4116,396 @@ export interface OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResour
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote(obj: OsPolicyAssignmentSpecForProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecEnforceFileRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesExecValidateFileRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgDebSourceRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgMsiSourceRemote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sha256Checksum': obj.sha256Checksum,
+    'uri': obj.uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs#generation
+   */
+  readonly generation?: number;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceGcs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generation': obj.generation,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote
+ */
+export interface OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote {
+  /**
+   * SHA256 checksum of the remote file.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote#sha256Checksum
+   */
+  readonly sha256Checksum?: string;
+
+  /**
+   * URI from which to fetch the object. It should contain both the protocol and path following the format {protocol}://{location}.
+   *
+   * @schema OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote#uri
+   */
+  readonly uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote(obj: OsPolicyAssignmentSpecInitProviderOsPoliciesResourceGroupsResourcesPkgRpmSourceRemote | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'sha256Checksum': obj.sha256Checksum,
@@ -2711,7 +4613,7 @@ export function toJson_PatchDeploymentProps(obj: PatchDeploymentProps | undefine
  */
 export interface PatchDeploymentSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PatchDeploymentSpec#deletionPolicy
    */
@@ -2723,11 +4625,18 @@ export interface PatchDeploymentSpec {
   readonly forProvider: PatchDeploymentSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PatchDeploymentSpec#managementPolicy
+   * @schema PatchDeploymentSpec#initProvider
    */
-  readonly managementPolicy?: PatchDeploymentSpecManagementPolicy;
+  readonly initProvider?: PatchDeploymentSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PatchDeploymentSpec#managementPolicies
+   */
+  readonly managementPolicies?: PatchDeploymentSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2735,13 +4644,6 @@ export interface PatchDeploymentSpec {
    * @schema PatchDeploymentSpec#providerConfigRef
    */
   readonly providerConfigRef?: PatchDeploymentSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PatchDeploymentSpec#providerRef
-   */
-  readonly providerRef?: PatchDeploymentSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2768,9 +4670,9 @@ export function toJson_PatchDeploymentSpec(obj: PatchDeploymentSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PatchDeploymentSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PatchDeploymentSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PatchDeploymentSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PatchDeploymentSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PatchDeploymentSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PatchDeploymentSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2780,7 +4682,7 @@ export function toJson_PatchDeploymentSpec(obj: PatchDeploymentSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PatchDeploymentSpecDeletionPolicy
  */
@@ -2875,17 +4777,108 @@ export function toJson_PatchDeploymentSpecForProvider(obj: PatchDeploymentSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PatchDeploymentSpecManagementPolicy
+ * @schema PatchDeploymentSpecInitProvider
  */
-export enum PatchDeploymentSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PatchDeploymentSpecInitProvider {
+  /**
+   * Description of the patch deployment. Length of the description is limited to 1024 characters.
+   *
+   * @schema PatchDeploymentSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Duration of the patch. After the duration ends, the patch times out. A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s"
+   *
+   * @schema PatchDeploymentSpecInitProvider#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * VM instances to patch. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProvider#instanceFilter
+   */
+  readonly instanceFilter?: PatchDeploymentSpecInitProviderInstanceFilter[];
+
+  /**
+   * Schedule a one-time execution. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProvider#oneTimeSchedule
+   */
+  readonly oneTimeSchedule?: PatchDeploymentSpecInitProviderOneTimeSchedule[];
+
+  /**
+   * Patch configuration that is applied. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProvider#patchConfig
+   */
+  readonly patchConfig?: PatchDeploymentSpecInitProviderPatchConfig[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema PatchDeploymentSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Schedule recurring executions. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProvider#recurringSchedule
+   */
+  readonly recurringSchedule?: PatchDeploymentSpecInitProviderRecurringSchedule[];
+
+  /**
+   * Rollout strategy of the patch job. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProvider#rollout
+   */
+  readonly rollout?: PatchDeploymentSpecInitProviderRollout[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProvider(obj: PatchDeploymentSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'duration': obj.duration,
+    'instanceFilter': obj.instanceFilter?.map(y => toJson_PatchDeploymentSpecInitProviderInstanceFilter(y)),
+    'oneTimeSchedule': obj.oneTimeSchedule?.map(y => toJson_PatchDeploymentSpecInitProviderOneTimeSchedule(y)),
+    'patchConfig': obj.patchConfig?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfig(y)),
+    'project': obj.project,
+    'recurringSchedule': obj.recurringSchedule?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringSchedule(y)),
+    'rollout': obj.rollout?.map(y => toJson_PatchDeploymentSpecInitProviderRollout(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PatchDeploymentSpecManagementPolicies
+ */
+export enum PatchDeploymentSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2919,43 +4912,6 @@ export function toJson_PatchDeploymentSpecProviderConfigRef(obj: PatchDeployment
   const result = {
     'name': obj.name,
     'policy': toJson_PatchDeploymentSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PatchDeploymentSpecProviderRef
- */
-export interface PatchDeploymentSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PatchDeploymentSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PatchDeploymentSpecProviderRef#policy
-   */
-  readonly policy?: PatchDeploymentSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PatchDeploymentSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PatchDeploymentSpecProviderRef(obj: PatchDeploymentSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PatchDeploymentSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3112,7 +5068,7 @@ export interface PatchDeploymentSpecForProviderOneTimeSchedule {
    *
    * @schema PatchDeploymentSpecForProviderOneTimeSchedule#executeTime
    */
-  readonly executeTime: string;
+  readonly executeTime?: string;
 
 }
 
@@ -3252,14 +5208,14 @@ export interface PatchDeploymentSpecForProviderRecurringSchedule {
    *
    * @schema PatchDeploymentSpecForProviderRecurringSchedule#timeOfDay
    */
-  readonly timeOfDay: PatchDeploymentSpecForProviderRecurringScheduleTimeOfDay[];
+  readonly timeOfDay?: PatchDeploymentSpecForProviderRecurringScheduleTimeOfDay[];
 
   /**
    * Defines the time zone that timeOfDay is relative to. The rules for daylight saving time are determined by the chosen time zone. Structure is documented below.
    *
    * @schema PatchDeploymentSpecForProviderRecurringSchedule#timeZone
    */
-  readonly timeZone: PatchDeploymentSpecForProviderRecurringScheduleTimeZone[];
+  readonly timeZone?: PatchDeploymentSpecForProviderRecurringScheduleTimeZone[];
 
   /**
    * Schedule with weekly executions. Structure is documented below.
@@ -3298,14 +5254,14 @@ export interface PatchDeploymentSpecForProviderRollout {
    *
    * @schema PatchDeploymentSpecForProviderRollout#disruptionBudget
    */
-  readonly disruptionBudget: PatchDeploymentSpecForProviderRolloutDisruptionBudget[];
+  readonly disruptionBudget?: PatchDeploymentSpecForProviderRolloutDisruptionBudget[];
 
   /**
    * Mode of the patch rollout. Possible values are: ZONE_BY_ZONE, CONCURRENT_ZONES.
    *
    * @schema PatchDeploymentSpecForProviderRollout#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
 }
 
@@ -3317,6 +5273,286 @@ export function toJson_PatchDeploymentSpecForProviderRollout(obj: PatchDeploymen
   if (obj === undefined) { return undefined; }
   const result = {
     'disruptionBudget': obj.disruptionBudget?.map(y => toJson_PatchDeploymentSpecForProviderRolloutDisruptionBudget(y)),
+    'mode': obj.mode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderInstanceFilter
+ */
+export interface PatchDeploymentSpecInitProviderInstanceFilter {
+  /**
+   * Target all VM instances in the project. If true, no other criteria is permitted.
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilter#all
+   */
+  readonly all?: boolean;
+
+  /**
+   * Targets VM instances matching ANY of these GroupLabels. This allows targeting of disparate groups of VM instances. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilter#groupLabels
+   */
+  readonly groupLabels?: PatchDeploymentSpecInitProviderInstanceFilterGroupLabels[];
+
+  /**
+   * Targets VMs whose name starts with one of these prefixes. Similar to labels, this is another way to group VMs when targeting configs, for example prefix="prod-".
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilter#instanceNamePrefixes
+   */
+  readonly instanceNamePrefixes?: string[];
+
+  /**
+   * Targets any of the VM instances specified. Instances are specified by their URI in the form zones/{{zone}}/instances/{{instance_name}}, projects/{{project_id}}/zones/{{zone}}/instances/{{instance_name}}, or https://www.googleapis.com/compute/v1/projects/{{project_id}}/zones/{{zone}}/instances/{{instance_name}}
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilter#instances
+   */
+  readonly instances?: string[];
+
+  /**
+   * Targets VM instances in ANY of these zones. Leave empty to target VM instances in any zone.
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilter#zones
+   */
+  readonly zones?: string[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderInstanceFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderInstanceFilter(obj: PatchDeploymentSpecInitProviderInstanceFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'all': obj.all,
+    'groupLabels': obj.groupLabels?.map(y => toJson_PatchDeploymentSpecInitProviderInstanceFilterGroupLabels(y)),
+    'instanceNamePrefixes': obj.instanceNamePrefixes?.map(y => y),
+    'instances': obj.instances?.map(y => y),
+    'zones': obj.zones?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderOneTimeSchedule
+ */
+export interface PatchDeploymentSpecInitProviderOneTimeSchedule {
+  /**
+   * The desired patch job execution time. A timestamp in RFC3339 UTC "Zulu" format, accurate to nanoseconds. Example: "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema PatchDeploymentSpecInitProviderOneTimeSchedule#executeTime
+   */
+  readonly executeTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderOneTimeSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderOneTimeSchedule(obj: PatchDeploymentSpecInitProviderOneTimeSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executeTime': obj.executeTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfig
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfig {
+  /**
+   * Apt update settings. Use this setting to override the default apt patch rules. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#apt
+   */
+  readonly apt?: PatchDeploymentSpecInitProviderPatchConfigApt[];
+
+  /**
+   * goo update settings. Use this setting to override the default goo patch rules. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#goo
+   */
+  readonly goo?: PatchDeploymentSpecInitProviderPatchConfigGoo[];
+
+  /**
+   * Allows the patch job to run on Managed instance groups (MIGs).
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#migInstancesAllowed
+   */
+  readonly migInstancesAllowed?: boolean;
+
+  /**
+   * The ExecStep to run after the patch update. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#postStep
+   */
+  readonly postStep?: PatchDeploymentSpecInitProviderPatchConfigPostStep[];
+
+  /**
+   * The ExecStep to run before the patch update. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#preStep
+   */
+  readonly preStep?: PatchDeploymentSpecInitProviderPatchConfigPreStep[];
+
+  /**
+   * Post-patch reboot settings. Possible values are: DEFAULT, ALWAYS, NEVER.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#rebootConfig
+   */
+  readonly rebootConfig?: string;
+
+  /**
+   * Windows update settings. Use this setting to override the default Windows patch rules. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#windowsUpdate
+   */
+  readonly windowsUpdate?: PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate[];
+
+  /**
+   * Yum update settings. Use this setting to override the default yum patch rules. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#yum
+   */
+  readonly yum?: PatchDeploymentSpecInitProviderPatchConfigYum[];
+
+  /**
+   * zypper update settings. Use this setting to override the default zypper patch rules. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfig#zypper
+   */
+  readonly zypper?: PatchDeploymentSpecInitProviderPatchConfigZypper[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfig(obj: PatchDeploymentSpecInitProviderPatchConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'apt': obj.apt?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigApt(y)),
+    'goo': obj.goo?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigGoo(y)),
+    'migInstancesAllowed': obj.migInstancesAllowed,
+    'postStep': obj.postStep?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPostStep(y)),
+    'preStep': obj.preStep?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPreStep(y)),
+    'rebootConfig': obj.rebootConfig,
+    'windowsUpdate': obj.windowsUpdate?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate(y)),
+    'yum': obj.yum?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigYum(y)),
+    'zypper': obj.zypper?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigZypper(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringSchedule
+ */
+export interface PatchDeploymentSpecInitProviderRecurringSchedule {
+  /**
+   * The end time at which a recurring patch deployment schedule is no longer active. A timestamp in RFC3339 UTC "Zulu" format, accurate to nanoseconds. Example: "2014-10-02T15:01:23.045123456Z".
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#endTime
+   */
+  readonly endTime?: string;
+
+  /**
+   * Schedule with monthly executions. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#monthly
+   */
+  readonly monthly?: PatchDeploymentSpecInitProviderRecurringScheduleMonthly[];
+
+  /**
+   * The time that the recurring schedule becomes effective. Defaults to createTime of the patch deployment. A timestamp in RFC3339 UTC "Zulu" format, accurate to nanoseconds. Example: "2014-10-02T15:01:23.045123456Z".
+   *
+   * @default createTime of the patch deployment. A timestamp in RFC3339 UTC "Zulu" format, accurate to nanoseconds. Example: "2014-10-02T15:01:23.045123456Z".
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#startTime
+   */
+  readonly startTime?: string;
+
+  /**
+   * Time of the day to run a recurring deployment. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#timeOfDay
+   */
+  readonly timeOfDay?: PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay[];
+
+  /**
+   * Defines the time zone that timeOfDay is relative to. The rules for daylight saving time are determined by the chosen time zone. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#timeZone
+   */
+  readonly timeZone?: PatchDeploymentSpecInitProviderRecurringScheduleTimeZone[];
+
+  /**
+   * Schedule with weekly executions. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringSchedule#weekly
+   */
+  readonly weekly?: PatchDeploymentSpecInitProviderRecurringScheduleWeekly[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringSchedule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringSchedule(obj: PatchDeploymentSpecInitProviderRecurringSchedule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endTime': obj.endTime,
+    'monthly': obj.monthly?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringScheduleMonthly(y)),
+    'startTime': obj.startTime,
+    'timeOfDay': obj.timeOfDay?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay(y)),
+    'timeZone': obj.timeZone?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringScheduleTimeZone(y)),
+    'weekly': obj.weekly?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringScheduleWeekly(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRollout
+ */
+export interface PatchDeploymentSpecInitProviderRollout {
+  /**
+   * The maximum number (or percentage) of VMs per zone to disrupt at any given moment. The number of VMs calculated from multiplying the percentage by the total number of VMs in a zone is rounded up. During patching, a VM is considered disrupted from the time the agent is notified to begin until patching has completed. This disruption time includes the time to complete reboot and any post-patch steps. A VM contributes to the disruption budget if its patching operation fails either when applying the patches, running pre or post patch steps, or if it fails to respond with a success notification before timing out. VMs that are not running or do not have an active agent do not count toward this disruption budget. For zone-by-zone rollouts, if the disruption budget in a zone is exceeded, the patch job stops, because continuing to the next zone requires completion of the patch process in the previous zone. For example, if the disruption budget has a fixed value of 10, and 8 VMs fail to patch in the current zone, the patch job continues to patch 2 VMs at a time until the zone is completed. When that zone is completed successfully, patching begins with 10 VMs at a time in the next zone. If 10 VMs in the next zone fail to patch, the patch job stops. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRollout#disruptionBudget
+   */
+  readonly disruptionBudget?: PatchDeploymentSpecInitProviderRolloutDisruptionBudget[];
+
+  /**
+   * Mode of the patch rollout. Possible values are: ZONE_BY_ZONE, CONCURRENT_ZONES.
+   *
+   * @schema PatchDeploymentSpecInitProviderRollout#mode
+   */
+  readonly mode?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRollout' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRollout(obj: PatchDeploymentSpecInitProviderRollout | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disruptionBudget': obj.disruptionBudget?.map(y => toJson_PatchDeploymentSpecInitProviderRolloutDisruptionBudget(y)),
     'mode': obj.mode,
   };
   // filter undefined values
@@ -3351,43 +5587,6 @@ export interface PatchDeploymentSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PatchDeploymentSpecProviderConfigRefPolicy(obj: PatchDeploymentSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PatchDeploymentSpecProviderRefPolicy
- */
-export interface PatchDeploymentSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PatchDeploymentSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PatchDeploymentSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PatchDeploymentSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PatchDeploymentSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PatchDeploymentSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PatchDeploymentSpecProviderRefPolicy(obj: PatchDeploymentSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3489,7 +5688,7 @@ export interface PatchDeploymentSpecForProviderInstanceFilterGroupLabels {
    *
    * @schema PatchDeploymentSpecForProviderInstanceFilterGroupLabels#labels
    */
-  readonly labels: { [key: string]: string };
+  readonly labels?: { [key: string]: string };
 
 }
 
@@ -3559,7 +5758,7 @@ export interface PatchDeploymentSpecForProviderPatchConfigGoo {
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigGoo#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -3903,7 +6102,7 @@ export interface PatchDeploymentSpecForProviderRecurringScheduleTimeZone {
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleTimeZone#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * IANA Time Zone Database version number, e.g. "2019a".
@@ -3938,7 +6137,7 @@ export interface PatchDeploymentSpecForProviderRecurringScheduleWeekly {
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleWeekly#dayOfWeek
    */
-  readonly dayOfWeek: string;
+  readonly dayOfWeek?: string;
 
 }
 
@@ -3992,6 +6191,517 @@ export function toJson_PatchDeploymentSpecForProviderRolloutDisruptionBudget(obj
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PatchDeploymentSpecInitProviderInstanceFilterGroupLabels
+ */
+export interface PatchDeploymentSpecInitProviderInstanceFilterGroupLabels {
+  /**
+   * Compute Engine instance labels that must be present for a VM instance to be targeted by this filter
+   *
+   * @schema PatchDeploymentSpecInitProviderInstanceFilterGroupLabels#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderInstanceFilterGroupLabels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderInstanceFilterGroupLabels(obj: PatchDeploymentSpecInitProviderInstanceFilterGroupLabels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigApt
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigApt {
+  /**
+   * List of packages to exclude from update.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigApt#excludes
+   */
+  readonly excludes?: string[];
+
+  /**
+   * An exclusive list of packages to be updated. These are the only packages that will be updated. If these packages are not installed, they will be ignored. This field cannot be specified with any other patch configuration fields.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigApt#exclusivePackages
+   */
+  readonly exclusivePackages?: string[];
+
+  /**
+   * By changing the type to DIST, the patching is performed using apt-get dist-upgrade instead. Possible values are: DIST, UPGRADE.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigApt#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigApt' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigApt(obj: PatchDeploymentSpecInitProviderPatchConfigApt | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludes': obj.excludes?.map(y => y),
+    'exclusivePackages': obj.exclusivePackages?.map(y => y),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigGoo
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigGoo {
+  /**
+   * goo update settings. Use this setting to override the default goo patch rules.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigGoo#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigGoo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigGoo(obj: PatchDeploymentSpecInitProviderPatchConfigGoo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPostStep
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPostStep {
+  /**
+   * The ExecStepConfig for all Linux VMs targeted by the PatchJob. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStep#linuxExecStepConfig
+   */
+  readonly linuxExecStepConfig?: PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig[];
+
+  /**
+   * The ExecStepConfig for all Windows VMs targeted by the PatchJob. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStep#windowsExecStepConfig
+   */
+  readonly windowsExecStepConfig?: PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPostStep' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPostStep(obj: PatchDeploymentSpecInitProviderPatchConfigPostStep | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'linuxExecStepConfig': obj.linuxExecStepConfig?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig(y)),
+    'windowsExecStepConfig': obj.windowsExecStepConfig?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPreStep
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPreStep {
+  /**
+   * The ExecStepConfig for all Linux VMs targeted by the PatchJob. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStep#linuxExecStepConfig
+   */
+  readonly linuxExecStepConfig?: PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig[];
+
+  /**
+   * The ExecStepConfig for all Windows VMs targeted by the PatchJob. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStep#windowsExecStepConfig
+   */
+  readonly windowsExecStepConfig?: PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPreStep' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPreStep(obj: PatchDeploymentSpecInitProviderPatchConfigPreStep | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'linuxExecStepConfig': obj.linuxExecStepConfig?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig(y)),
+    'windowsExecStepConfig': obj.windowsExecStepConfig?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate {
+  /**
+   * Only apply updates of these windows update classifications. If empty, all updates are applied. Each value may be one of: CRITICAL, SECURITY, DEFINITION, DRIVER, FEATURE_PACK, SERVICE_PACK, TOOL, UPDATE_ROLLUP, UPDATE.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate#classifications
+   */
+  readonly classifications?: string[];
+
+  /**
+   * List of packages to exclude from update.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate#excludes
+   */
+  readonly excludes?: string[];
+
+  /**
+   * An exclusive list of patches to be updated. These are the only patches that will be installed using 'zypper patch patch:' command. This field must not be used with any other patch configuration fields.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate#exclusivePatches
+   */
+  readonly exclusivePatches?: string[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate(obj: PatchDeploymentSpecInitProviderPatchConfigWindowsUpdate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'classifications': obj.classifications?.map(y => y),
+    'excludes': obj.excludes?.map(y => y),
+    'exclusivePatches': obj.exclusivePatches?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigYum
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigYum {
+  /**
+   * List of packages to exclude from update.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigYum#excludes
+   */
+  readonly excludes?: string[];
+
+  /**
+   * An exclusive list of packages to be updated. These are the only packages that will be updated. If these packages are not installed, they will be ignored. This field cannot be specified with any other patch configuration fields.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigYum#exclusivePackages
+   */
+  readonly exclusivePackages?: string[];
+
+  /**
+   * Will cause patch to run yum update-minimal instead.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigYum#minimal
+   */
+  readonly minimal?: boolean;
+
+  /**
+   * Adds the --security flag to yum update. Not supported on all platforms.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigYum#security
+   */
+  readonly security?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigYum' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigYum(obj: PatchDeploymentSpecInitProviderPatchConfigYum | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludes': obj.excludes?.map(y => y),
+    'exclusivePackages': obj.exclusivePackages?.map(y => y),
+    'minimal': obj.minimal,
+    'security': obj.security,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigZypper
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigZypper {
+  /**
+   * Install only patches with these categories. Common categories include security, recommended, and feature.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#categories
+   */
+  readonly categories?: string[];
+
+  /**
+   * List of packages to exclude from update.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#excludes
+   */
+  readonly excludes?: string[];
+
+  /**
+   * An exclusive list of patches to be updated. These are the only patches that will be installed using 'zypper patch patch:' command. This field must not be used with any other patch configuration fields.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#exclusivePatches
+   */
+  readonly exclusivePatches?: string[];
+
+  /**
+   * Install only patches with these severities. Common severities include critical, important, moderate, and low.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#severities
+   */
+  readonly severities?: string[];
+
+  /**
+   * Adds the --with-optional flag to zypper patch.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#withOptional
+   */
+  readonly withOptional?: boolean;
+
+  /**
+   * Adds the --with-update flag, to zypper patch.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigZypper#withUpdate
+   */
+  readonly withUpdate?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigZypper' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigZypper(obj: PatchDeploymentSpecInitProviderPatchConfigZypper | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'categories': obj.categories?.map(y => y),
+    'excludes': obj.excludes?.map(y => y),
+    'exclusivePatches': obj.exclusivePatches?.map(y => y),
+    'severities': obj.severities?.map(y => y),
+    'withOptional': obj.withOptional,
+    'withUpdate': obj.withUpdate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthly
+ */
+export interface PatchDeploymentSpecInitProviderRecurringScheduleMonthly {
+  /**
+   * One day of the month. 1-31 indicates the 1st to the 31st day. -1 indicates the last day of the month. Months without the target day will be skipped. For example, a schedule to run "every month on the 31st" will not run in February, April, June, etc.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthly#monthDay
+   */
+  readonly monthDay?: number;
+
+  /**
+   * Week day in a month. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthly#weekDayOfMonth
+   */
+  readonly weekDayOfMonth?: PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth[];
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringScheduleMonthly' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringScheduleMonthly(obj: PatchDeploymentSpecInitProviderRecurringScheduleMonthly | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'monthDay': obj.monthDay,
+    'weekDayOfMonth': obj.weekDayOfMonth?.map(y => toJson_PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay
+ */
+export interface PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay {
+  /**
+   * Hours of day in 24 hour format. Should be from 0 to 23. An API may choose to allow the value "24:00:00" for scenarios like business closing time.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay#hours
+   */
+  readonly hours?: number;
+
+  /**
+   * Minutes of hour of day. Must be from 0 to 59.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay#minutes
+   */
+  readonly minutes?: number;
+
+  /**
+   * Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay#nanos
+   */
+  readonly nanos?: number;
+
+  /**
+   * Seconds of minutes of the time. Must normally be from 0 to 59. An API may allow the value 60 if it allows leap-seconds.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay#seconds
+   */
+  readonly seconds?: number;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay(obj: PatchDeploymentSpecInitProviderRecurringScheduleTimeOfDay | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hours': obj.hours,
+    'minutes': obj.minutes,
+    'nanos': obj.nanos,
+    'seconds': obj.seconds,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeZone
+ */
+export interface PatchDeploymentSpecInitProviderRecurringScheduleTimeZone {
+  /**
+   * IANA Time Zone Database time zone, e.g. "America/New_York".
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeZone#id
+   */
+  readonly id?: string;
+
+  /**
+   * IANA Time Zone Database version number, e.g. "2019a".
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleTimeZone#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringScheduleTimeZone' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringScheduleTimeZone(obj: PatchDeploymentSpecInitProviderRecurringScheduleTimeZone | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringScheduleWeekly
+ */
+export interface PatchDeploymentSpecInitProviderRecurringScheduleWeekly {
+  /**
+   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleWeekly#dayOfWeek
+   */
+  readonly dayOfWeek?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringScheduleWeekly' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringScheduleWeekly(obj: PatchDeploymentSpecInitProviderRecurringScheduleWeekly | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dayOfWeek': obj.dayOfWeek,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRolloutDisruptionBudget
+ */
+export interface PatchDeploymentSpecInitProviderRolloutDisruptionBudget {
+  /**
+   * Specifies a fixed value.
+   *
+   * @schema PatchDeploymentSpecInitProviderRolloutDisruptionBudget#fixed
+   */
+  readonly fixed?: number;
+
+  /**
+   * Specifies the relative value defined as a percentage, which will be multiplied by a reference value.
+   *
+   * @schema PatchDeploymentSpecInitProviderRolloutDisruptionBudget#percentage
+   */
+  readonly percentage?: number;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRolloutDisruptionBudget' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRolloutDisruptionBudget(obj: PatchDeploymentSpecInitProviderRolloutDisruptionBudget | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fixed': obj.fixed,
+    'percentage': obj.percentage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema PatchDeploymentSpecProviderConfigRefPolicyResolution
@@ -4009,30 +6719,6 @@ export enum PatchDeploymentSpecProviderConfigRefPolicyResolution {
  * @schema PatchDeploymentSpecProviderConfigRefPolicyResolve
  */
 export enum PatchDeploymentSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PatchDeploymentSpecProviderRefPolicyResolution
- */
-export enum PatchDeploymentSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PatchDeploymentSpecProviderRefPolicyResolve
- */
-export enum PatchDeploymentSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4293,14 +6979,14 @@ export interface PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOf
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth#dayOfWeek
    */
-  readonly dayOfWeek: string;
+  readonly dayOfWeek?: string;
 
   /**
    * Week number in a month. 1-4 indicates the 1st to 4th week of the month. -1 indicates the last week of the month.
    *
    * @schema PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth#weekOrdinal
    */
-  readonly weekOrdinal: number;
+  readonly weekOrdinal?: number;
 
 }
 
@@ -4309,6 +6995,249 @@ export interface PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOf
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth(obj: PatchDeploymentSpecForProviderRecurringScheduleMonthlyWeekDayOfMonth | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dayOfWeek': obj.dayOfWeek,
+    'weekOrdinal': obj.weekOrdinal,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig {
+  /**
+   * Defaults to [0]. A list of possible return values that the execution can return to indicate a success.
+   *
+   * @default 0]. A list of possible return values that the execution can return to indicate a success.
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig#allowedSuccessCodes
+   */
+  readonly allowedSuccessCodes?: number[];
+
+  /**
+   * A Cloud Storage object containing the executable. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig#gcsObject
+   */
+  readonly gcsObject?: PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject[];
+
+  /**
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * An absolute path to the executable on the VM.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig#localPath
+   */
+  readonly localPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig(obj: PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedSuccessCodes': obj.allowedSuccessCodes?.map(y => y),
+    'gcsObject': obj.gcsObject?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject(y)),
+    'interpreter': obj.interpreter,
+    'localPath': obj.localPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig {
+  /**
+   * Defaults to [0]. A list of possible return values that the execution can return to indicate a success.
+   *
+   * @default 0]. A list of possible return values that the execution can return to indicate a success.
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig#allowedSuccessCodes
+   */
+  readonly allowedSuccessCodes?: number[];
+
+  /**
+   * A Cloud Storage object containing the executable. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig#gcsObject
+   */
+  readonly gcsObject?: PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject[];
+
+  /**
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * An absolute path to the executable on the VM.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig#localPath
+   */
+  readonly localPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig(obj: PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedSuccessCodes': obj.allowedSuccessCodes?.map(y => y),
+    'gcsObject': obj.gcsObject?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject(y)),
+    'interpreter': obj.interpreter,
+    'localPath': obj.localPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig {
+  /**
+   * Defaults to [0]. A list of possible return values that the execution can return to indicate a success.
+   *
+   * @default 0]. A list of possible return values that the execution can return to indicate a success.
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig#allowedSuccessCodes
+   */
+  readonly allowedSuccessCodes?: number[];
+
+  /**
+   * A Cloud Storage object containing the executable. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig#gcsObject
+   */
+  readonly gcsObject?: PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject[];
+
+  /**
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * An absolute path to the executable on the VM.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig#localPath
+   */
+  readonly localPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig(obj: PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedSuccessCodes': obj.allowedSuccessCodes?.map(y => y),
+    'gcsObject': obj.gcsObject?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject(y)),
+    'interpreter': obj.interpreter,
+    'localPath': obj.localPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig {
+  /**
+   * Defaults to [0]. A list of possible return values that the execution can return to indicate a success.
+   *
+   * @default 0]. A list of possible return values that the execution can return to indicate a success.
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig#allowedSuccessCodes
+   */
+  readonly allowedSuccessCodes?: number[];
+
+  /**
+   * A Cloud Storage object containing the executable. Structure is documented below.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig#gcsObject
+   */
+  readonly gcsObject?: PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject[];
+
+  /**
+   * The script interpreter to use to run the script. If no interpreter is specified the script will be executed directly, which will likely only succeed for scripts with shebang lines. Possible values are: SHELL, POWERSHELL.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig#interpreter
+   */
+  readonly interpreter?: string;
+
+  /**
+   * An absolute path to the executable on the VM.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig#localPath
+   */
+  readonly localPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig(obj: PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedSuccessCodes': obj.allowedSuccessCodes?.map(y => y),
+    'gcsObject': obj.gcsObject?.map(y => toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject(y)),
+    'interpreter': obj.interpreter,
+    'localPath': obj.localPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth
+ */
+export interface PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth {
+  /**
+   * IANA Time Zone Database time zone, e.g. "America/New_York". Possible values are: MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth#dayOfWeek
+   */
+  readonly dayOfWeek?: string;
+
+  /**
+   * Week number in a month. 1-4 indicates the 1st to 4th week of the month. -1 indicates the last week of the month.
+   *
+   * @schema PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth#weekOrdinal
+   */
+  readonly weekOrdinal?: number;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth(obj: PatchDeploymentSpecInitProviderRecurringScheduleMonthlyWeekDayOfMonth | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'dayOfWeek': obj.dayOfWeek,
@@ -4352,21 +7281,21 @@ export interface PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepC
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#generationNumber
    */
-  readonly generationNumber: string;
+  readonly generationNumber?: string;
 
   /**
    * Name of the Cloud Storage object.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -4395,21 +7324,21 @@ export interface PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecSte
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#generationNumber
    */
-  readonly generationNumber: string;
+  readonly generationNumber?: string;
 
   /**
    * Name of the Cloud Storage object.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -4438,21 +7367,21 @@ export interface PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepCo
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#generationNumber
    */
-  readonly generationNumber: string;
+  readonly generationNumber?: string;
 
   /**
    * Name of the Cloud Storage object.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -4481,21 +7410,21 @@ export interface PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStep
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#bucket
    */
-  readonly bucket: string;
+  readonly bucket?: string;
 
   /**
    * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#generationNumber
    */
-  readonly generationNumber: string;
+  readonly generationNumber?: string;
 
   /**
    * Name of the Cloud Storage object.
    *
    * @schema PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#object
    */
-  readonly object: string;
+  readonly object?: string;
 
 }
 
@@ -4504,6 +7433,178 @@ export interface PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStep
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject(obj: PatchDeploymentSpecForProviderPatchConfigPreStepWindowsExecStepConfigGcsObject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generationNumber': obj.generationNumber,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#generationNumber
+   */
+  readonly generationNumber?: string;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject(obj: PatchDeploymentSpecInitProviderPatchConfigPostStepLinuxExecStepConfigGcsObject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generationNumber': obj.generationNumber,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#generationNumber
+   */
+  readonly generationNumber?: string;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject(obj: PatchDeploymentSpecInitProviderPatchConfigPostStepWindowsExecStepConfigGcsObject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generationNumber': obj.generationNumber,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#generationNumber
+   */
+  readonly generationNumber?: string;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject(obj: PatchDeploymentSpecInitProviderPatchConfigPreStepLinuxExecStepConfigGcsObject | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucket': obj.bucket,
+    'generationNumber': obj.generationNumber,
+    'object': obj.object,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject
+ */
+export interface PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject {
+  /**
+   * Bucket of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#bucket
+   */
+  readonly bucket?: string;
+
+  /**
+   * Generation number of the Cloud Storage object. This is used to ensure that the ExecStep specified by this PatchJob does not change.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#generationNumber
+   */
+  readonly generationNumber?: string;
+
+  /**
+   * Name of the Cloud Storage object.
+   *
+   * @schema PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject#object
+   */
+  readonly object?: string;
+
+}
+
+/**
+ * Converts an object of type 'PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject(obj: PatchDeploymentSpecInitProviderPatchConfigPreStepWindowsExecStepConfigGcsObject | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'bucket': obj.bucket,

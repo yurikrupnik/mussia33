@@ -99,7 +99,7 @@ export function toJson_WorkloadIdentityPoolProps(obj: WorkloadIdentityPoolProps 
  */
 export interface WorkloadIdentityPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkloadIdentityPoolSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface WorkloadIdentityPoolSpec {
   readonly forProvider: WorkloadIdentityPoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkloadIdentityPoolSpec#managementPolicy
+   * @schema WorkloadIdentityPoolSpec#initProvider
    */
-  readonly managementPolicy?: WorkloadIdentityPoolSpecManagementPolicy;
+  readonly initProvider?: WorkloadIdentityPoolSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkloadIdentityPoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkloadIdentityPoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface WorkloadIdentityPoolSpec {
    * @schema WorkloadIdentityPoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkloadIdentityPoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkloadIdentityPoolSpec#providerRef
-   */
-  readonly providerRef?: WorkloadIdentityPoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_WorkloadIdentityPoolSpec(obj: WorkloadIdentityPoolSpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkloadIdentityPoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkloadIdentityPoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkloadIdentityPoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkloadIdentityPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkloadIdentityPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkloadIdentityPoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_WorkloadIdentityPoolSpec(obj: WorkloadIdentityPoolSpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkloadIdentityPoolSpecDeletionPolicy
  */
@@ -231,17 +231,76 @@ export function toJson_WorkloadIdentityPoolSpecForProvider(obj: WorkloadIdentity
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkloadIdentityPoolSpecManagementPolicy
+ * @schema WorkloadIdentityPoolSpecInitProvider
  */
-export enum WorkloadIdentityPoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkloadIdentityPoolSpecInitProvider {
+  /**
+   * A description of the pool. Cannot exceed 256 characters.
+   *
+   * @schema WorkloadIdentityPoolSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Whether the pool is disabled. You cannot use a disabled pool to exchange tokens, or use existing tokens to access resources. If the pool is re-enabled, existing tokens grant access again.
+   *
+   * @schema WorkloadIdentityPoolSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * A display name for the pool. Cannot exceed 32 characters.
+   *
+   * @schema WorkloadIdentityPoolSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema WorkloadIdentityPoolSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkloadIdentityPoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkloadIdentityPoolSpecInitProvider(obj: WorkloadIdentityPoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'disabled': obj.disabled,
+    'displayName': obj.displayName,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkloadIdentityPoolSpecManagementPolicies
+ */
+export enum WorkloadIdentityPoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +334,6 @@ export function toJson_WorkloadIdentityPoolSpecProviderConfigRef(obj: WorkloadId
   const result = {
     'name': obj.name,
     'policy': toJson_WorkloadIdentityPoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkloadIdentityPoolSpecProviderRef
- */
-export interface WorkloadIdentityPoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkloadIdentityPoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkloadIdentityPoolSpecProviderRef#policy
-   */
-  readonly policy?: WorkloadIdentityPoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkloadIdentityPoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkloadIdentityPoolSpecProviderRef(obj: WorkloadIdentityPoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkloadIdentityPoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -438,43 +460,6 @@ export function toJson_WorkloadIdentityPoolSpecProviderConfigRefPolicy(obj: Work
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema WorkloadIdentityPoolSpecProviderRefPolicy
- */
-export interface WorkloadIdentityPoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkloadIdentityPoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkloadIdentityPoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkloadIdentityPoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkloadIdentityPoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkloadIdentityPoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkloadIdentityPoolSpecProviderRefPolicy(obj: WorkloadIdentityPoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema WorkloadIdentityPoolSpecPublishConnectionDetailsToConfigRef
@@ -574,30 +559,6 @@ export enum WorkloadIdentityPoolSpecProviderConfigRefPolicyResolution {
  * @schema WorkloadIdentityPoolSpecProviderConfigRefPolicyResolve
  */
 export enum WorkloadIdentityPoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkloadIdentityPoolSpecProviderRefPolicyResolution
- */
-export enum WorkloadIdentityPoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkloadIdentityPoolSpecProviderRefPolicyResolve
- */
-export enum WorkloadIdentityPoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -762,7 +723,7 @@ export function toJson_WorkloadIdentityPoolProviderProps(obj: WorkloadIdentityPo
  */
 export interface WorkloadIdentityPoolProviderSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkloadIdentityPoolProviderSpec#deletionPolicy
    */
@@ -774,11 +735,18 @@ export interface WorkloadIdentityPoolProviderSpec {
   readonly forProvider: WorkloadIdentityPoolProviderSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkloadIdentityPoolProviderSpec#managementPolicy
+   * @schema WorkloadIdentityPoolProviderSpec#initProvider
    */
-  readonly managementPolicy?: WorkloadIdentityPoolProviderSpecManagementPolicy;
+  readonly initProvider?: WorkloadIdentityPoolProviderSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkloadIdentityPoolProviderSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkloadIdentityPoolProviderSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -786,13 +754,6 @@ export interface WorkloadIdentityPoolProviderSpec {
    * @schema WorkloadIdentityPoolProviderSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkloadIdentityPoolProviderSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkloadIdentityPoolProviderSpec#providerRef
-   */
-  readonly providerRef?: WorkloadIdentityPoolProviderSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -819,9 +780,9 @@ export function toJson_WorkloadIdentityPoolProviderSpec(obj: WorkloadIdentityPoo
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkloadIdentityPoolProviderSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkloadIdentityPoolProviderSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkloadIdentityPoolProviderSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkloadIdentityPoolProviderSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkloadIdentityPoolProviderSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkloadIdentityPoolProviderSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -831,7 +792,7 @@ export function toJson_WorkloadIdentityPoolProviderSpec(obj: WorkloadIdentityPoo
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkloadIdentityPoolProviderSpecDeletionPolicy
  */
@@ -950,17 +911,108 @@ export function toJson_WorkloadIdentityPoolProviderSpecForProvider(obj: Workload
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkloadIdentityPoolProviderSpecManagementPolicy
+ * @schema WorkloadIdentityPoolProviderSpecInitProvider
  */
-export enum WorkloadIdentityPoolProviderSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkloadIdentityPoolProviderSpecInitProvider {
+  /**
+   * A Common Expression Language expression, in plain text, to restrict what otherwise valid authentication credentials issued by the provider should not be accepted. The expression must output a boolean representing whether to allow the federation. The following keywords may be referenced in the expressions:
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#attributeCondition
+   */
+  readonly attributeCondition?: string;
+
+  /**
+   * Maps attributes from authentication credentials issued by an external identity provider to Google Cloud attributes, such as subject and segment. Each key must be a string specifying the Google Cloud IAM attribute to map to. The following keys are supported:
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#attributeMapping
+   */
+  readonly attributeMapping?: { [key: string]: string };
+
+  /**
+   * An Amazon Web Services identity provider. Not compatible with the property oidc. Structure is documented below.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#aws
+   */
+  readonly aws?: WorkloadIdentityPoolProviderSpecInitProviderAws[];
+
+  /**
+   * A description for the provider. Cannot exceed 256 characters.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Whether the provider is disabled. You cannot use a disabled provider to exchange tokens. However, existing tokens still grant access.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * A display name for the provider. Cannot exceed 32 characters.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * An OpenId Connect 1.0 identity provider. Not compatible with the property aws. Structure is documented below.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#oidc
+   */
+  readonly oidc?: WorkloadIdentityPoolProviderSpecInitProviderOidc[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkloadIdentityPoolProviderSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkloadIdentityPoolProviderSpecInitProvider(obj: WorkloadIdentityPoolProviderSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributeCondition': obj.attributeCondition,
+    'attributeMapping': ((obj.attributeMapping) === undefined) ? undefined : (Object.entries(obj.attributeMapping).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'aws': obj.aws?.map(y => toJson_WorkloadIdentityPoolProviderSpecInitProviderAws(y)),
+    'description': obj.description,
+    'disabled': obj.disabled,
+    'displayName': obj.displayName,
+    'oidc': obj.oidc?.map(y => toJson_WorkloadIdentityPoolProviderSpecInitProviderOidc(y)),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkloadIdentityPoolProviderSpecManagementPolicies
+ */
+export enum WorkloadIdentityPoolProviderSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -994,43 +1046,6 @@ export function toJson_WorkloadIdentityPoolProviderSpecProviderConfigRef(obj: Wo
   const result = {
     'name': obj.name,
     'policy': toJson_WorkloadIdentityPoolProviderSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkloadIdentityPoolProviderSpecProviderRef
- */
-export interface WorkloadIdentityPoolProviderSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkloadIdentityPoolProviderSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkloadIdentityPoolProviderSpecProviderRef#policy
-   */
-  readonly policy?: WorkloadIdentityPoolProviderSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkloadIdentityPoolProviderSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkloadIdentityPoolProviderSpecProviderRef(obj: WorkloadIdentityPoolProviderSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkloadIdentityPoolProviderSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1128,7 +1143,7 @@ export interface WorkloadIdentityPoolProviderSpecForProviderAws {
    *
    * @schema WorkloadIdentityPoolProviderSpecForProviderAws#accountId
    */
-  readonly accountId: string;
+  readonly accountId?: string;
 
 }
 
@@ -1162,7 +1177,14 @@ export interface WorkloadIdentityPoolProviderSpecForProviderOidc {
    *
    * @schema WorkloadIdentityPoolProviderSpecForProviderOidc#issuerUri
    */
-  readonly issuerUri: string;
+  readonly issuerUri?: string;
+
+  /**
+   * OIDC JWKs in JSON String format. For details on definition of a JWK, see https:tools.ietf.org/html/rfc7517. If not set, then we use the jwks_uri from the discovery document fetched from the .well-known path for the issuer_uri. Currently, RSA and EC asymmetric keys are supported. The JWK must use following format and include only the following fields:
+   *
+   * @schema WorkloadIdentityPoolProviderSpecForProviderOidc#jwksJson
+   */
+  readonly jwksJson?: string;
 
 }
 
@@ -1175,6 +1197,7 @@ export function toJson_WorkloadIdentityPoolProviderSpecForProviderOidc(obj: Work
   const result = {
     'allowedAudiences': obj.allowedAudiences?.map(y => y),
     'issuerUri': obj.issuerUri,
+    'jwksJson': obj.jwksJson,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1264,6 +1287,76 @@ export function toJson_WorkloadIdentityPoolProviderSpecForProviderWorkloadIdenti
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkloadIdentityPoolProviderSpecInitProviderAws
+ */
+export interface WorkloadIdentityPoolProviderSpecInitProviderAws {
+  /**
+   * The AWS account ID.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProviderAws#accountId
+   */
+  readonly accountId?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkloadIdentityPoolProviderSpecInitProviderAws' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkloadIdentityPoolProviderSpecInitProviderAws(obj: WorkloadIdentityPoolProviderSpecInitProviderAws | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkloadIdentityPoolProviderSpecInitProviderOidc
+ */
+export interface WorkloadIdentityPoolProviderSpecInitProviderOidc {
+  /**
+   * Acceptable values for the aud field (audience) in the OIDC token. Token exchange requests are rejected if the token audience does not match one of the configured values. Each audience may be at most 256 characters. A maximum of 10 audiences may be configured. If this list is empty, the OIDC token audience must be equal to the full canonical resource name of the WorkloadIdentityPoolProvider, with or without the HTTPS prefix. For example:
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProviderOidc#allowedAudiences
+   */
+  readonly allowedAudiences?: string[];
+
+  /**
+   * The OIDC issuer URL.
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProviderOidc#issuerUri
+   */
+  readonly issuerUri?: string;
+
+  /**
+   * OIDC JWKs in JSON String format. For details on definition of a JWK, see https:tools.ietf.org/html/rfc7517. If not set, then we use the jwks_uri from the discovery document fetched from the .well-known path for the issuer_uri. Currently, RSA and EC asymmetric keys are supported. The JWK must use following format and include only the following fields:
+   *
+   * @schema WorkloadIdentityPoolProviderSpecInitProviderOidc#jwksJson
+   */
+  readonly jwksJson?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkloadIdentityPoolProviderSpecInitProviderOidc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkloadIdentityPoolProviderSpecInitProviderOidc(obj: WorkloadIdentityPoolProviderSpecInitProviderOidc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedAudiences': obj.allowedAudiences?.map(y => y),
+    'issuerUri': obj.issuerUri,
+    'jwksJson': obj.jwksJson,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema WorkloadIdentityPoolProviderSpecProviderConfigRefPolicy
@@ -1290,43 +1383,6 @@ export interface WorkloadIdentityPoolProviderSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkloadIdentityPoolProviderSpecProviderConfigRefPolicy(obj: WorkloadIdentityPoolProviderSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkloadIdentityPoolProviderSpecProviderRefPolicy
- */
-export interface WorkloadIdentityPoolProviderSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkloadIdentityPoolProviderSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkloadIdentityPoolProviderSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkloadIdentityPoolProviderSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkloadIdentityPoolProviderSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkloadIdentityPoolProviderSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkloadIdentityPoolProviderSpecProviderRefPolicy(obj: WorkloadIdentityPoolProviderSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1511,30 +1567,6 @@ export enum WorkloadIdentityPoolProviderSpecProviderConfigRefPolicyResolution {
  * @schema WorkloadIdentityPoolProviderSpecProviderConfigRefPolicyResolve
  */
 export enum WorkloadIdentityPoolProviderSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkloadIdentityPoolProviderSpecProviderRefPolicyResolution
- */
-export enum WorkloadIdentityPoolProviderSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkloadIdentityPoolProviderSpecProviderRefPolicyResolve
- */
-export enum WorkloadIdentityPoolProviderSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

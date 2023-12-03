@@ -11,9 +11,8 @@ spec:
 #  connectionSecretKeys:
 #    - kubeconfig
 #    - value
-  #           todo test it!
-#  defaultCompositionRef:
-#    name: cluster-aws
+  defaultCompositionRef:
+    name: gcp.compositeredises.multicloud.platformref.yurikrupnik.com
   names:
     kind: CompositeRedis
     plural: compositeredises

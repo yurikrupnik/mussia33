@@ -99,7 +99,7 @@ export function toJson_PipelineProps(obj: PipelineProps | undefined): Record<str
  */
 export interface PipelineSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PipelineSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface PipelineSpec {
   readonly forProvider: PipelineSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PipelineSpec#managementPolicy
+   * @schema PipelineSpec#initProvider
    */
-  readonly managementPolicy?: PipelineSpecManagementPolicy;
+  readonly initProvider?: PipelineSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PipelineSpec#managementPolicies
+   */
+  readonly managementPolicies?: PipelineSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface PipelineSpec {
    * @schema PipelineSpec#providerConfigRef
    */
   readonly providerConfigRef?: PipelineSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PipelineSpec#providerRef
-   */
-  readonly providerRef?: PipelineSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_PipelineSpec(obj: PipelineSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PipelineSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PipelineSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PipelineSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PipelineSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PipelineSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PipelineSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_PipelineSpec(obj: PipelineSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PipelineSpecDeletionPolicy
  */
@@ -319,17 +319,108 @@ export function toJson_PipelineSpecForProvider(obj: PipelineSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PipelineSpecManagementPolicy
+ * @schema PipelineSpecInitProvider
  */
-export enum PipelineSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PipelineSpecInitProvider {
+  /**
+   * The AWS Key Management Service (AWS KMS) key that you want to use with this pipeline.
+   *
+   * @schema PipelineSpecInitProvider#awsKmsKeyArn
+   */
+  readonly awsKmsKeyArn?: string;
+
+  /**
+   * The ContentConfig object specifies information about the Amazon S3 bucket in which you want Elastic Transcoder to save transcoded files and playlists. (documented below)
+   *
+   * @schema PipelineSpecInitProvider#contentConfig
+   */
+  readonly contentConfig?: PipelineSpecInitProviderContentConfig[];
+
+  /**
+   * The permissions for the content_config object. (documented below)
+   *
+   * @schema PipelineSpecInitProvider#contentConfigPermissions
+   */
+  readonly contentConfigPermissions?: PipelineSpecInitProviderContentConfigPermissions[];
+
+  /**
+   * The name of the pipeline. Maximum 40 characters
+   *
+   * @schema PipelineSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The Amazon Simple Notification Service (Amazon SNS) topic that you want to notify to report job status. (documented below)
+   *
+   * @schema PipelineSpecInitProvider#notifications
+   */
+  readonly notifications?: PipelineSpecInitProviderNotifications[];
+
+  /**
+   * The Amazon S3 bucket in which you want Elastic Transcoder to save the transcoded files.
+   *
+   * @schema PipelineSpecInitProvider#outputBucket
+   */
+  readonly outputBucket?: string;
+
+  /**
+   * The ThumbnailConfig object specifies information about the Amazon S3 bucket in which you want Elastic Transcoder to save thumbnail files. (documented below)
+   *
+   * @schema PipelineSpecInitProvider#thumbnailConfig
+   */
+  readonly thumbnailConfig?: PipelineSpecInitProviderThumbnailConfig[];
+
+  /**
+   * The permissions for the thumbnail_config object. (documented below)
+   *
+   * @schema PipelineSpecInitProvider#thumbnailConfigPermissions
+   */
+  readonly thumbnailConfigPermissions?: PipelineSpecInitProviderThumbnailConfigPermissions[];
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProvider(obj: PipelineSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsKmsKeyArn': obj.awsKmsKeyArn,
+    'contentConfig': obj.contentConfig?.map(y => toJson_PipelineSpecInitProviderContentConfig(y)),
+    'contentConfigPermissions': obj.contentConfigPermissions?.map(y => toJson_PipelineSpecInitProviderContentConfigPermissions(y)),
+    'name': obj.name,
+    'notifications': obj.notifications?.map(y => toJson_PipelineSpecInitProviderNotifications(y)),
+    'outputBucket': obj.outputBucket,
+    'thumbnailConfig': obj.thumbnailConfig?.map(y => toJson_PipelineSpecInitProviderThumbnailConfig(y)),
+    'thumbnailConfigPermissions': obj.thumbnailConfigPermissions?.map(y => toJson_PipelineSpecInitProviderThumbnailConfigPermissions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PipelineSpecManagementPolicies
+ */
+export enum PipelineSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -363,43 +454,6 @@ export function toJson_PipelineSpecProviderConfigRef(obj: PipelineSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_PipelineSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PipelineSpecProviderRef
- */
-export interface PipelineSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PipelineSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PipelineSpecProviderRef#policy
-   */
-  readonly policy?: PipelineSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PipelineSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PipelineSpecProviderRef(obj: PipelineSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PipelineSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -892,6 +946,197 @@ export function toJson_PipelineSpecForProviderThumbnailConfigPermissions(obj: Pi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PipelineSpecInitProviderContentConfig
+ */
+export interface PipelineSpecInitProviderContentConfig {
+  /**
+   * The Amazon S3 storage class, Standard or ReducedRedundancy, that you want Elastic Transcoder to assign to the files and playlists that it stores in your Amazon S3 bucket.
+   *
+   * @schema PipelineSpecInitProviderContentConfig#storageClass
+   */
+  readonly storageClass?: string;
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProviderContentConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProviderContentConfig(obj: PipelineSpecInitProviderContentConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'storageClass': obj.storageClass,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PipelineSpecInitProviderContentConfigPermissions
+ */
+export interface PipelineSpecInitProviderContentConfigPermissions {
+  /**
+   * The permission that you want to give to the AWS user that you specified in content_config_permissions.grantee. Valid values are Read, ReadAcp, WriteAcp or FullControl.
+   *
+   * @schema PipelineSpecInitProviderContentConfigPermissions#access
+   */
+  readonly access?: string[];
+
+  /**
+   * The AWS user or group that you want to have access to transcoded files and playlists.
+   *
+   * @schema PipelineSpecInitProviderContentConfigPermissions#grantee
+   */
+  readonly grantee?: string;
+
+  /**
+   * Specify the type of value that appears in the content_config_permissions.grantee object. Valid values are Canonical, Email or Group.
+   *
+   * @schema PipelineSpecInitProviderContentConfigPermissions#granteeType
+   */
+  readonly granteeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProviderContentConfigPermissions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProviderContentConfigPermissions(obj: PipelineSpecInitProviderContentConfigPermissions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'access': obj.access?.map(y => y),
+    'grantee': obj.grantee,
+    'granteeType': obj.granteeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PipelineSpecInitProviderNotifications
+ */
+export interface PipelineSpecInitProviderNotifications {
+  /**
+   * The topic ARN for the Amazon SNS topic that you want to notify when Elastic Transcoder has finished processing a job in this pipeline.
+   *
+   * @schema PipelineSpecInitProviderNotifications#completed
+   */
+  readonly completed?: string;
+
+  /**
+   * The topic ARN for the Amazon SNS topic that you want to notify when Elastic Transcoder encounters an error condition while processing a job in this pipeline.
+   *
+   * @schema PipelineSpecInitProviderNotifications#error
+   */
+  readonly error?: string;
+
+  /**
+   * The topic ARN for the Amazon Simple Notification Service (Amazon SNS) topic that you want to notify when Elastic Transcoder has started to process a job in this pipeline.
+   *
+   * @schema PipelineSpecInitProviderNotifications#progressing
+   */
+  readonly progressing?: string;
+
+  /**
+   * The topic ARN for the Amazon SNS topic that you want to notify when Elastic Transcoder encounters a warning condition while processing a job in this pipeline.
+   *
+   * @schema PipelineSpecInitProviderNotifications#warning
+   */
+  readonly warning?: string;
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProviderNotifications' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProviderNotifications(obj: PipelineSpecInitProviderNotifications | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'completed': obj.completed,
+    'error': obj.error,
+    'progressing': obj.progressing,
+    'warning': obj.warning,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PipelineSpecInitProviderThumbnailConfig
+ */
+export interface PipelineSpecInitProviderThumbnailConfig {
+  /**
+   * The Amazon S3 storage class, Standard or ReducedRedundancy, that you want Elastic Transcoder to assign to the files and playlists that it stores in your Amazon S3 bucket.
+   *
+   * @schema PipelineSpecInitProviderThumbnailConfig#storageClass
+   */
+  readonly storageClass?: string;
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProviderThumbnailConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProviderThumbnailConfig(obj: PipelineSpecInitProviderThumbnailConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'storageClass': obj.storageClass,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PipelineSpecInitProviderThumbnailConfigPermissions
+ */
+export interface PipelineSpecInitProviderThumbnailConfigPermissions {
+  /**
+   * The permission that you want to give to the AWS user that you specified in content_config_permissions.grantee. Valid values are Read, ReadAcp, WriteAcp or FullControl.
+   *
+   * @schema PipelineSpecInitProviderThumbnailConfigPermissions#access
+   */
+  readonly access?: string[];
+
+  /**
+   * The AWS user or group that you want to have access to transcoded files and playlists.
+   *
+   * @schema PipelineSpecInitProviderThumbnailConfigPermissions#grantee
+   */
+  readonly grantee?: string;
+
+  /**
+   * Specify the type of value that appears in the content_config_permissions.grantee object. Valid values are Canonical, Email or Group.
+   *
+   * @schema PipelineSpecInitProviderThumbnailConfigPermissions#granteeType
+   */
+  readonly granteeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'PipelineSpecInitProviderThumbnailConfigPermissions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PipelineSpecInitProviderThumbnailConfigPermissions(obj: PipelineSpecInitProviderThumbnailConfigPermissions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'access': obj.access?.map(y => y),
+    'grantee': obj.grantee,
+    'granteeType': obj.granteeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PipelineSpecProviderConfigRefPolicy
@@ -918,43 +1163,6 @@ export interface PipelineSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PipelineSpecProviderConfigRefPolicy(obj: PipelineSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PipelineSpecProviderRefPolicy
- */
-export interface PipelineSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PipelineSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PipelineSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PipelineSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PipelineSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PipelineSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PipelineSpecProviderRefPolicy(obj: PipelineSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1377,30 +1585,6 @@ export enum PipelineSpecProviderConfigRefPolicyResolution {
  * @schema PipelineSpecProviderConfigRefPolicyResolve
  */
 export enum PipelineSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PipelineSpecProviderRefPolicyResolution
- */
-export enum PipelineSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PipelineSpecProviderRefPolicyResolve
- */
-export enum PipelineSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1905,7 +2089,7 @@ export function toJson_PresetProps(obj: PresetProps | undefined): Record<string,
  */
 export interface PresetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PresetSpec#deletionPolicy
    */
@@ -1917,11 +2101,18 @@ export interface PresetSpec {
   readonly forProvider: PresetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PresetSpec#managementPolicy
+   * @schema PresetSpec#initProvider
    */
-  readonly managementPolicy?: PresetSpecManagementPolicy;
+  readonly initProvider?: PresetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PresetSpec#managementPolicies
+   */
+  readonly managementPolicies?: PresetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1929,13 +2120,6 @@ export interface PresetSpec {
    * @schema PresetSpec#providerConfigRef
    */
   readonly providerConfigRef?: PresetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PresetSpec#providerRef
-   */
-  readonly providerRef?: PresetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1962,9 +2146,9 @@ export function toJson_PresetSpec(obj: PresetSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PresetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PresetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PresetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PresetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PresetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PresetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1974,7 +2158,7 @@ export function toJson_PresetSpec(obj: PresetSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PresetSpecDeletionPolicy
  */
@@ -2091,17 +2275,122 @@ export function toJson_PresetSpecForProvider(obj: PresetSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PresetSpecManagementPolicy
+ * @schema PresetSpecInitProvider
  */
-export enum PresetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PresetSpecInitProvider {
+  /**
+   * Audio parameters object (documented below).
+   *
+   * @schema PresetSpecInitProvider#audio
+   */
+  readonly audio?: PresetSpecInitProviderAudio[];
+
+  /**
+   * Codec options for the audio parameters (documented below)
+   *
+   * @schema PresetSpecInitProvider#audioCodecOptions
+   */
+  readonly audioCodecOptions?: PresetSpecInitProviderAudioCodecOptions[];
+
+  /**
+   * The container type for the output file. Valid values are flac, flv, fmp4, gif, mp3, mp4, mpg, mxf, oga, ogg, ts, and webm.
+   *
+   * @schema PresetSpecInitProvider#container
+   */
+  readonly container?: string;
+
+  /**
+   * A description of the preset (maximum 255 characters)
+   *
+   * @schema PresetSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the preset. (maximum 40 characters)
+   *
+   * @schema PresetSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Thumbnail parameters object (documented below)
+   *
+   * @schema PresetSpecInitProvider#thumbnails
+   */
+  readonly thumbnails?: PresetSpecInitProviderThumbnails[];
+
+  /**
+   * @schema PresetSpecInitProvider#type
+   */
+  readonly type?: string;
+
+  /**
+   * Video parameters object (documented below)
+   *
+   * @schema PresetSpecInitProvider#video
+   */
+  readonly video?: PresetSpecInitProviderVideo[];
+
+  /**
+   * Codec options for the video parameters
+   *
+   * @schema PresetSpecInitProvider#videoCodecOptions
+   */
+  readonly videoCodecOptions?: { [key: string]: string };
+
+  /**
+   * Watermark parameters for the video parameters (documented below)
+   *
+   * @schema PresetSpecInitProvider#videoWatermarks
+   */
+  readonly videoWatermarks?: PresetSpecInitProviderVideoWatermarks[];
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProvider(obj: PresetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audio': obj.audio?.map(y => toJson_PresetSpecInitProviderAudio(y)),
+    'audioCodecOptions': obj.audioCodecOptions?.map(y => toJson_PresetSpecInitProviderAudioCodecOptions(y)),
+    'container': obj.container,
+    'description': obj.description,
+    'name': obj.name,
+    'thumbnails': obj.thumbnails?.map(y => toJson_PresetSpecInitProviderThumbnails(y)),
+    'type': obj.type,
+    'video': obj.video?.map(y => toJson_PresetSpecInitProviderVideo(y)),
+    'videoCodecOptions': ((obj.videoCodecOptions) === undefined) ? undefined : (Object.entries(obj.videoCodecOptions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'videoWatermarks': obj.videoWatermarks?.map(y => toJson_PresetSpecInitProviderVideoWatermarks(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PresetSpecManagementPolicies
+ */
+export enum PresetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2135,43 +2424,6 @@ export function toJson_PresetSpecProviderConfigRef(obj: PresetSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_PresetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PresetSpecProviderRef
- */
-export interface PresetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PresetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PresetSpecProviderRef#policy
-   */
-  readonly policy?: PresetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PresetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PresetSpecProviderRef(obj: PresetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PresetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2676,6 +2928,421 @@ export function toJson_PresetSpecForProviderVideoWatermarks(obj: PresetSpecForPr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PresetSpecInitProviderAudio
+ */
+export interface PresetSpecInitProviderAudio {
+  /**
+   * The method of organizing audio channels and tracks. Use Audio:Channels to specify the number of channels in your output, and Audio:AudioPackingMode to specify the number of tracks and their relation to the channels. If you do not specify an Audio:AudioPackingMode, Elastic Transcoder uses SingleTrack.
+   *
+   * @schema PresetSpecInitProviderAudio#audioPackingMode
+   */
+  readonly audioPackingMode?: string;
+
+  /**
+   * The bit rate of the audio stream in the output file, in kilobits/second. Enter an integer between 64 and 320, inclusive.
+   *
+   * @schema PresetSpecInitProviderAudio#bitRate
+   */
+  readonly bitRate?: string;
+
+  /**
+   * The number of audio channels in the output file
+   *
+   * @schema PresetSpecInitProviderAudio#channels
+   */
+  readonly channels?: string;
+
+  /**
+   * The audio codec for the output file. Valid values are AAC, flac, mp2, mp3, pcm, and vorbis.
+   *
+   * @schema PresetSpecInitProviderAudio#codec
+   */
+  readonly codec?: string;
+
+  /**
+   * The sample rate of the audio stream in the output file, in hertz. Valid values are: auto, 22050, 32000, 44100, 48000, 96000
+   *
+   * @schema PresetSpecInitProviderAudio#sampleRate
+   */
+  readonly sampleRate?: string;
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProviderAudio' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProviderAudio(obj: PresetSpecInitProviderAudio | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioPackingMode': obj.audioPackingMode,
+    'bitRate': obj.bitRate,
+    'channels': obj.channels,
+    'codec': obj.codec,
+    'sampleRate': obj.sampleRate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PresetSpecInitProviderAudioCodecOptions
+ */
+export interface PresetSpecInitProviderAudioCodecOptions {
+  /**
+   * The bit depth of a sample is how many bits of information are included in the audio samples. Valid values are 16 and 24. (FLAC/PCM Only)
+   *
+   * @schema PresetSpecInitProviderAudioCodecOptions#bitDepth
+   */
+  readonly bitDepth?: string;
+
+  /**
+   * The order the bits of a PCM sample are stored in. The supported value is LittleEndian. (PCM Only)
+   *
+   * @schema PresetSpecInitProviderAudioCodecOptions#bitOrder
+   */
+  readonly bitOrder?: string;
+
+  /**
+   * If you specified AAC for Audio:Codec, choose the AAC profile for the output file.
+   *
+   * @schema PresetSpecInitProviderAudioCodecOptions#profile
+   */
+  readonly profile?: string;
+
+  /**
+   * Whether audio samples are represented with negative and positive numbers (signed) or only positive numbers (unsigned). The supported value is Signed. (PCM Only)
+   *
+   * @schema PresetSpecInitProviderAudioCodecOptions#signed
+   */
+  readonly signed?: string;
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProviderAudioCodecOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProviderAudioCodecOptions(obj: PresetSpecInitProviderAudioCodecOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitDepth': obj.bitDepth,
+    'bitOrder': obj.bitOrder,
+    'profile': obj.profile,
+    'signed': obj.signed,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PresetSpecInitProviderThumbnails
+ */
+export interface PresetSpecInitProviderThumbnails {
+  /**
+   * The aspect ratio of thumbnails. The following values are valid: auto, 1:1, 4:3, 3:2, 16:9
+   *
+   * @schema PresetSpecInitProviderThumbnails#aspectRatio
+   */
+  readonly aspectRatio?: string;
+
+  /**
+   * The format of thumbnails, if any. Valid formats are jpg and png.
+   *
+   * @schema PresetSpecInitProviderThumbnails#format
+   */
+  readonly format?: string;
+
+  /**
+   * The approximate number of seconds between thumbnails. The value must be an integer. The actual interval can vary by several seconds from one thumbnail to the next.
+   *
+   * @schema PresetSpecInitProviderThumbnails#interval
+   */
+  readonly interval?: string;
+
+  /**
+   * The maximum height of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1080 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 3072, inclusive.
+   *
+   * @schema PresetSpecInitProviderThumbnails#maxHeight
+   */
+  readonly maxHeight?: string;
+
+  /**
+   * The maximum width of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1920 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 4096, inclusive.
+   *
+   * @schema PresetSpecInitProviderThumbnails#maxWidth
+   */
+  readonly maxWidth?: string;
+
+  /**
+   * When you set PaddingPolicy to Pad, Elastic Transcoder might add black bars to the top and bottom and/or left and right sides of thumbnails to make the total size of the thumbnails match the values that you specified for thumbnail MaxWidth and MaxHeight settings.
+   *
+   * @schema PresetSpecInitProviderThumbnails#paddingPolicy
+   */
+  readonly paddingPolicy?: string;
+
+  /**
+   * The width and height of thumbnail files in pixels, in the format WidthxHeight, where both values are even integers. The values cannot exceed the width and height that you specified in the Video:Resolution object. (To better control resolution and aspect ratio of thumbnails, we recommend that you use the thumbnail values max_width, max_height, sizing_policy, and padding_policy instead of resolution and aspect_ratio. The two groups of settings are mutually exclusive. Do not use them together)
+   *
+   * @schema PresetSpecInitProviderThumbnails#resolution
+   */
+  readonly resolution?: string;
+
+  /**
+   * A value that controls scaling of thumbnails. Valid values are: Fit, Fill, Stretch, Keep, ShrinkToFit, and ShrinkToFill.
+   *
+   * @schema PresetSpecInitProviderThumbnails#sizingPolicy
+   */
+  readonly sizingPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProviderThumbnails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProviderThumbnails(obj: PresetSpecInitProviderThumbnails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aspectRatio': obj.aspectRatio,
+    'format': obj.format,
+    'interval': obj.interval,
+    'maxHeight': obj.maxHeight,
+    'maxWidth': obj.maxWidth,
+    'paddingPolicy': obj.paddingPolicy,
+    'resolution': obj.resolution,
+    'sizingPolicy': obj.sizingPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PresetSpecInitProviderVideo
+ */
+export interface PresetSpecInitProviderVideo {
+  /**
+   * The aspect ratio of thumbnails. The following values are valid: auto, 1:1, 4:3, 3:2, 16:9
+   *
+   * @schema PresetSpecInitProviderVideo#aspectRatio
+   */
+  readonly aspectRatio?: string;
+
+  /**
+   * The bit rate of the audio stream in the output file, in kilobits/second. Enter an integer between 64 and 320, inclusive.
+   *
+   * @schema PresetSpecInitProviderVideo#bitRate
+   */
+  readonly bitRate?: string;
+
+  /**
+   * The audio codec for the output file. Valid values are AAC, flac, mp2, mp3, pcm, and vorbis.
+   *
+   * @schema PresetSpecInitProviderVideo#codec
+   */
+  readonly codec?: string;
+
+  /**
+   * The value that Elastic Transcoder adds to the metadata in the output file. If you set DisplayAspectRatio to auto, Elastic Transcoder chooses an aspect ratio that ensures square pixels. If you specify another option, Elastic Transcoder sets that value in the output file.
+   *
+   * @schema PresetSpecInitProviderVideo#displayAspectRatio
+   */
+  readonly displayAspectRatio?: string;
+
+  /**
+   * Whether to use a fixed value for Video:FixedGOP. Not applicable for containers of type gif. Valid values are true and false. Also known as, Fixed Number of Frames Between Keyframes.
+   *
+   * @schema PresetSpecInitProviderVideo#fixedGop
+   */
+  readonly fixedGop?: string;
+
+  /**
+   * The frames per second for the video stream in the output file. The following values are valid: auto, 10, 15, 23.97, 24, 25, 29.97, 30, 50, 60.
+   *
+   * @schema PresetSpecInitProviderVideo#frameRate
+   */
+  readonly frameRate?: string;
+
+  /**
+   * The maximum number of frames between key frames. Not applicable for containers of type gif.
+   *
+   * @schema PresetSpecInitProviderVideo#keyframesMaxDist
+   */
+  readonly keyframesMaxDist?: string;
+
+  /**
+   * If you specify auto for FrameRate, Elastic Transcoder uses the frame rate of the input video for the frame rate of the output video, up to the maximum frame rate. If you do not specify a MaxFrameRate, Elastic Transcoder will use a default of 30.
+   *
+   * @schema PresetSpecInitProviderVideo#maxFrameRate
+   */
+  readonly maxFrameRate?: string;
+
+  /**
+   * The maximum height of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1080 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 3072, inclusive.
+   *
+   * @schema PresetSpecInitProviderVideo#maxHeight
+   */
+  readonly maxHeight?: string;
+
+  /**
+   * The maximum width of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1920 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 4096, inclusive.
+   *
+   * @schema PresetSpecInitProviderVideo#maxWidth
+   */
+  readonly maxWidth?: string;
+
+  /**
+   * When you set PaddingPolicy to Pad, Elastic Transcoder might add black bars to the top and bottom and/or left and right sides of thumbnails to make the total size of the thumbnails match the values that you specified for thumbnail MaxWidth and MaxHeight settings.
+   *
+   * @schema PresetSpecInitProviderVideo#paddingPolicy
+   */
+  readonly paddingPolicy?: string;
+
+  /**
+   * The width and height of thumbnail files in pixels, in the format WidthxHeight, where both values are even integers. The values cannot exceed the width and height that you specified in the Video:Resolution object. (To better control resolution and aspect ratio of thumbnails, we recommend that you use the thumbnail values max_width, max_height, sizing_policy, and padding_policy instead of resolution and aspect_ratio. The two groups of settings are mutually exclusive. Do not use them together)
+   *
+   * @schema PresetSpecInitProviderVideo#resolution
+   */
+  readonly resolution?: string;
+
+  /**
+   * A value that controls scaling of thumbnails. Valid values are: Fit, Fill, Stretch, Keep, ShrinkToFit, and ShrinkToFill.
+   *
+   * @schema PresetSpecInitProviderVideo#sizingPolicy
+   */
+  readonly sizingPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProviderVideo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProviderVideo(obj: PresetSpecInitProviderVideo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aspectRatio': obj.aspectRatio,
+    'bitRate': obj.bitRate,
+    'codec': obj.codec,
+    'displayAspectRatio': obj.displayAspectRatio,
+    'fixedGop': obj.fixedGop,
+    'frameRate': obj.frameRate,
+    'keyframesMaxDist': obj.keyframesMaxDist,
+    'maxFrameRate': obj.maxFrameRate,
+    'maxHeight': obj.maxHeight,
+    'maxWidth': obj.maxWidth,
+    'paddingPolicy': obj.paddingPolicy,
+    'resolution': obj.resolution,
+    'sizingPolicy': obj.sizingPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PresetSpecInitProviderVideoWatermarks
+ */
+export interface PresetSpecInitProviderVideoWatermarks {
+  /**
+   * The horizontal position of the watermark unless you specify a nonzero value for horzontal_offset.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#horizontalAlign
+   */
+  readonly horizontalAlign?: string;
+
+  /**
+   * The amount by which you want the horizontal position of the watermark to be offset from the position specified by horizontal_align.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#horizontalOffset
+   */
+  readonly horizontalOffset?: string;
+
+  /**
+   * A unique identifier for the settings for one watermark. The value of Id can be up to 40 characters long. You can specify settings for up to four watermarks.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#id
+   */
+  readonly id?: string;
+
+  /**
+   * The maximum height of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1080 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 3072, inclusive.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#maxHeight
+   */
+  readonly maxHeight?: string;
+
+  /**
+   * The maximum width of thumbnails, in pixels. If you specify auto, Elastic Transcoder uses 1920 (Full HD) as the default value. If you specify a numeric value, enter an even integer between 32 and 4096, inclusive.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#maxWidth
+   */
+  readonly maxWidth?: string;
+
+  /**
+   * A percentage that indicates how much you want a watermark to obscure the video in the location where it appears.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#opacity
+   */
+  readonly opacity?: string;
+
+  /**
+   * A value that controls scaling of thumbnails. Valid values are: Fit, Fill, Stretch, Keep, ShrinkToFit, and ShrinkToFill.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#sizingPolicy
+   */
+  readonly sizingPolicy?: string;
+
+  /**
+   * A value that determines how Elastic Transcoder interprets values that you specified for video_watermarks.horizontal_offset, video_watermarks.vertical_offset, video_watermarks.max_width, and video_watermarks.max_height. Valid values are Content and Frame.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#target
+   */
+  readonly target?: string;
+
+  /**
+   * The vertical position of the watermark unless you specify a nonzero value for vertical_align. Valid values are Top, Bottom, Center.
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#verticalAlign
+   */
+  readonly verticalAlign?: string;
+
+  /**
+   * The amount by which you want the vertical position of the watermark to be offset from the position specified by vertical_align
+   *
+   * @schema PresetSpecInitProviderVideoWatermarks#verticalOffset
+   */
+  readonly verticalOffset?: string;
+
+}
+
+/**
+ * Converts an object of type 'PresetSpecInitProviderVideoWatermarks' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PresetSpecInitProviderVideoWatermarks(obj: PresetSpecInitProviderVideoWatermarks | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'horizontalAlign': obj.horizontalAlign,
+    'horizontalOffset': obj.horizontalOffset,
+    'id': obj.id,
+    'maxHeight': obj.maxHeight,
+    'maxWidth': obj.maxWidth,
+    'opacity': obj.opacity,
+    'sizingPolicy': obj.sizingPolicy,
+    'target': obj.target,
+    'verticalAlign': obj.verticalAlign,
+    'verticalOffset': obj.verticalOffset,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema PresetSpecProviderConfigRefPolicy
@@ -2702,43 +3369,6 @@ export interface PresetSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PresetSpecProviderConfigRefPolicy(obj: PresetSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PresetSpecProviderRefPolicy
- */
-export interface PresetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PresetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PresetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PresetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PresetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PresetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PresetSpecProviderRefPolicy(obj: PresetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2849,30 +3479,6 @@ export enum PresetSpecProviderConfigRefPolicyResolution {
  * @schema PresetSpecProviderConfigRefPolicyResolve
  */
 export enum PresetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PresetSpecProviderRefPolicyResolution
- */
-export enum PresetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PresetSpecProviderRefPolicyResolve
- */
-export enum PresetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

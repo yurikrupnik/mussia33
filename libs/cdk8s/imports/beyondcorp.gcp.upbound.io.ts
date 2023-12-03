@@ -99,7 +99,7 @@ export function toJson_AppConnectionProps(obj: AppConnectionProps | undefined): 
  */
 export interface AppConnectionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppConnectionSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AppConnectionSpec {
   readonly forProvider: AppConnectionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppConnectionSpec#managementPolicy
+   * @schema AppConnectionSpec#initProvider
    */
-  readonly managementPolicy?: AppConnectionSpecManagementPolicy;
+  readonly initProvider?: AppConnectionSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppConnectionSpec#managementPolicies
+   */
+  readonly managementPolicies?: AppConnectionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AppConnectionSpec {
    * @schema AppConnectionSpec#providerConfigRef
    */
   readonly providerConfigRef?: AppConnectionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppConnectionSpec#providerRef
-   */
-  readonly providerRef?: AppConnectionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AppConnectionSpec(obj: AppConnectionSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppConnectionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppConnectionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppConnectionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppConnectionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppConnectionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppConnectionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AppConnectionSpec(obj: AppConnectionSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppConnectionSpecDeletionPolicy
  */
@@ -271,17 +271,116 @@ export function toJson_AppConnectionSpecForProvider(obj: AppConnectionSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppConnectionSpecManagementPolicy
+ * @schema AppConnectionSpecInitProvider
  */
-export enum AppConnectionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppConnectionSpecInitProvider {
+  /**
+   * Address of the remote application endpoint for the BeyondCorp AppConnection. Structure is documented below.
+   *
+   * @schema AppConnectionSpecInitProvider#applicationEndpoint
+   */
+  readonly applicationEndpoint?: AppConnectionSpecInitProviderApplicationEndpoint[];
+
+  /**
+   * List of AppConnectors that are authorised to be associated with this AppConnection
+   *
+   * @schema AppConnectionSpecInitProvider#connectors
+   */
+  readonly connectors?: string[];
+
+  /**
+   * An arbitrary user-provided name for the AppConnection.
+   *
+   * @schema AppConnectionSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Gateway used by the AppConnection. Structure is documented below.
+   *
+   * @schema AppConnectionSpecInitProvider#gateway
+   */
+  readonly gateway?: AppConnectionSpecInitProviderGateway[];
+
+  /**
+   * Resource labels to represent user provided metadata.
+   *
+   * @schema AppConnectionSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * ID of the AppConnection.
+   *
+   * @schema AppConnectionSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AppConnectionSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The region of the AppConnection.
+   *
+   * @schema AppConnectionSpecInitProvider#region
+   */
+  readonly region?: string;
+
+  /**
+   * The type of hosting used by the gateway. Refer to https://cloud.google.com/beyondcorp/docs/reference/rest/v1/projects.locations.appConnections#Type_1 for a list of possible values.
+   *
+   * @schema AppConnectionSpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppConnectionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppConnectionSpecInitProvider(obj: AppConnectionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applicationEndpoint': obj.applicationEndpoint?.map(y => toJson_AppConnectionSpecInitProviderApplicationEndpoint(y)),
+    'connectors': obj.connectors?.map(y => y),
+    'displayName': obj.displayName,
+    'gateway': obj.gateway?.map(y => toJson_AppConnectionSpecInitProviderGateway(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'name': obj.name,
+    'project': obj.project,
+    'region': obj.region,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppConnectionSpecManagementPolicies
+ */
+export enum AppConnectionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +414,6 @@ export function toJson_AppConnectionSpecProviderConfigRef(obj: AppConnectionSpec
   const result = {
     'name': obj.name,
     'policy': toJson_AppConnectionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppConnectionSpecProviderRef
- */
-export interface AppConnectionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppConnectionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppConnectionSpecProviderRef#policy
-   */
-  readonly policy?: AppConnectionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppConnectionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppConnectionSpecProviderRef(obj: AppConnectionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppConnectionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -449,14 +511,14 @@ export interface AppConnectionSpecForProviderApplicationEndpoint {
    *
    * @schema AppConnectionSpecForProviderApplicationEndpoint#host
    */
-  readonly host: string;
+  readonly host?: string;
 
   /**
    * Port of the remote application endpoint.
    *
    * @schema AppConnectionSpecForProviderApplicationEndpoint#port
    */
-  readonly port: number;
+  readonly port?: number;
 
 }
 
@@ -527,6 +589,68 @@ export function toJson_AppConnectionSpecForProviderGateway(obj: AppConnectionSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AppConnectionSpecInitProviderApplicationEndpoint
+ */
+export interface AppConnectionSpecInitProviderApplicationEndpoint {
+  /**
+   * Hostname or IP address of the remote application endpoint.
+   *
+   * @schema AppConnectionSpecInitProviderApplicationEndpoint#host
+   */
+  readonly host?: string;
+
+  /**
+   * Port of the remote application endpoint.
+   *
+   * @schema AppConnectionSpecInitProviderApplicationEndpoint#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'AppConnectionSpecInitProviderApplicationEndpoint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppConnectionSpecInitProviderApplicationEndpoint(obj: AppConnectionSpecInitProviderApplicationEndpoint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'host': obj.host,
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AppConnectionSpecInitProviderGateway
+ */
+export interface AppConnectionSpecInitProviderGateway {
+  /**
+   * The type of hosting used by the gateway. Refer to https://cloud.google.com/beyondcorp/docs/reference/rest/v1/projects.locations.appConnections#Type_1 for a list of possible values.
+   *
+   * @schema AppConnectionSpecInitProviderGateway#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppConnectionSpecInitProviderGateway' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppConnectionSpecInitProviderGateway(obj: AppConnectionSpecInitProviderGateway | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema AppConnectionSpecProviderConfigRefPolicy
@@ -553,43 +677,6 @@ export interface AppConnectionSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AppConnectionSpecProviderConfigRefPolicy(obj: AppConnectionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AppConnectionSpecProviderRefPolicy
- */
-export interface AppConnectionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppConnectionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppConnectionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppConnectionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppConnectionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppConnectionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppConnectionSpecProviderRefPolicy(obj: AppConnectionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -782,30 +869,6 @@ export enum AppConnectionSpecProviderConfigRefPolicyResolution {
  * @schema AppConnectionSpecProviderConfigRefPolicyResolve
  */
 export enum AppConnectionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppConnectionSpecProviderRefPolicyResolution
- */
-export enum AppConnectionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppConnectionSpecProviderRefPolicyResolve
- */
-export enum AppConnectionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1092,7 +1155,7 @@ export function toJson_AppConnectorProps(obj: AppConnectorProps | undefined): Re
  */
 export interface AppConnectorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppConnectorSpec#deletionPolicy
    */
@@ -1104,11 +1167,18 @@ export interface AppConnectorSpec {
   readonly forProvider: AppConnectorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppConnectorSpec#managementPolicy
+   * @schema AppConnectorSpec#initProvider
    */
-  readonly managementPolicy?: AppConnectorSpecManagementPolicy;
+  readonly initProvider?: AppConnectorSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppConnectorSpec#managementPolicies
+   */
+  readonly managementPolicies?: AppConnectorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1116,13 +1186,6 @@ export interface AppConnectorSpec {
    * @schema AppConnectorSpec#providerConfigRef
    */
   readonly providerConfigRef?: AppConnectorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppConnectorSpec#providerRef
-   */
-  readonly providerRef?: AppConnectorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1149,9 +1212,9 @@ export function toJson_AppConnectorSpec(obj: AppConnectorSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppConnectorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppConnectorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppConnectorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppConnectorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppConnectorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppConnectorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1161,7 +1224,7 @@ export function toJson_AppConnectorSpec(obj: AppConnectorSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppConnectorSpecDeletionPolicy
  */
@@ -1232,17 +1295,76 @@ export function toJson_AppConnectorSpecForProvider(obj: AppConnectorSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppConnectorSpecManagementPolicy
+ * @schema AppConnectorSpecInitProvider
  */
-export enum AppConnectorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppConnectorSpecInitProvider {
+  /**
+   * An arbitrary user-provided name for the AppConnector.
+   *
+   * @schema AppConnectorSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Resource labels to represent user provided metadata.
+   *
+   * @schema AppConnectorSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Principal information about the Identity of the AppConnector. Structure is documented below.
+   *
+   * @schema AppConnectorSpecInitProvider#principalInfo
+   */
+  readonly principalInfo?: AppConnectorSpecInitProviderPrincipalInfo[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AppConnectorSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppConnectorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppConnectorSpecInitProvider(obj: AppConnectorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'principalInfo': obj.principalInfo?.map(y => toJson_AppConnectorSpecInitProviderPrincipalInfo(y)),
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppConnectorSpecManagementPolicies
+ */
+export enum AppConnectorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1276,43 +1398,6 @@ export function toJson_AppConnectorSpecProviderConfigRef(obj: AppConnectorSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_AppConnectorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppConnectorSpecProviderRef
- */
-export interface AppConnectorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppConnectorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppConnectorSpecProviderRef#policy
-   */
-  readonly policy?: AppConnectorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppConnectorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppConnectorSpecProviderRef(obj: AppConnectorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppConnectorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1410,7 +1495,7 @@ export interface AppConnectorSpecForProviderPrincipalInfo {
    *
    * @schema AppConnectorSpecForProviderPrincipalInfo#serviceAccount
    */
-  readonly serviceAccount: AppConnectorSpecForProviderPrincipalInfoServiceAccount[];
+  readonly serviceAccount?: AppConnectorSpecForProviderPrincipalInfoServiceAccount[];
 
 }
 
@@ -1422,6 +1507,33 @@ export function toJson_AppConnectorSpecForProviderPrincipalInfo(obj: AppConnecto
   if (obj === undefined) { return undefined; }
   const result = {
     'serviceAccount': obj.serviceAccount?.map(y => toJson_AppConnectorSpecForProviderPrincipalInfoServiceAccount(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AppConnectorSpecInitProviderPrincipalInfo
+ */
+export interface AppConnectorSpecInitProviderPrincipalInfo {
+  /**
+   * ServiceAccount represents a GCP service account. Structure is documented below.
+   *
+   * @schema AppConnectorSpecInitProviderPrincipalInfo#serviceAccount
+   */
+  readonly serviceAccount?: any[];
+
+}
+
+/**
+ * Converts an object of type 'AppConnectorSpecInitProviderPrincipalInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppConnectorSpecInitProviderPrincipalInfo(obj: AppConnectorSpecInitProviderPrincipalInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceAccount': obj.serviceAccount?.map(y => y),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1455,43 +1567,6 @@ export interface AppConnectorSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AppConnectorSpecProviderConfigRefPolicy(obj: AppConnectorSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AppConnectorSpecProviderRefPolicy
- */
-export interface AppConnectorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppConnectorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppConnectorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppConnectorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppConnectorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppConnectorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppConnectorSpecProviderRefPolicy(obj: AppConnectorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1645,30 +1720,6 @@ export enum AppConnectorSpecProviderConfigRefPolicyResolution {
  * @schema AppConnectorSpecProviderConfigRefPolicyResolve
  */
 export enum AppConnectorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppConnectorSpecProviderRefPolicyResolution
- */
-export enum AppConnectorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppConnectorSpecProviderRefPolicyResolve
- */
-export enum AppConnectorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2037,7 +2088,7 @@ export function toJson_AppGatewayProps(obj: AppGatewayProps | undefined): Record
  */
 export interface AppGatewaySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppGatewaySpec#deletionPolicy
    */
@@ -2049,11 +2100,18 @@ export interface AppGatewaySpec {
   readonly forProvider: AppGatewaySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppGatewaySpec#managementPolicy
+   * @schema AppGatewaySpec#initProvider
    */
-  readonly managementPolicy?: AppGatewaySpecManagementPolicy;
+  readonly initProvider?: AppGatewaySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppGatewaySpec#managementPolicies
+   */
+  readonly managementPolicies?: AppGatewaySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2061,13 +2119,6 @@ export interface AppGatewaySpec {
    * @schema AppGatewaySpec#providerConfigRef
    */
   readonly providerConfigRef?: AppGatewaySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppGatewaySpec#providerRef
-   */
-  readonly providerRef?: AppGatewaySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2094,9 +2145,9 @@ export function toJson_AppGatewaySpec(obj: AppGatewaySpec | undefined): Record<s
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppGatewaySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppGatewaySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppGatewaySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppGatewaySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppGatewaySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppGatewaySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2106,7 +2157,7 @@ export function toJson_AppGatewaySpec(obj: AppGatewaySpec | undefined): Record<s
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppGatewaySpecDeletionPolicy
  */
@@ -2185,17 +2236,84 @@ export function toJson_AppGatewaySpecForProvider(obj: AppGatewaySpecForProvider 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppGatewaySpecManagementPolicy
+ * @schema AppGatewaySpecInitProvider
  */
-export enum AppGatewaySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppGatewaySpecInitProvider {
+  /**
+   * An arbitrary user-provided name for the AppGateway.
+   *
+   * @schema AppGatewaySpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The type of hosting used by the AppGateway. Default value is HOST_TYPE_UNSPECIFIED. Possible values are: HOST_TYPE_UNSPECIFIED, GCP_REGIONAL_MIG.
+   *
+   * @schema AppGatewaySpecInitProvider#hostType
+   */
+  readonly hostType?: string;
+
+  /**
+   * Resource labels to represent user provided metadata.
+   *
+   * @schema AppGatewaySpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AppGatewaySpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The type of network connectivity used by the AppGateway. Default value is TYPE_UNSPECIFIED. Possible values are: TYPE_UNSPECIFIED, TCP_PROXY.
+   *
+   * @schema AppGatewaySpecInitProvider#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppGatewaySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppGatewaySpecInitProvider(obj: AppGatewaySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'hostType': obj.hostType,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppGatewaySpecManagementPolicies
+ */
+export enum AppGatewaySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2229,43 +2347,6 @@ export function toJson_AppGatewaySpecProviderConfigRef(obj: AppGatewaySpecProvid
   const result = {
     'name': obj.name,
     'policy': toJson_AppGatewaySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppGatewaySpecProviderRef
- */
-export interface AppGatewaySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppGatewaySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppGatewaySpecProviderRef#policy
-   */
-  readonly policy?: AppGatewaySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppGatewaySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppGatewaySpecProviderRef(obj: AppGatewaySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppGatewaySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2392,43 +2473,6 @@ export function toJson_AppGatewaySpecProviderConfigRefPolicy(obj: AppGatewaySpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AppGatewaySpecProviderRefPolicy
- */
-export interface AppGatewaySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppGatewaySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppGatewaySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppGatewaySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppGatewaySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppGatewaySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppGatewaySpecProviderRefPolicy(obj: AppGatewaySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AppGatewaySpecPublishConnectionDetailsToConfigRef
@@ -2528,30 +2572,6 @@ export enum AppGatewaySpecProviderConfigRefPolicyResolution {
  * @schema AppGatewaySpecProviderConfigRefPolicyResolve
  */
 export enum AppGatewaySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppGatewaySpecProviderRefPolicyResolution
- */
-export enum AppGatewaySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppGatewaySpecProviderRefPolicyResolve
- */
-export enum AppGatewaySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

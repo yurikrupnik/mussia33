@@ -99,7 +99,7 @@ export function toJson_ClusterProps(obj: ClusterProps | undefined): Record<strin
  */
 export interface ClusterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClusterSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ClusterSpec {
   readonly forProvider: ClusterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClusterSpec#managementPolicy
+   * @schema ClusterSpec#initProvider
    */
-  readonly managementPolicy?: ClusterSpecManagementPolicy;
+  readonly initProvider?: ClusterSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClusterSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClusterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ClusterSpec {
    * @schema ClusterSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClusterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClusterSpec#providerRef
-   */
-  readonly providerRef?: ClusterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClusterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClusterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClusterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClusterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClusterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClusterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ClusterSpec(obj: ClusterSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClusterSpecDeletionPolicy
  */
@@ -189,6 +189,14 @@ export interface ClusterSpecForProvider {
    * @schema ClusterSpecForProvider#addonsConfig
    */
   readonly addonsConfig?: ClusterSpecForProviderAddonsConfig[];
+
+  /**
+   * Enable NET_ADMIN for the cluster. Defaults to false. This field should only be enabled for Autopilot clusters (enable_autopilot set to true).
+   *
+   * @default false. This field should only be enabled for Autopilot clusters (enable_autopilot set to true).
+   * @schema ClusterSpecForProvider#allowNetAdmin
+   */
+  readonly allowNetAdmin?: boolean;
 
   /**
    * Configuration for the Google Groups for GKE feature. Structure is documented below.
@@ -240,7 +248,7 @@ export interface ClusterSpecForProvider {
   readonly databaseEncryption?: ClusterSpecForProviderDatabaseEncryption[];
 
   /**
-   * The desired datapath provider for this cluster. By default, uses the IPTables-based kube-proxy implementation.
+   * The desired datapath provider for this cluster. This is set to LEGACY_DATAPATH by default, which uses the IPTables-based kube-proxy implementation. Set to ADVANCED_DATAPATH to enable Dataplane v2.
    *
    * @schema ClusterSpecForProvider#datapathProvider
    */
@@ -295,6 +303,13 @@ export interface ClusterSpecForProvider {
    * @schema ClusterSpecForProvider#enableIntranodeVisibility
    */
   readonly enableIntranodeVisibility?: boolean;
+
+  /**
+   * Configuration for Kubernetes Beta APIs. Structure is documented below.
+   *
+   * @schema ClusterSpecForProvider#enableK8SBetaApis
+   */
+  readonly enableK8SBetaApis?: ClusterSpecForProviderEnableK8SBetaApis[];
 
   /**
    * Whether to enable Kubernetes Alpha features for this cluster. Note that when this option is enabled, the cluster cannot be upgraded and will be automatically deleted after 30 days.
@@ -547,6 +562,13 @@ export interface ClusterSpecForProvider {
   readonly resourceUsageExportConfig?: ClusterSpecForProviderResourceUsageExportConfig[];
 
   /**
+   * Enable/Disable Security Posture API features for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecForProvider#securityPostureConfig
+   */
+  readonly securityPostureConfig?: ClusterSpecForProviderSecurityPostureConfig[];
+
+  /**
    * Structure is documented below.
    *
    * @schema ClusterSpecForProvider#serviceExternalIpsConfig
@@ -598,6 +620,7 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
   if (obj === undefined) { return undefined; }
   const result = {
     'addonsConfig': obj.addonsConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfig(y)),
+    'allowNetAdmin': obj.allowNetAdmin,
     'authenticatorGroupsConfig': obj.authenticatorGroupsConfig?.map(y => toJson_ClusterSpecForProviderAuthenticatorGroupsConfig(y)),
     'binaryAuthorization': obj.binaryAuthorization?.map(y => toJson_ClusterSpecForProviderBinaryAuthorization(y)),
     'clusterAutoscaling': obj.clusterAutoscaling?.map(y => toJson_ClusterSpecForProviderClusterAutoscaling(y)),
@@ -613,6 +636,7 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
     'enableAutopilot': obj.enableAutopilot,
     'enableBinaryAuthorization': obj.enableBinaryAuthorization,
     'enableIntranodeVisibility': obj.enableIntranodeVisibility,
+    'enableK8SBetaApis': obj.enableK8SBetaApis?.map(y => toJson_ClusterSpecForProviderEnableK8SBetaApis(y)),
     'enableKubernetesAlpha': obj.enableKubernetesAlpha,
     'enableL4IlbSubsetting': obj.enableL4IlbSubsetting,
     'enableLegacyAbac': obj.enableLegacyAbac,
@@ -648,6 +672,7 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
     'removeDefaultNodePool': obj.removeDefaultNodePool,
     'resourceLabels': ((obj.resourceLabels) === undefined) ? undefined : (Object.entries(obj.resourceLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
     'resourceUsageExportConfig': obj.resourceUsageExportConfig?.map(y => toJson_ClusterSpecForProviderResourceUsageExportConfig(y)),
+    'securityPostureConfig': obj.securityPostureConfig?.map(y => toJson_ClusterSpecForProviderSecurityPostureConfig(y)),
     'serviceExternalIpsConfig': obj.serviceExternalIpsConfig?.map(y => toJson_ClusterSpecForProviderServiceExternalIpsConfig(y)),
     'subnetwork': obj.subnetwork,
     'subnetworkRef': toJson_ClusterSpecForProviderSubnetworkRef(obj.subnetworkRef),
@@ -661,17 +686,475 @@ export function toJson_ClusterSpecForProvider(obj: ClusterSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClusterSpecManagementPolicy
+ * @schema ClusterSpecInitProvider
  */
-export enum ClusterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClusterSpecInitProvider {
+  /**
+   * The configuration for addons supported by GKE. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#addonsConfig
+   */
+  readonly addonsConfig?: ClusterSpecInitProviderAddonsConfig[];
+
+  /**
+   * Enable NET_ADMIN for the cluster. Defaults to false. This field should only be enabled for Autopilot clusters (enable_autopilot set to true).
+   *
+   * @default false. This field should only be enabled for Autopilot clusters (enable_autopilot set to true).
+   * @schema ClusterSpecInitProvider#allowNetAdmin
+   */
+  readonly allowNetAdmin?: boolean;
+
+  /**
+   * Configuration for the Google Groups for GKE feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#authenticatorGroupsConfig
+   */
+  readonly authenticatorGroupsConfig?: ClusterSpecInitProviderAuthenticatorGroupsConfig[];
+
+  /**
+   * Configuration options for the Binary Authorization feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#binaryAuthorization
+   */
+  readonly binaryAuthorization?: ClusterSpecInitProviderBinaryAuthorization[];
+
+  /**
+   * Per-cluster configuration of Node Auto-Provisioning with Cluster Autoscaler to automatically adjust the size of the cluster and create/delete node pools based on the current needs of the cluster's workload. See the guide to using Node Auto-Provisioning for more details. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#clusterAutoscaling
+   */
+  readonly clusterAutoscaling?: ClusterSpecInitProviderClusterAutoscaling[];
+
+  /**
+   * The IP address range of the Kubernetes pods in this cluster in CIDR notation (e.g. 10.96.0.0/14). Leave blank to have one automatically chosen or specify a /14 block in 10.0.0.0/8. This field will only work for routes-based clusters, where ip_allocation_policy is not defined.
+   *
+   * @schema ClusterSpecInitProvider#clusterIpv4Cidr
+   */
+  readonly clusterIpv4Cidr?: string;
+
+  /**
+   * Configuration for Confidential Nodes feature. Structure is documented below documented below.
+   *
+   * @schema ClusterSpecInitProvider#confidentialNodes
+   */
+  readonly confidentialNodes?: ClusterSpecInitProviderConfidentialNodes[];
+
+  /**
+   * Configuration for the Cost Allocation feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#costManagementConfig
+   */
+  readonly costManagementConfig?: ClusterSpecInitProviderCostManagementConfig[];
+
+  /**
+   * Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#databaseEncryption
+   */
+  readonly databaseEncryption?: ClusterSpecInitProviderDatabaseEncryption[];
+
+  /**
+   * The desired datapath provider for this cluster. This is set to LEGACY_DATAPATH by default, which uses the IPTables-based kube-proxy implementation. Set to ADVANCED_DATAPATH to enable Dataplane v2.
+   *
+   * @schema ClusterSpecInitProvider#datapathProvider
+   */
+  readonly datapathProvider?: string;
+
+  /**
+   * The default maximum number of pods per node in this cluster. This doesn't work on "routes-based" clusters, clusters that don't have IP Aliasing enabled. See the official documentation for more information.
+   *
+   * @schema ClusterSpecInitProvider#defaultMaxPodsPerNode
+   */
+  readonly defaultMaxPodsPerNode?: number;
+
+  /**
+   * GKE SNAT DefaultSnatStatus contains the desired state of whether default sNAT should be disabled on the cluster, API doc. Structure is documented below
+   *
+   * @schema ClusterSpecInitProvider#defaultSnatStatus
+   */
+  readonly defaultSnatStatus?: ClusterSpecInitProviderDefaultSnatStatus[];
+
+  /**
+   * Description of the cluster.
+   *
+   * @schema ClusterSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Configuration for Using Cloud DNS for GKE. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#dnsConfig
+   */
+  readonly dnsConfig?: ClusterSpecInitProviderDnsConfig[];
+
+  /**
+   * Enable Autopilot for this cluster. Defaults to false. Note that when this option is enabled, certain features of Standard GKE are not available. See the official documentation for available features.
+   *
+   * @default false. Note that when this option is enabled, certain features of Standard GKE are not available. See the official documentation for available features.
+   * @schema ClusterSpecInitProvider#enableAutopilot
+   */
+  readonly enableAutopilot?: boolean;
+
+  /**
+   * (DEPRECATED) Enable Binary Authorization for this cluster. If enabled, all container images will be validated by Google Binary Authorization. Deprecated in favor of binary_authorization.
+   *
+   * @schema ClusterSpecInitProvider#enableBinaryAuthorization
+   */
+  readonly enableBinaryAuthorization?: boolean;
+
+  /**
+   * Whether Intra-node visibility is enabled for this cluster. This makes same node pod to pod traffic visible for VPC network.
+   *
+   * @schema ClusterSpecInitProvider#enableIntranodeVisibility
+   */
+  readonly enableIntranodeVisibility?: boolean;
+
+  /**
+   * Configuration for Kubernetes Beta APIs. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#enableK8SBetaApis
+   */
+  readonly enableK8SBetaApis?: ClusterSpecInitProviderEnableK8SBetaApis[];
+
+  /**
+   * Whether to enable Kubernetes Alpha features for this cluster. Note that when this option is enabled, the cluster cannot be upgraded and will be automatically deleted after 30 days.
+   *
+   * @schema ClusterSpecInitProvider#enableKubernetesAlpha
+   */
+  readonly enableKubernetesAlpha?: boolean;
+
+  /**
+   * Whether L4ILB Subsetting is enabled for this cluster.
+   *
+   * @schema ClusterSpecInitProvider#enableL4IlbSubsetting
+   */
+  readonly enableL4IlbSubsetting?: boolean;
+
+  /**
+   * Whether the ABAC authorizer is enabled for this cluster. When enabled, identities in the system, including service accounts, nodes, and controllers, will have statically granted permissions beyond those provided by the RBAC configuration or IAM. Defaults to false
+   *
+   * @default false
+   * @schema ClusterSpecInitProvider#enableLegacyAbac
+   */
+  readonly enableLegacyAbac?: boolean;
+
+  /**
+   * Enable Shielded Nodes features on all nodes in this cluster.  Defaults to true.
+   *
+   * @default true.
+   * @schema ClusterSpecInitProvider#enableShieldedNodes
+   */
+  readonly enableShieldedNodes?: boolean;
+
+  /**
+   * Whether to enable Cloud TPU resources in this cluster. See the official documentation.
+   *
+   * @schema ClusterSpecInitProvider#enableTpu
+   */
+  readonly enableTpu?: boolean;
+
+  /**
+   * Configuration for GKE Gateway API controller. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#gatewayApiConfig
+   */
+  readonly gatewayApiConfig?: ClusterSpecInitProviderGatewayApiConfig[];
+
+  /**
+   * The number of nodes to create in this cluster's default node pool. In regional or multi-zonal clusters, this is the number of nodes per zone. Must be set if node_pool is not set. If you're using google_container_node_pool objects with no default node pool, you'll need to set this to a value of at least 1, alongside setting remove_default_node_pool to true.
+   *
+   * @schema ClusterSpecInitProvider#initialNodeCount
+   */
+  readonly initialNodeCount?: number;
+
+  /**
+   * Configuration of cluster IP allocation for VPC-native clusters. Adding this block enables IP aliasing, making the cluster VPC-native instead of routes-based. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#ipAllocationPolicy
+   */
+  readonly ipAllocationPolicy?: ClusterSpecInitProviderIpAllocationPolicy[];
+
+  /**
+   * Logging configuration for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#loggingConfig
+   */
+  readonly loggingConfig?: ClusterSpecInitProviderLoggingConfig[];
+
+  /**
+   * The logging service that the cluster should write logs to. Available options include logging.googleapis.com(Legacy Stackdriver), logging.googleapis.com/kubernetes(Stackdriver Kubernetes Engine Logging), and none. Defaults to logging.googleapis.com/kubernetes
+   *
+   * @default logging.googleapis.com/kubernetes
+   * @schema ClusterSpecInitProvider#loggingService
+   */
+  readonly loggingService?: string;
+
+  /**
+   * The maintenance policy to use for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#maintenancePolicy
+   */
+  readonly maintenancePolicy?: ClusterSpecInitProviderMaintenancePolicy[];
+
+  /**
+   * The authentication information for accessing the Kubernetes master. Some values in this block are only returned by the API if your service account has permission to get credentials for your GKE cluster. If you see an unexpected diff unsetting your client cert, ensure you have the container.clusters.getCredentials permission. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#masterAuth
+   */
+  readonly masterAuth?: ClusterSpecInitProviderMasterAuth[];
+
+  /**
+   * The desired configuration options for master authorized networks. Omit the nested cidr_blocks attribute to disallow external access (except the cluster node IPs, which GKE automatically whitelists). Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#masterAuthorizedNetworksConfig
+   */
+  readonly masterAuthorizedNetworksConfig?: ClusterSpecInitProviderMasterAuthorizedNetworksConfig[];
+
+  /**
+   * Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#meshCertificates
+   */
+  readonly meshCertificates?: ClusterSpecInitProviderMeshCertificates[];
+
+  /**
+   * The minimum version of the master. GKE will auto-update the master to new versions, so this does not guarantee the current master version--use the read-only master_version field to obtain that. If unset, the cluster's version will be set by GKE to the version of the most recent official release (which is not necessarily the latest version). If you intend to specify versions manually, the docs describe the various acceptable formats for this field.
+   *
+   * @schema ClusterSpecInitProvider#minMasterVersion
+   */
+  readonly minMasterVersion?: string;
+
+  /**
+   * Monitoring configuration for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#monitoringConfig
+   */
+  readonly monitoringConfig?: ClusterSpecInitProviderMonitoringConfig[];
+
+  /**
+   * The monitoring service that the cluster should write metrics to. Automatically send metrics from pods in the cluster to the Google Cloud Monitoring API. VM metrics will be collected by Google Compute Engine regardless of this setting Available options include monitoring.googleapis.com(Legacy Stackdriver), monitoring.googleapis.com/kubernetes(Stackdriver Kubernetes Engine Monitoring), and none. Defaults to monitoring.googleapis.com/kubernetes
+   *
+   * @default monitoring.googleapis.com/kubernetes
+   * @schema ClusterSpecInitProvider#monitoringService
+   */
+  readonly monitoringService?: string;
+
+  /**
+   * Configuration options for the NetworkPolicy feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#networkPolicy
+   */
+  readonly networkPolicy?: ClusterSpecInitProviderNetworkPolicy[];
+
+  /**
+   * Determines whether alias IPs or routes will be used for pod IPs in the cluster. Options are VPC_NATIVE or ROUTES. VPC_NATIVE enables IP aliasing, and requires the ip_allocation_policy block to be defined. By default, when this field is unspecified and no ip_allocation_policy blocks are set, GKE will create a ROUTES-based cluster.
+   *
+   * @schema ClusterSpecInitProvider#networkingMode
+   */
+  readonly networkingMode?: string;
+
+  /**
+   * Parameters used in creating the default node pool. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#nodeConfig
+   */
+  readonly nodeConfig?: ClusterSpecInitProviderNodeConfig[];
+
+  /**
+   * The list of zones in which the cluster's nodes are located. Nodes must be in the region of their regional cluster or in the same region as their cluster's zone for zonal clusters. If this is specified for a zonal cluster, omit the cluster's zone.
+   *
+   * @schema ClusterSpecInitProvider#nodeLocations
+   */
+  readonly nodeLocations?: string[];
+
+  /**
+   * Default NodePool settings for the entire cluster. These settings are overridden if specified on the specific NodePool object. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#nodePoolDefaults
+   */
+  readonly nodePoolDefaults?: ClusterSpecInitProviderNodePoolDefaults[];
+
+  /**
+   * The Kubernetes version on the nodes. Must either be unset or set to the same value as min_master_version on create. Defaults to the default version set by GKE which is not necessarily the latest version. This only affects nodes in the default node pool. To update nodes in other node pools, use the version attribute on the node pool.
+   *
+   * @default the default version set by GKE which is not necessarily the latest version. This only affects nodes in the default node pool. To update nodes in other node pools, use the version attribute on the node pool.
+   * @schema ClusterSpecInitProvider#nodeVersion
+   */
+  readonly nodeVersion?: string;
+
+  /**
+   * Configuration for the cluster upgrade notifications feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#notificationConfig
+   */
+  readonly notificationConfig?: ClusterSpecInitProviderNotificationConfig[];
+
+  /**
+   * Configuration for private clusters, clusters with private nodes. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#privateClusterConfig
+   */
+  readonly privateClusterConfig?: ClusterSpecInitProviderPrivateClusterConfig[];
+
+  /**
+   * The desired state of IPv6 connectivity to Google Services. By default, no private IPv6 access to or from Google Services (all access will be via IPv4).
+   *
+   * @schema ClusterSpecInitProvider#privateIpv6GoogleAccess
+   */
+  readonly privateIpv6GoogleAccess?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ClusterSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Configuration options for the Release channel feature, which provide more control over automatic upgrades of your GKE clusters. When updating this field, GKE imposes specific version requirements. See Selecting a new release channel for more details; the google_container_engine_versions datasource can provide the default version for a channel. Instead, use the "UNSPECIFIED" channel. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#releaseChannel
+   */
+  readonly releaseChannel?: ClusterSpecInitProviderReleaseChannel[];
+
+  /**
+   * If true, deletes the default node pool upon cluster creation. If you're using google_container_node_pool resources with no default node pool, this should be set to true, alongside setting initial_node_count to at least 1.
+   *
+   * @schema ClusterSpecInitProvider#removeDefaultNodePool
+   */
+  readonly removeDefaultNodePool?: boolean;
+
+  /**
+   * The GCE resource labels (a map of key/value pairs) to be applied to the cluster.
+   *
+   * @schema ClusterSpecInitProvider#resourceLabels
+   */
+  readonly resourceLabels?: { [key: string]: string };
+
+  /**
+   * Configuration for the ResourceUsageExportConfig feature. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#resourceUsageExportConfig
+   */
+  readonly resourceUsageExportConfig?: ClusterSpecInitProviderResourceUsageExportConfig[];
+
+  /**
+   * Enable/Disable Security Posture API features for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#securityPostureConfig
+   */
+  readonly securityPostureConfig?: ClusterSpecInitProviderSecurityPostureConfig[];
+
+  /**
+   * Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#serviceExternalIpsConfig
+   */
+  readonly serviceExternalIpsConfig?: ClusterSpecInitProviderServiceExternalIpsConfig[];
+
+  /**
+   * Vertical Pod Autoscaling automatically adjusts the resources of pods controlled by it. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#verticalPodAutoscaling
+   */
+  readonly verticalPodAutoscaling?: ClusterSpecInitProviderVerticalPodAutoscaling[];
+
+  /**
+   * Workload Identity allows Kubernetes service accounts to act as a user-managed Google IAM Service Account. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProvider#workloadIdentityConfig
+   */
+  readonly workloadIdentityConfig?: ClusterSpecInitProviderWorkloadIdentityConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProvider(obj: ClusterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'addonsConfig': obj.addonsConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfig(y)),
+    'allowNetAdmin': obj.allowNetAdmin,
+    'authenticatorGroupsConfig': obj.authenticatorGroupsConfig?.map(y => toJson_ClusterSpecInitProviderAuthenticatorGroupsConfig(y)),
+    'binaryAuthorization': obj.binaryAuthorization?.map(y => toJson_ClusterSpecInitProviderBinaryAuthorization(y)),
+    'clusterAutoscaling': obj.clusterAutoscaling?.map(y => toJson_ClusterSpecInitProviderClusterAutoscaling(y)),
+    'clusterIpv4Cidr': obj.clusterIpv4Cidr,
+    'confidentialNodes': obj.confidentialNodes?.map(y => toJson_ClusterSpecInitProviderConfidentialNodes(y)),
+    'costManagementConfig': obj.costManagementConfig?.map(y => toJson_ClusterSpecInitProviderCostManagementConfig(y)),
+    'databaseEncryption': obj.databaseEncryption?.map(y => toJson_ClusterSpecInitProviderDatabaseEncryption(y)),
+    'datapathProvider': obj.datapathProvider,
+    'defaultMaxPodsPerNode': obj.defaultMaxPodsPerNode,
+    'defaultSnatStatus': obj.defaultSnatStatus?.map(y => toJson_ClusterSpecInitProviderDefaultSnatStatus(y)),
+    'description': obj.description,
+    'dnsConfig': obj.dnsConfig?.map(y => toJson_ClusterSpecInitProviderDnsConfig(y)),
+    'enableAutopilot': obj.enableAutopilot,
+    'enableBinaryAuthorization': obj.enableBinaryAuthorization,
+    'enableIntranodeVisibility': obj.enableIntranodeVisibility,
+    'enableK8SBetaApis': obj.enableK8SBetaApis?.map(y => toJson_ClusterSpecInitProviderEnableK8SBetaApis(y)),
+    'enableKubernetesAlpha': obj.enableKubernetesAlpha,
+    'enableL4IlbSubsetting': obj.enableL4IlbSubsetting,
+    'enableLegacyAbac': obj.enableLegacyAbac,
+    'enableShieldedNodes': obj.enableShieldedNodes,
+    'enableTpu': obj.enableTpu,
+    'gatewayApiConfig': obj.gatewayApiConfig?.map(y => toJson_ClusterSpecInitProviderGatewayApiConfig(y)),
+    'initialNodeCount': obj.initialNodeCount,
+    'ipAllocationPolicy': obj.ipAllocationPolicy?.map(y => toJson_ClusterSpecInitProviderIpAllocationPolicy(y)),
+    'loggingConfig': obj.loggingConfig?.map(y => toJson_ClusterSpecInitProviderLoggingConfig(y)),
+    'loggingService': obj.loggingService,
+    'maintenancePolicy': obj.maintenancePolicy?.map(y => toJson_ClusterSpecInitProviderMaintenancePolicy(y)),
+    'masterAuth': obj.masterAuth?.map(y => toJson_ClusterSpecInitProviderMasterAuth(y)),
+    'masterAuthorizedNetworksConfig': obj.masterAuthorizedNetworksConfig?.map(y => toJson_ClusterSpecInitProviderMasterAuthorizedNetworksConfig(y)),
+    'meshCertificates': obj.meshCertificates?.map(y => toJson_ClusterSpecInitProviderMeshCertificates(y)),
+    'minMasterVersion': obj.minMasterVersion,
+    'monitoringConfig': obj.monitoringConfig?.map(y => toJson_ClusterSpecInitProviderMonitoringConfig(y)),
+    'monitoringService': obj.monitoringService,
+    'networkPolicy': obj.networkPolicy?.map(y => toJson_ClusterSpecInitProviderNetworkPolicy(y)),
+    'networkingMode': obj.networkingMode,
+    'nodeConfig': obj.nodeConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfig(y)),
+    'nodeLocations': obj.nodeLocations?.map(y => y),
+    'nodePoolDefaults': obj.nodePoolDefaults?.map(y => toJson_ClusterSpecInitProviderNodePoolDefaults(y)),
+    'nodeVersion': obj.nodeVersion,
+    'notificationConfig': obj.notificationConfig?.map(y => toJson_ClusterSpecInitProviderNotificationConfig(y)),
+    'privateClusterConfig': obj.privateClusterConfig?.map(y => toJson_ClusterSpecInitProviderPrivateClusterConfig(y)),
+    'privateIpv6GoogleAccess': obj.privateIpv6GoogleAccess,
+    'project': obj.project,
+    'releaseChannel': obj.releaseChannel?.map(y => toJson_ClusterSpecInitProviderReleaseChannel(y)),
+    'removeDefaultNodePool': obj.removeDefaultNodePool,
+    'resourceLabels': ((obj.resourceLabels) === undefined) ? undefined : (Object.entries(obj.resourceLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'resourceUsageExportConfig': obj.resourceUsageExportConfig?.map(y => toJson_ClusterSpecInitProviderResourceUsageExportConfig(y)),
+    'securityPostureConfig': obj.securityPostureConfig?.map(y => toJson_ClusterSpecInitProviderSecurityPostureConfig(y)),
+    'serviceExternalIpsConfig': obj.serviceExternalIpsConfig?.map(y => toJson_ClusterSpecInitProviderServiceExternalIpsConfig(y)),
+    'verticalPodAutoscaling': obj.verticalPodAutoscaling?.map(y => toJson_ClusterSpecInitProviderVerticalPodAutoscaling(y)),
+    'workloadIdentityConfig': obj.workloadIdentityConfig?.map(y => toJson_ClusterSpecInitProviderWorkloadIdentityConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClusterSpecManagementPolicies
+ */
+export enum ClusterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -705,43 +1188,6 @@ export function toJson_ClusterSpecProviderConfigRef(obj: ClusterSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ClusterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClusterSpecProviderRef
- */
-export interface ClusterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClusterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClusterSpecProviderRef#policy
-   */
-  readonly policy?: ClusterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRef(obj: ClusterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClusterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -871,6 +1317,13 @@ export interface ClusterSpecForProviderAddonsConfig {
   readonly gcpFilestoreCsiDriverConfig?: ClusterSpecForProviderAddonsConfigGcpFilestoreCsiDriverConfig[];
 
   /**
+   * The status of the GCSFuse CSI driver addon, which allows the usage of a gcs bucket as volumes. It is disabled by default; set enabled = true to enable.
+   *
+   * @schema ClusterSpecForProviderAddonsConfig#gcsFuseCsiDriverConfig
+   */
+  readonly gcsFuseCsiDriverConfig?: ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig[];
+
+  /**
    * . The status of the Backup for GKE agent addon. It is disabled by default; Set enabled = true to enable.
    *
    * @schema ClusterSpecForProviderAddonsConfig#gkeBackupAgentConfig
@@ -913,6 +1366,7 @@ export function toJson_ClusterSpecForProviderAddonsConfig(obj: ClusterSpecForPro
     'dnsCacheConfig': obj.dnsCacheConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfigDnsCacheConfig(y)),
     'gcePersistentDiskCsiDriverConfig': obj.gcePersistentDiskCsiDriverConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfigGcePersistentDiskCsiDriverConfig(y)),
     'gcpFilestoreCsiDriverConfig': obj.gcpFilestoreCsiDriverConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfigGcpFilestoreCsiDriverConfig(y)),
+    'gcsFuseCsiDriverConfig': obj.gcsFuseCsiDriverConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig(y)),
     'gkeBackupAgentConfig': obj.gkeBackupAgentConfig?.map(y => toJson_ClusterSpecForProviderAddonsConfigGkeBackupAgentConfig(y)),
     'horizontalPodAutoscaling': obj.horizontalPodAutoscaling?.map(y => toJson_ClusterSpecForProviderAddonsConfigHorizontalPodAutoscaling(y)),
     'httpLoadBalancing': obj.httpLoadBalancing?.map(y => toJson_ClusterSpecForProviderAddonsConfigHttpLoadBalancing(y)),
@@ -932,7 +1386,7 @@ export interface ClusterSpecForProviderAuthenticatorGroupsConfig {
    *
    * @schema ClusterSpecForProviderAuthenticatorGroupsConfig#securityGroup
    */
-  readonly securityGroup: string;
+  readonly securityGroup?: string;
 
 }
 
@@ -1037,7 +1491,7 @@ export interface ClusterSpecForProviderConfidentialNodes {
    *
    * @schema ClusterSpecForProviderConfidentialNodes#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -1064,7 +1518,7 @@ export interface ClusterSpecForProviderCostManagementConfig {
    *
    * @schema ClusterSpecForProviderCostManagementConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -1098,7 +1552,7 @@ export interface ClusterSpecForProviderDatabaseEncryption {
    *
    * @schema ClusterSpecForProviderDatabaseEncryption#state
    */
-  readonly state: string;
+  readonly state?: string;
 
 }
 
@@ -1126,7 +1580,7 @@ export interface ClusterSpecForProviderDefaultSnatStatus {
    *
    * @schema ClusterSpecForProviderDefaultSnatStatus#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -1188,6 +1642,33 @@ export function toJson_ClusterSpecForProviderDnsConfig(obj: ClusterSpecForProvid
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderEnableK8SBetaApis
+ */
+export interface ClusterSpecForProviderEnableK8SBetaApis {
+  /**
+   * Enabled Kubernetes Beta APIs. To list a Beta API resource, use the representation {group}/{version}/{resource}. The version must be a Beta version. Note that you cannot disable beta APIs that are already enabled on a cluster without recreating it. See the Configure beta APIs for more information.
+   *
+   * @schema ClusterSpecForProviderEnableK8SBetaApis#enabledApis
+   */
+  readonly enabledApis?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderEnableK8SBetaApis' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderEnableK8SBetaApis(obj: ClusterSpecForProviderEnableK8SBetaApis | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabledApis': obj.enabledApis?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderGatewayApiConfig
  */
 export interface ClusterSpecForProviderGatewayApiConfig {
@@ -1196,7 +1677,7 @@ export interface ClusterSpecForProviderGatewayApiConfig {
    *
    * @schema ClusterSpecForProviderGatewayApiConfig#channel
    */
-  readonly channel: string;
+  readonly channel?: string;
 
 }
 
@@ -1288,7 +1769,7 @@ export interface ClusterSpecForProviderLoggingConfig {
    *
    * @schema ClusterSpecForProviderLoggingConfig#enableComponents
    */
-  readonly enableComponents: string[];
+  readonly enableComponents?: string[];
 
 }
 
@@ -1358,7 +1839,7 @@ export interface ClusterSpecForProviderMasterAuth {
    *
    * @schema ClusterSpecForProviderMasterAuth#clientCertificateConfig
    */
-  readonly clientCertificateConfig: ClusterSpecForProviderMasterAuthClientCertificateConfig[];
+  readonly clientCertificateConfig?: ClusterSpecForProviderMasterAuthClientCertificateConfig[];
 
 }
 
@@ -1420,7 +1901,7 @@ export interface ClusterSpecForProviderMeshCertificates {
    *
    * @schema ClusterSpecForProviderMeshCertificates#enableCertificates
    */
-  readonly enableCertificates: boolean;
+  readonly enableCertificates?: boolean;
 
 }
 
@@ -1447,7 +1928,7 @@ export interface ClusterSpecForProviderMonitoringConfig {
    *
    * @schema ClusterSpecForProviderMonitoringConfig#enableComponents
    */
-  readonly enableComponents: string[];
+  readonly enableComponents?: string[];
 
   /**
    * Configuration for Managed Service for Prometheus. Structure is documented below.
@@ -1482,7 +1963,7 @@ export interface ClusterSpecForProviderNetworkPolicy {
    *
    * @schema ClusterSpecForProviderNetworkPolicy#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * The selected network policy provider. Defaults to PROVIDER_UNSPECIFIED.
@@ -1653,6 +2134,13 @@ export interface ClusterSpecForProviderNodeConfig {
   readonly gvnic?: ClusterSpecForProviderNodeConfigGvnic[];
 
   /**
+   * The maintenance policy to use for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfig#hostMaintenancePolicy
+   */
+  readonly hostMaintenancePolicy?: ClusterSpecForProviderNodeConfigHostMaintenancePolicy[];
+
+  /**
    * The image type to use for this node. Note that changing the image type will delete and recreate all nodes in the node pool.
    *
    * @schema ClusterSpecForProviderNodeConfig#imageType
@@ -1789,6 +2277,13 @@ export interface ClusterSpecForProviderNodeConfig {
   readonly shieldedInstanceConfig?: ClusterSpecForProviderNodeConfigShieldedInstanceConfig[];
 
   /**
+   * Allows specifying multiple node affinities useful for running workloads on sole tenant nodes. node_affinity structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfig#soleTenantConfig
+   */
+  readonly soleTenantConfig?: ClusterSpecForProviderNodeConfigSoleTenantConfig[];
+
+  /**
    * A boolean that represents whether the underlying node VMs are spot. See the official documentation for more information. Defaults to false.
    *
    * @default false.
@@ -1834,6 +2329,7 @@ export function toJson_ClusterSpecForProviderNodeConfig(obj: ClusterSpecForProvi
     'gcfsConfig': obj.gcfsConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigGcfsConfig(y)),
     'guestAccelerator': obj.guestAccelerator?.map(y => toJson_ClusterSpecForProviderNodeConfigGuestAccelerator(y)),
     'gvnic': obj.gvnic?.map(y => toJson_ClusterSpecForProviderNodeConfigGvnic(y)),
+    'hostMaintenancePolicy': obj.hostMaintenancePolicy?.map(y => toJson_ClusterSpecForProviderNodeConfigHostMaintenancePolicy(y)),
     'imageType': obj.imageType,
     'kubeletConfig': obj.kubeletConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigKubeletConfig(y)),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -1853,6 +2349,7 @@ export function toJson_ClusterSpecForProviderNodeConfig(obj: ClusterSpecForProvi
     'serviceAccountRef': toJson_ClusterSpecForProviderNodeConfigServiceAccountRef(obj.serviceAccountRef),
     'serviceAccountSelector': toJson_ClusterSpecForProviderNodeConfigServiceAccountSelector(obj.serviceAccountSelector),
     'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigShieldedInstanceConfig(y)),
+    'soleTenantConfig': obj.soleTenantConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigSoleTenantConfig(y)),
     'spot': obj.spot,
     'tags': obj.tags?.map(y => y),
     'taint': obj.taint?.map(y => toJson_ClusterSpecForProviderNodeConfigTaint(y)),
@@ -1899,7 +2396,7 @@ export interface ClusterSpecForProviderNotificationConfig {
    *
    * @schema ClusterSpecForProviderNotificationConfig#pubsub
    */
-  readonly pubsub: ClusterSpecForProviderNotificationConfigPubsub[];
+  readonly pubsub?: ClusterSpecForProviderNotificationConfigPubsub[];
 
 }
 
@@ -1985,7 +2482,7 @@ export interface ClusterSpecForProviderReleaseChannel {
    *
    * @schema ClusterSpecForProviderReleaseChannel#channel
    */
-  readonly channel: string;
+  readonly channel?: string;
 
 }
 
@@ -2012,7 +2509,7 @@ export interface ClusterSpecForProviderResourceUsageExportConfig {
    *
    * @schema ClusterSpecForProviderResourceUsageExportConfig#bigqueryDestination
    */
-  readonly bigqueryDestination: ClusterSpecForProviderResourceUsageExportConfigBigqueryDestination[];
+  readonly bigqueryDestination?: ClusterSpecForProviderResourceUsageExportConfigBigqueryDestination[];
 
   /**
    * Whether to enable network egress metering for this cluster. If enabled, a daemonset will be created in the cluster to meter network egress traffic.
@@ -2048,6 +2545,41 @@ export function toJson_ClusterSpecForProviderResourceUsageExportConfig(obj: Clus
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderSecurityPostureConfig
+ */
+export interface ClusterSpecForProviderSecurityPostureConfig {
+  /**
+   * Sets the mode of the Kubernetes security posture API's off-cluster features. Available options include DISABLED and BASIC.
+   *
+   * @schema ClusterSpecForProviderSecurityPostureConfig#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * Sets the mode of the Kubernetes security posture API's workload vulnerability scanning. Available options include VULNERABILITY_DISABLED and VULNERABILITY_BASIC.
+   *
+   * @schema ClusterSpecForProviderSecurityPostureConfig#vulnerabilityMode
+   */
+  readonly vulnerabilityMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderSecurityPostureConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderSecurityPostureConfig(obj: ClusterSpecForProviderSecurityPostureConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+    'vulnerabilityMode': obj.vulnerabilityMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderServiceExternalIpsConfig
  */
 export interface ClusterSpecForProviderServiceExternalIpsConfig {
@@ -2056,7 +2588,7 @@ export interface ClusterSpecForProviderServiceExternalIpsConfig {
    *
    * @schema ClusterSpecForProviderServiceExternalIpsConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2165,7 +2697,7 @@ export interface ClusterSpecForProviderVerticalPodAutoscaling {
    *
    * @schema ClusterSpecForProviderVerticalPodAutoscaling#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2211,6 +2743,1284 @@ export function toJson_ClusterSpecForProviderWorkloadIdentityConfig(obj: Cluster
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecInitProviderAddonsConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfig {
+  /**
+   * . Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#cloudrunConfig
+   */
+  readonly cloudrunConfig?: ClusterSpecInitProviderAddonsConfigCloudrunConfig[];
+
+  /**
+   * . The status of the ConfigConnector addon. It is disabled by default; Set enabled = true to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#configConnectorConfig
+   */
+  readonly configConnectorConfig?: ClusterSpecInitProviderAddonsConfigConfigConnectorConfig[];
+
+  /**
+   * . The status of the NodeLocal DNSCache addon. It is disabled by default. Set enabled = true to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#dnsCacheConfig
+   */
+  readonly dnsCacheConfig?: ClusterSpecInitProviderAddonsConfigDnsCacheConfig[];
+
+  /**
+   * . Whether this cluster should enable the Google Compute Engine Persistent Disk Container Storage Interface (CSI) Driver. Defaults to disabled; set enabled = true to enabled.
+   *
+   * @default disabled; set enabled = true to enabled.
+   * @schema ClusterSpecInitProviderAddonsConfig#gcePersistentDiskCsiDriverConfig
+   */
+  readonly gcePersistentDiskCsiDriverConfig?: ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig[];
+
+  /**
+   * The status of the Filestore CSI driver addon, which allows the usage of filestore instance as volumes. It is disabled by default; set enabled = true to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#gcpFilestoreCsiDriverConfig
+   */
+  readonly gcpFilestoreCsiDriverConfig?: ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig[];
+
+  /**
+   * The status of the GCSFuse CSI driver addon, which allows the usage of a gcs bucket as volumes. It is disabled by default; set enabled = true to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#gcsFuseCsiDriverConfig
+   */
+  readonly gcsFuseCsiDriverConfig?: ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig[];
+
+  /**
+   * . The status of the Backup for GKE agent addon. It is disabled by default; Set enabled = true to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#gkeBackupAgentConfig
+   */
+  readonly gkeBackupAgentConfig?: ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig[];
+
+  /**
+   * The status of the Horizontal Pod Autoscaling addon, which increases or decreases the number of replica pods a replication controller has based on the resource usage of the existing pods. It is enabled by default; set disabled = true to disable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#horizontalPodAutoscaling
+   */
+  readonly horizontalPodAutoscaling?: ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling[];
+
+  /**
+   * The status of the HTTP (L7) load balancing controller addon, which makes it easy to set up HTTP load balancers for services in a cluster. It is enabled by default; set disabled = true to disable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfig#httpLoadBalancing
+   */
+  readonly httpLoadBalancing?: ClusterSpecInitProviderAddonsConfigHttpLoadBalancing[];
+
+  /**
+   * Whether we should enable the network policy addon for the master.  This must be enabled in order to enable network policy for the nodes. To enable this, you must also define a network_policy block, otherwise nothing will happen. It can only be disabled if the nodes already do not have network policies enabled. Defaults to disabled; set disabled = false to enable.
+   *
+   * @default disabled; set disabled = false to enable.
+   * @schema ClusterSpecInitProviderAddonsConfig#networkPolicyConfig
+   */
+  readonly networkPolicyConfig?: ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfig(obj: ClusterSpecInitProviderAddonsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudrunConfig': obj.cloudrunConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigCloudrunConfig(y)),
+    'configConnectorConfig': obj.configConnectorConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigConfigConnectorConfig(y)),
+    'dnsCacheConfig': obj.dnsCacheConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigDnsCacheConfig(y)),
+    'gcePersistentDiskCsiDriverConfig': obj.gcePersistentDiskCsiDriverConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig(y)),
+    'gcpFilestoreCsiDriverConfig': obj.gcpFilestoreCsiDriverConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig(y)),
+    'gcsFuseCsiDriverConfig': obj.gcsFuseCsiDriverConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig(y)),
+    'gkeBackupAgentConfig': obj.gkeBackupAgentConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig(y)),
+    'horizontalPodAutoscaling': obj.horizontalPodAutoscaling?.map(y => toJson_ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling(y)),
+    'httpLoadBalancing': obj.httpLoadBalancing?.map(y => toJson_ClusterSpecInitProviderAddonsConfigHttpLoadBalancing(y)),
+    'networkPolicyConfig': obj.networkPolicyConfig?.map(y => toJson_ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAuthenticatorGroupsConfig
+ */
+export interface ClusterSpecInitProviderAuthenticatorGroupsConfig {
+  /**
+   * The name of the RBAC security group for use with Google security groups in Kubernetes RBAC. Group name must be in format gke-security-groups@yourdomain.com.
+   *
+   * @schema ClusterSpecInitProviderAuthenticatorGroupsConfig#securityGroup
+   */
+  readonly securityGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAuthenticatorGroupsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAuthenticatorGroupsConfig(obj: ClusterSpecInitProviderAuthenticatorGroupsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroup': obj.securityGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderBinaryAuthorization
+ */
+export interface ClusterSpecInitProviderBinaryAuthorization {
+  /**
+   * (DEPRECATED) Enable Binary Authorization for this cluster. Deprecated in favor of evaluation_mode.
+   *
+   * @schema ClusterSpecInitProviderBinaryAuthorization#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Mode of operation for Binary Authorization policy evaluation. Valid values are DISABLED and PROJECT_SINGLETON_POLICY_ENFORCE. PROJECT_SINGLETON_POLICY_ENFORCE is functionally equivalent to the deprecated enable_binary_authorization parameter being set to true.
+   *
+   * @schema ClusterSpecInitProviderBinaryAuthorization#evaluationMode
+   */
+  readonly evaluationMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderBinaryAuthorization' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderBinaryAuthorization(obj: ClusterSpecInitProviderBinaryAuthorization | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'evaluationMode': obj.evaluationMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscaling
+ */
+export interface ClusterSpecInitProviderClusterAutoscaling {
+  /**
+   * Contains defaults for a node pool created by NAP. A subset of fields also apply to GKE Autopilot clusters. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscaling#autoProvisioningDefaults
+   */
+  readonly autoProvisioningDefaults?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults[];
+
+  /**
+   * Whether node auto-provisioning is enabled. Must be supplied for GKE Standard clusters, true is implied for autopilot clusters. Resource limits for cpu and memory must be defined to enable node auto-provisioning for GKE Standard.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscaling#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Global constraints for machine resources in the cluster. Configuring the cpu and memory types is required if node auto-provisioning is enabled. These limits will apply to node pool autoscaling in addition to node auto-provisioning. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscaling#resourceLimits
+   */
+  readonly resourceLimits?: ClusterSpecInitProviderClusterAutoscalingResourceLimits[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscaling(obj: ClusterSpecInitProviderClusterAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoProvisioningDefaults': obj.autoProvisioningDefaults?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults(y)),
+    'enabled': obj.enabled,
+    'resourceLimits': obj.resourceLimits?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingResourceLimits(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderConfidentialNodes
+ */
+export interface ClusterSpecInitProviderConfidentialNodes {
+  /**
+   * Enable Confidential Nodes for this cluster.
+   *
+   * @schema ClusterSpecInitProviderConfidentialNodes#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderConfidentialNodes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderConfidentialNodes(obj: ClusterSpecInitProviderConfidentialNodes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderCostManagementConfig
+ */
+export interface ClusterSpecInitProviderCostManagementConfig {
+  /**
+   * Whether to enable the cost allocation feature.
+   *
+   * @schema ClusterSpecInitProviderCostManagementConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderCostManagementConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderCostManagementConfig(obj: ClusterSpecInitProviderCostManagementConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderDatabaseEncryption
+ */
+export interface ClusterSpecInitProviderDatabaseEncryption {
+  /**
+   * the key to use to encrypt/decrypt secrets.  See the DatabaseEncryption definition for more information.
+   *
+   * @schema ClusterSpecInitProviderDatabaseEncryption#keyName
+   */
+  readonly keyName?: string;
+
+  /**
+   * ENCRYPTED or DECRYPTED
+   *
+   * @schema ClusterSpecInitProviderDatabaseEncryption#state
+   */
+  readonly state?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderDatabaseEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderDatabaseEncryption(obj: ClusterSpecInitProviderDatabaseEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyName': obj.keyName,
+    'state': obj.state,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderDefaultSnatStatus
+ */
+export interface ClusterSpecInitProviderDefaultSnatStatus {
+  /**
+   * Whether the cluster disables default in-node sNAT rules. In-node sNAT rules will be disabled when defaultSnatStatus is disabled.When disabled is set to false, default IP masquerade rules will be applied to the nodes to prevent sNAT on cluster internal traffic
+   *
+   * @schema ClusterSpecInitProviderDefaultSnatStatus#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderDefaultSnatStatus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderDefaultSnatStatus(obj: ClusterSpecInitProviderDefaultSnatStatus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderDnsConfig
+ */
+export interface ClusterSpecInitProviderDnsConfig {
+  /**
+   * Which in-cluster DNS provider should be used. PROVIDER_UNSPECIFIED (default) or PLATFORM_DEFAULT or CLOUD_DNS.
+   *
+   * @schema ClusterSpecInitProviderDnsConfig#clusterDns
+   */
+  readonly clusterDns?: string;
+
+  /**
+   * The suffix used for all cluster service records.
+   *
+   * @schema ClusterSpecInitProviderDnsConfig#clusterDnsDomain
+   */
+  readonly clusterDnsDomain?: string;
+
+  /**
+   * The scope of access to cluster DNS records. DNS_SCOPE_UNSPECIFIED (default) or CLUSTER_SCOPE or VPC_SCOPE.
+   *
+   * @schema ClusterSpecInitProviderDnsConfig#clusterDnsScope
+   */
+  readonly clusterDnsScope?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderDnsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderDnsConfig(obj: ClusterSpecInitProviderDnsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterDns': obj.clusterDns,
+    'clusterDnsDomain': obj.clusterDnsDomain,
+    'clusterDnsScope': obj.clusterDnsScope,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderEnableK8SBetaApis
+ */
+export interface ClusterSpecInitProviderEnableK8SBetaApis {
+  /**
+   * Enabled Kubernetes Beta APIs. To list a Beta API resource, use the representation {group}/{version}/{resource}. The version must be a Beta version. Note that you cannot disable beta APIs that are already enabled on a cluster without recreating it. See the Configure beta APIs for more information.
+   *
+   * @schema ClusterSpecInitProviderEnableK8SBetaApis#enabledApis
+   */
+  readonly enabledApis?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderEnableK8SBetaApis' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderEnableK8SBetaApis(obj: ClusterSpecInitProviderEnableK8SBetaApis | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabledApis': obj.enabledApis?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderGatewayApiConfig
+ */
+export interface ClusterSpecInitProviderGatewayApiConfig {
+  /**
+   * Which Gateway Api channel should be used. CHANNEL_DISABLED, CHANNEL_EXPERIMENTAL or CHANNEL_STANDARD.
+   *
+   * @schema ClusterSpecInitProviderGatewayApiConfig#channel
+   */
+  readonly channel?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderGatewayApiConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderGatewayApiConfig(obj: ClusterSpecInitProviderGatewayApiConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'channel': obj.channel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderIpAllocationPolicy
+ */
+export interface ClusterSpecInitProviderIpAllocationPolicy {
+  /**
+   * The IP address range for the cluster pod IPs. Set to blank to have a range chosen with the default size. Set to /netmask (e.g. /14) to have a range chosen with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) from the RFC-1918 private networks (e.g. 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) to pick a specific range to use.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#clusterIpv4CidrBlock
+   */
+  readonly clusterIpv4CidrBlock?: string;
+
+  /**
+   * The name of the existing secondary range in the cluster's subnetwork to use for pod IP addresses. Alternatively, cluster_ipv4_cidr_block can be used to automatically create a GKE-managed one.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#clusterSecondaryRangeName
+   */
+  readonly clusterSecondaryRangeName?: string;
+
+  /**
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#podCidrOverprovisionConfig
+   */
+  readonly podCidrOverprovisionConfig?: ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig[];
+
+  /**
+   * The IP address range of the services IPs in this cluster. Set to blank to have a range chosen with the default size. Set to /netmask (e.g. /14) to have a range chosen with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) from the RFC-1918 private networks (e.g. 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) to pick a specific range to use.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#servicesIpv4CidrBlock
+   */
+  readonly servicesIpv4CidrBlock?: string;
+
+  /**
+   * The name of the existing secondary range in the cluster's subnetwork to use for service ClusterIPs. Alternatively, services_ipv4_cidr_block can be used to automatically create a GKE-managed one.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#servicesSecondaryRangeName
+   */
+  readonly servicesSecondaryRangeName?: string;
+
+  /**
+   * The IP Stack Type of the cluster. Default value is IPV4. Possible values are IPV4 and IPV4_IPV6.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicy#stackType
+   */
+  readonly stackType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderIpAllocationPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderIpAllocationPolicy(obj: ClusterSpecInitProviderIpAllocationPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clusterIpv4CidrBlock': obj.clusterIpv4CidrBlock,
+    'clusterSecondaryRangeName': obj.clusterSecondaryRangeName,
+    'podCidrOverprovisionConfig': obj.podCidrOverprovisionConfig?.map(y => toJson_ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig(y)),
+    'servicesIpv4CidrBlock': obj.servicesIpv4CidrBlock,
+    'servicesSecondaryRangeName': obj.servicesSecondaryRangeName,
+    'stackType': obj.stackType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderLoggingConfig
+ */
+export interface ClusterSpecInitProviderLoggingConfig {
+  /**
+   * The GKE components exposing logs. Supported values include: SYSTEM_COMPONENTS, APISERVER, CONTROLLER_MANAGER, SCHEDULER, and WORKLOADS.
+   *
+   * @schema ClusterSpecInitProviderLoggingConfig#enableComponents
+   */
+  readonly enableComponents?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderLoggingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderLoggingConfig(obj: ClusterSpecInitProviderLoggingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableComponents': obj.enableComponents?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMaintenancePolicy
+ */
+export interface ClusterSpecInitProviderMaintenancePolicy {
+  /**
+   * structure documented below.
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicy#dailyMaintenanceWindow
+   */
+  readonly dailyMaintenanceWindow?: ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow[];
+
+  /**
+   * structure documented below
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicy#maintenanceExclusion
+   */
+  readonly maintenanceExclusion?: ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion[];
+
+  /**
+   * structure documented below
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicy#recurringWindow
+   */
+  readonly recurringWindow?: ClusterSpecInitProviderMaintenancePolicyRecurringWindow[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMaintenancePolicy(obj: ClusterSpecInitProviderMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dailyMaintenanceWindow': obj.dailyMaintenanceWindow?.map(y => toJson_ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow(y)),
+    'maintenanceExclusion': obj.maintenanceExclusion?.map(y => toJson_ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion(y)),
+    'recurringWindow': obj.recurringWindow?.map(y => toJson_ClusterSpecInitProviderMaintenancePolicyRecurringWindow(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMasterAuth
+ */
+export interface ClusterSpecInitProviderMasterAuth {
+  /**
+   * Whether client certificate authorization is enabled for this cluster.  For example:
+   *
+   * @schema ClusterSpecInitProviderMasterAuth#clientCertificateConfig
+   */
+  readonly clientCertificateConfig?: ClusterSpecInitProviderMasterAuthClientCertificateConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMasterAuth' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMasterAuth(obj: ClusterSpecInitProviderMasterAuth | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientCertificateConfig': obj.clientCertificateConfig?.map(y => toJson_ClusterSpecInitProviderMasterAuthClientCertificateConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfig
+ */
+export interface ClusterSpecInitProviderMasterAuthorizedNetworksConfig {
+  /**
+   * External networks that can access the Kubernetes cluster master through HTTPS.
+   *
+   * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfig#cidrBlocks
+   */
+  readonly cidrBlocks?: ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks[];
+
+  /**
+   * Whether Kubernetes master is accessible via Google Compute Engine Public IPs.
+   *
+   * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfig#gcpPublicCidrsAccessEnabled
+   */
+  readonly gcpPublicCidrsAccessEnabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMasterAuthorizedNetworksConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMasterAuthorizedNetworksConfig(obj: ClusterSpecInitProviderMasterAuthorizedNetworksConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidrBlocks': obj.cidrBlocks?.map(y => toJson_ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks(y)),
+    'gcpPublicCidrsAccessEnabled': obj.gcpPublicCidrsAccessEnabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMeshCertificates
+ */
+export interface ClusterSpecInitProviderMeshCertificates {
+  /**
+   * Controls the issuance of workload mTLS certificates. It is enabled by default. Workload Identity is required, see workload_config.
+   *
+   * @schema ClusterSpecInitProviderMeshCertificates#enableCertificates
+   */
+  readonly enableCertificates?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMeshCertificates' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMeshCertificates(obj: ClusterSpecInitProviderMeshCertificates | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableCertificates': obj.enableCertificates,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMonitoringConfig
+ */
+export interface ClusterSpecInitProviderMonitoringConfig {
+  /**
+   * The GKE components exposing metrics. Supported values include: SYSTEM_COMPONENTS, APISERVER, CONTROLLER_MANAGER, and SCHEDULER. In beta provider, WORKLOADS is supported on top of those 4 values. (WORKLOADS is deprecated and removed in GKE 1.24.)
+   *
+   * @schema ClusterSpecInitProviderMonitoringConfig#enableComponents
+   */
+  readonly enableComponents?: string[];
+
+  /**
+   * Configuration for Managed Service for Prometheus. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderMonitoringConfig#managedPrometheus
+   */
+  readonly managedPrometheus?: ClusterSpecInitProviderMonitoringConfigManagedPrometheus[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMonitoringConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMonitoringConfig(obj: ClusterSpecInitProviderMonitoringConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableComponents': obj.enableComponents?.map(y => y),
+    'managedPrometheus': obj.managedPrometheus?.map(y => toJson_ClusterSpecInitProviderMonitoringConfigManagedPrometheus(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNetworkPolicy
+ */
+export interface ClusterSpecInitProviderNetworkPolicy {
+  /**
+   * Whether network policy is enabled on the cluster.
+   *
+   * @schema ClusterSpecInitProviderNetworkPolicy#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * The selected network policy provider. Defaults to PROVIDER_UNSPECIFIED.
+   *
+   * @default PROVIDER_UNSPECIFIED.
+   * @schema ClusterSpecInitProviderNetworkPolicy#provider
+   */
+  readonly provider?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNetworkPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNetworkPolicy(obj: ClusterSpecInitProviderNetworkPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'provider': obj.provider,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfig
+ */
+export interface ClusterSpecInitProviderNodeConfig {
+  /**
+   * Specifies options for controlling advanced machine features. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures[];
+
+  /**
+   * The Customer Managed Encryption Key used to encrypt the boot disk attached to each node in the node pool. This should be of the form projects/[KEY_PROJECT_ID]/locations/[LOCATION]/keyRings/[RING_NAME]/cryptoKeys/[KEY_NAME]. For more information about protecting resources with Cloud KMS Keys please see: https://cloud.google.com/compute/docs/disks/customer-managed-encryption
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#bootDiskKmsKey
+   */
+  readonly bootDiskKmsKey?: string;
+
+  /**
+   * Size of the disk attached to each node, specified in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
+   *
+   * @default 100GB.
+   * @schema ClusterSpecInitProviderNodeConfig#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * Type of the disk attached to each node (e.g. 'pd-standard', 'pd-balanced' or 'pd-ssd'). If unspecified, the default disk type is 'pd-standard'
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#diskType
+   */
+  readonly diskType?: string;
+
+  /**
+   * Parameters for the ephemeral storage filesystem. If unspecified, ephemeral storage is backed by the boot disk. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#ephemeralStorageLocalSsdConfig
+   */
+  readonly ephemeralStorageLocalSsdConfig?: ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig[];
+
+  /**
+   * Parameters for the Google Container Filesystem (GCFS). If unspecified, GCFS will not be enabled on the node pool. When enabling this feature you must specify image_type = "COS_CONTAINERD" and node_version from GKE versions 1.19 or later to use it. For GKE versions 1.19, 1.20, and 1.21, the recommended minimum node_version would be 1.19.15-gke.1300, 1.20.11-gke.1300, and 1.21.5-gke.1300 respectively. A machine_type that has more than 16 GiB of memory is also recommended. GCFS must be enabled in order to use image streaming. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#gcfsConfig
+   */
+  readonly gcfsConfig?: ClusterSpecInitProviderNodeConfigGcfsConfig[];
+
+  /**
+   * List of the type and count of accelerator cards attached to the instance. Structure documented below.12 this field is an Attribute as Block
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#guestAccelerator
+   */
+  readonly guestAccelerator?: ClusterSpecInitProviderNodeConfigGuestAccelerator[];
+
+  /**
+   * Google Virtual NIC (gVNIC) is a virtual network interface. Installing the gVNIC driver allows for more efficient traffic transmission across the Google network infrastructure. gVNIC is an alternative to the virtIO-based ethernet driver. GKE nodes must use a Container-Optimized OS node image. GKE node version 1.15.11-gke.15 or later Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#gvnic
+   */
+  readonly gvnic?: ClusterSpecInitProviderNodeConfigGvnic[];
+
+  /**
+   * The maintenance policy to use for the cluster. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#hostMaintenancePolicy
+   */
+  readonly hostMaintenancePolicy?: ClusterSpecInitProviderNodeConfigHostMaintenancePolicy[];
+
+  /**
+   * The image type to use for this node. Note that changing the image type will delete and recreate all nodes in the node pool.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#imageType
+   */
+  readonly imageType?: string;
+
+  /**
+   * Kubelet configuration, currently supported attributes can be found here. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#kubeletConfig
+   */
+  readonly kubeletConfig?: ClusterSpecInitProviderNodeConfigKubeletConfig[];
+
+  /**
+   * The Kubernetes labels (key/value pairs) to be applied to each node. The kubernetes.io/ and k8s.io/ prefixes are reserved by Kubernetes Core components and cannot be specified.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Linux node configuration, currently supported attributes can be found here. Note that validations happen all server side. All attributes are optional. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#linuxNodeConfig
+   */
+  readonly linuxNodeConfig?: ClusterSpecInitProviderNodeConfigLinuxNodeConfig[];
+
+  /**
+   * Parameters for the local NVMe SSDs. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#localNvmeSsdBlockConfig
+   */
+  readonly localNvmeSsdBlockConfig?: ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig[];
+
+  /**
+   * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderNodeConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+  /**
+   * wide default value. Valid values include DEFAULT and MAX_THROUGHPUT. See Increasing logging agent throughput for more information.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#loggingVariant
+   */
+  readonly loggingVariant?: string;
+
+  /**
+   * The name of a Google Compute Engine machine type. Defaults to e2-medium. To create a custom machine type, value should be set as specified here.
+   *
+   * @default e2-medium. To create a custom machine type, value should be set as specified here.
+   * @schema ClusterSpecInitProviderNodeConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * The metadata key/value pairs assigned to instances in the cluster. From GKE 1. To avoid this, set the value in your config.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * Minimum CPU platform to be used by this instance. The instance may be scheduled on the specified or newer CPU platform. Applicable values are the friendly names of CPU platforms, such as Intel Haswell. See the official documentation for more information.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * Setting this field will assign instances of this pool to run on the specified node group. This is useful for running workloads on sole tenant nodes.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#nodeGroup
+   */
+  readonly nodeGroup?: string;
+
+  /**
+   * The set of Google API scopes to be made available on all of the node VMs under the "default" service account. Use the "https://www.googleapis.com/auth/cloud-platform" scope to grant access to all APIs. It is recommended that you set service_account to a non-default service account and grant IAM roles to that service account for only the resources that it needs.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#oauthScopes
+   */
+  readonly oauthScopes?: string[];
+
+  /**
+   * A boolean that represents whether or not the underlying node VMs are preemptible. See the official documentation for more information. Defaults to false.
+   *
+   * @default false.
+   * @schema ClusterSpecInitProviderNodeConfig#preemptible
+   */
+  readonly preemptible?: boolean;
+
+  /**
+   * The configuration of the desired reservation which instances could take capacity from. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#reservationAffinity
+   */
+  readonly reservationAffinity?: ClusterSpecInitProviderNodeConfigReservationAffinity[];
+
+  /**
+   * The GCP labels (key/value pairs) to be applied to each node. Refer here for how these labels are applied to clusters, node pools and nodes.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#resourceLabels
+   */
+  readonly resourceLabels?: { [key: string]: string };
+
+  /**
+   * Shielded Instance options. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: ClusterSpecInitProviderNodeConfigShieldedInstanceConfig[];
+
+  /**
+   * Allows specifying multiple node affinities useful for running workloads on sole tenant nodes. node_affinity structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#soleTenantConfig
+   */
+  readonly soleTenantConfig?: ClusterSpecInitProviderNodeConfigSoleTenantConfig[];
+
+  /**
+   * A boolean that represents whether the underlying node VMs are spot. See the official documentation for more information. Defaults to false.
+   *
+   * @default false.
+   * @schema ClusterSpecInitProviderNodeConfig#spot
+   */
+  readonly spot?: boolean;
+
+  /**
+   * The list of instance tags applied to all nodes. Tags are used to identify valid sources or targets for network firewalls.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * A list of Kubernetes taints to apply to nodes. GKE's API can only set this field on cluster creation. However, GKE will add taints to your nodes if you enable certain features such as GPUs. Taint values can be updated safely in Kubernetes (eg. through kubectl), and it's recommended that you do not use this field to manage taints. If you do, lifecycle.ignore_changes is recommended. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#taint
+   */
+  readonly taint?: ClusterSpecInitProviderNodeConfigTaint[];
+
+  /**
+   * Metadata configuration to expose to workloads on the node pool. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfig#workloadMetadataConfig
+   */
+  readonly workloadMetadataConfig?: ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfig(obj: ClusterSpecInitProviderNodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures(y)),
+    'bootDiskKmsKey': obj.bootDiskKmsKey,
+    'diskSizeGb': obj.diskSizeGb,
+    'diskType': obj.diskType,
+    'ephemeralStorageLocalSsdConfig': obj.ephemeralStorageLocalSsdConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig(y)),
+    'gcfsConfig': obj.gcfsConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigGcfsConfig(y)),
+    'guestAccelerator': obj.guestAccelerator?.map(y => toJson_ClusterSpecInitProviderNodeConfigGuestAccelerator(y)),
+    'gvnic': obj.gvnic?.map(y => toJson_ClusterSpecInitProviderNodeConfigGvnic(y)),
+    'hostMaintenancePolicy': obj.hostMaintenancePolicy?.map(y => toJson_ClusterSpecInitProviderNodeConfigHostMaintenancePolicy(y)),
+    'imageType': obj.imageType,
+    'kubeletConfig': obj.kubeletConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigKubeletConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'linuxNodeConfig': obj.linuxNodeConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigLinuxNodeConfig(y)),
+    'localNvmeSsdBlockConfig': obj.localNvmeSsdBlockConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig(y)),
+    'localSsdCount': obj.localSsdCount,
+    'loggingVariant': obj.loggingVariant,
+    'machineType': obj.machineType,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'minCpuPlatform': obj.minCpuPlatform,
+    'nodeGroup': obj.nodeGroup,
+    'oauthScopes': obj.oauthScopes?.map(y => y),
+    'preemptible': obj.preemptible,
+    'reservationAffinity': obj.reservationAffinity?.map(y => toJson_ClusterSpecInitProviderNodeConfigReservationAffinity(y)),
+    'resourceLabels': ((obj.resourceLabels) === undefined) ? undefined : (Object.entries(obj.resourceLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigShieldedInstanceConfig(y)),
+    'soleTenantConfig': obj.soleTenantConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigSoleTenantConfig(y)),
+    'spot': obj.spot,
+    'tags': obj.tags?.map(y => y),
+    'taint': obj.taint?.map(y => toJson_ClusterSpecInitProviderNodeConfigTaint(y)),
+    'workloadMetadataConfig': obj.workloadMetadataConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodePoolDefaults
+ */
+export interface ClusterSpecInitProviderNodePoolDefaults {
+  /**
+   * Subset of NodeConfig message that has defaults.
+   *
+   * @schema ClusterSpecInitProviderNodePoolDefaults#nodeConfigDefaults
+   */
+  readonly nodeConfigDefaults?: ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodePoolDefaults' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodePoolDefaults(obj: ClusterSpecInitProviderNodePoolDefaults | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeConfigDefaults': obj.nodeConfigDefaults?.map(y => toJson_ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNotificationConfig
+ */
+export interface ClusterSpecInitProviderNotificationConfig {
+  /**
+   * The pubsub config for the cluster's upgrade notifications.
+   *
+   * @schema ClusterSpecInitProviderNotificationConfig#pubsub
+   */
+  readonly pubsub?: ClusterSpecInitProviderNotificationConfigPubsub[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNotificationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNotificationConfig(obj: ClusterSpecInitProviderNotificationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pubsub': obj.pubsub?.map(y => toJson_ClusterSpecInitProviderNotificationConfigPubsub(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderPrivateClusterConfig
+ */
+export interface ClusterSpecInitProviderPrivateClusterConfig {
+  /**
+   * When true, the cluster's private endpoint is used as the cluster endpoint and access through the public endpoint is disabled. When false, either endpoint can be used. This field only applies to private clusters, when enable_private_nodes is true.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfig#enablePrivateEndpoint
+   */
+  readonly enablePrivateEndpoint?: boolean;
+
+  /**
+   * Enables the private cluster feature, creating a private endpoint on the cluster. In a private cluster, nodes only have RFC 1918 private addresses and communicate with the master's private endpoint via private networking.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfig#enablePrivateNodes
+   */
+  readonly enablePrivateNodes?: boolean;
+
+  /**
+   * Controls cluster master global access settings. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfig#masterGlobalAccessConfig
+   */
+  readonly masterGlobalAccessConfig?: ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig[];
+
+  /**
+   * The IP range in CIDR notation to use for the hosted master network. This range will be used for assigning private IP addresses to the cluster master(s) and the ILB VIP. This range must not overlap with any other ranges in use within the cluster's network, and it must be a /28 subnet. See Private Cluster Limitations for more details. This field only applies to private clusters, when enable_private_nodes is true.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfig#masterIpv4CidrBlock
+   */
+  readonly masterIpv4CidrBlock?: string;
+
+  /**
+   * Subnetwork in cluster's network where master's endpoint will be provisioned.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfig#privateEndpointSubnetwork
+   */
+  readonly privateEndpointSubnetwork?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderPrivateClusterConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderPrivateClusterConfig(obj: ClusterSpecInitProviderPrivateClusterConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enablePrivateEndpoint': obj.enablePrivateEndpoint,
+    'enablePrivateNodes': obj.enablePrivateNodes,
+    'masterGlobalAccessConfig': obj.masterGlobalAccessConfig?.map(y => toJson_ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig(y)),
+    'masterIpv4CidrBlock': obj.masterIpv4CidrBlock,
+    'privateEndpointSubnetwork': obj.privateEndpointSubnetwork,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderReleaseChannel
+ */
+export interface ClusterSpecInitProviderReleaseChannel {
+  /**
+   * The selected release channel. Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderReleaseChannel#channel
+   */
+  readonly channel?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderReleaseChannel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderReleaseChannel(obj: ClusterSpecInitProviderReleaseChannel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'channel': obj.channel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderResourceUsageExportConfig
+ */
+export interface ClusterSpecInitProviderResourceUsageExportConfig {
+  /**
+   * Parameters for using BigQuery as the destination of resource usage export.
+   *
+   * @schema ClusterSpecInitProviderResourceUsageExportConfig#bigqueryDestination
+   */
+  readonly bigqueryDestination?: ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination[];
+
+  /**
+   * Whether to enable network egress metering for this cluster. If enabled, a daemonset will be created in the cluster to meter network egress traffic.
+   *
+   * @schema ClusterSpecInitProviderResourceUsageExportConfig#enableNetworkEgressMetering
+   */
+  readonly enableNetworkEgressMetering?: boolean;
+
+  /**
+   * Whether to enable resource consumption metering on this cluster. When enabled, a table will be created in the resource export BigQuery dataset to store resource consumption data. The resulting table can be joined with the resource usage table or with BigQuery billing export. Defaults to true.
+   *
+   * @default true.
+   * @schema ClusterSpecInitProviderResourceUsageExportConfig#enableResourceConsumptionMetering
+   */
+  readonly enableResourceConsumptionMetering?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderResourceUsageExportConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderResourceUsageExportConfig(obj: ClusterSpecInitProviderResourceUsageExportConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bigqueryDestination': obj.bigqueryDestination?.map(y => toJson_ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination(y)),
+    'enableNetworkEgressMetering': obj.enableNetworkEgressMetering,
+    'enableResourceConsumptionMetering': obj.enableResourceConsumptionMetering,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderSecurityPostureConfig
+ */
+export interface ClusterSpecInitProviderSecurityPostureConfig {
+  /**
+   * Sets the mode of the Kubernetes security posture API's off-cluster features. Available options include DISABLED and BASIC.
+   *
+   * @schema ClusterSpecInitProviderSecurityPostureConfig#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * Sets the mode of the Kubernetes security posture API's workload vulnerability scanning. Available options include VULNERABILITY_DISABLED and VULNERABILITY_BASIC.
+   *
+   * @schema ClusterSpecInitProviderSecurityPostureConfig#vulnerabilityMode
+   */
+  readonly vulnerabilityMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderSecurityPostureConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderSecurityPostureConfig(obj: ClusterSpecInitProviderSecurityPostureConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+    'vulnerabilityMode': obj.vulnerabilityMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderServiceExternalIpsConfig
+ */
+export interface ClusterSpecInitProviderServiceExternalIpsConfig {
+  /**
+   * Controls whether external ips specified by a service will be allowed. It is enabled by default.
+   *
+   * @schema ClusterSpecInitProviderServiceExternalIpsConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderServiceExternalIpsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderServiceExternalIpsConfig(obj: ClusterSpecInitProviderServiceExternalIpsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderVerticalPodAutoscaling
+ */
+export interface ClusterSpecInitProviderVerticalPodAutoscaling {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderVerticalPodAutoscaling#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderVerticalPodAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderVerticalPodAutoscaling(obj: ClusterSpecInitProviderVerticalPodAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderWorkloadIdentityConfig
+ */
+export interface ClusterSpecInitProviderWorkloadIdentityConfig {
+  /**
+   * The workload pool to attach all Kubernetes service accounts to.
+   *
+   * @schema ClusterSpecInitProviderWorkloadIdentityConfig#workloadPool
+   */
+  readonly workloadPool?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderWorkloadIdentityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderWorkloadIdentityConfig(obj: ClusterSpecInitProviderWorkloadIdentityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'workloadPool': obj.workloadPool,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ClusterSpecProviderConfigRefPolicy
@@ -2237,43 +4047,6 @@ export interface ClusterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecProviderConfigRefPolicy(obj: ClusterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ClusterSpecProviderRefPolicy
- */
-export interface ClusterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClusterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClusterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClusterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClusterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClusterSpecProviderRefPolicy(obj: ClusterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2375,7 +4148,7 @@ export interface ClusterSpecForProviderAddonsConfigCloudrunConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigCloudrunConfig#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
   /**
    * The load balancer type of CloudRun ingress service. It is external load balancer by default. Set load_balancer_type=LOAD_BALANCER_TYPE_INTERNAL to configure it as internal load balancer.
@@ -2410,7 +4183,7 @@ export interface ClusterSpecForProviderAddonsConfigConfigConnectorConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigConfigConnectorConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2437,7 +4210,7 @@ export interface ClusterSpecForProviderAddonsConfigDnsCacheConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigDnsCacheConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2464,7 +4237,7 @@ export interface ClusterSpecForProviderAddonsConfigGcePersistentDiskCsiDriverCon
    *
    * @schema ClusterSpecForProviderAddonsConfigGcePersistentDiskCsiDriverConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2491,7 +4264,7 @@ export interface ClusterSpecForProviderAddonsConfigGcpFilestoreCsiDriverConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigGcpFilestoreCsiDriverConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2510,6 +4283,33 @@ export function toJson_ClusterSpecForProviderAddonsConfigGcpFilestoreCsiDriverCo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig
+ */
+export interface ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig(obj: ClusterSpecForProviderAddonsConfigGcsFuseCsiDriverConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderAddonsConfigGkeBackupAgentConfig
  */
 export interface ClusterSpecForProviderAddonsConfigGkeBackupAgentConfig {
@@ -2518,7 +4318,7 @@ export interface ClusterSpecForProviderAddonsConfigGkeBackupAgentConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigGkeBackupAgentConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -2545,7 +4345,7 @@ export interface ClusterSpecForProviderAddonsConfigHorizontalPodAutoscaling {
    *
    * @schema ClusterSpecForProviderAddonsConfigHorizontalPodAutoscaling#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -2572,7 +4372,7 @@ export interface ClusterSpecForProviderAddonsConfigHttpLoadBalancing {
    *
    * @schema ClusterSpecForProviderAddonsConfigHttpLoadBalancing#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -2599,7 +4399,7 @@ export interface ClusterSpecForProviderAddonsConfigNetworkPolicyConfig {
    *
    * @schema ClusterSpecForProviderAddonsConfigNetworkPolicyConfig#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -2740,7 +4540,7 @@ export interface ClusterSpecForProviderClusterAutoscalingResourceLimits {
    *
    * @schema ClusterSpecForProviderClusterAutoscalingResourceLimits#resourceType
    */
-  readonly resourceType: string;
+  readonly resourceType?: string;
 
 }
 
@@ -2769,7 +4569,7 @@ export interface ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionCon
    *
    * @schema ClusterSpecForProviderIpAllocationPolicyPodCidrOverprovisionConfig#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -2794,7 +4594,7 @@ export interface ClusterSpecForProviderMaintenancePolicyDailyMaintenanceWindow {
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyDailyMaintenanceWindow#startTime
    */
-  readonly startTime: string;
+  readonly startTime?: string;
 
 }
 
@@ -2819,14 +4619,14 @@ export interface ClusterSpecForProviderMaintenancePolicyMaintenanceExclusion {
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyMaintenanceExclusion#endTime
    */
-  readonly endTime: string;
+  readonly endTime?: string;
 
   /**
    * The name of the cluster, unique within the project and location.
    *
    * @schema ClusterSpecForProviderMaintenancePolicyMaintenanceExclusion#exclusionName
    */
-  readonly exclusionName: string;
+  readonly exclusionName?: string;
 
   /**
    * MaintenanceExclusionOptions provides maintenance exclusion related options.
@@ -2838,7 +4638,7 @@ export interface ClusterSpecForProviderMaintenancePolicyMaintenanceExclusion {
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyMaintenanceExclusion#startTime
    */
-  readonly startTime: string;
+  readonly startTime?: string;
 
 }
 
@@ -2866,17 +4666,17 @@ export interface ClusterSpecForProviderMaintenancePolicyRecurringWindow {
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyRecurringWindow#endTime
    */
-  readonly endTime: string;
+  readonly endTime?: string;
 
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyRecurringWindow#recurrence
    */
-  readonly recurrence: string;
+  readonly recurrence?: string;
 
   /**
    * @schema ClusterSpecForProviderMaintenancePolicyRecurringWindow#startTime
    */
-  readonly startTime: string;
+  readonly startTime?: string;
 
 }
 
@@ -2903,7 +4703,7 @@ export interface ClusterSpecForProviderMasterAuthClientCertificateConfig {
   /**
    * @schema ClusterSpecForProviderMasterAuthClientCertificateConfig#issueClientCertificate
    */
-  readonly issueClientCertificate: boolean;
+  readonly issueClientCertificate?: boolean;
 
 }
 
@@ -2930,7 +4730,7 @@ export interface ClusterSpecForProviderMasterAuthorizedNetworksConfigCidrBlocks 
    *
    * @schema ClusterSpecForProviderMasterAuthorizedNetworksConfigCidrBlocks#cidrBlock
    */
-  readonly cidrBlock: string;
+  readonly cidrBlock?: string;
 
   /**
    * Field for users to identify CIDR blocks.
@@ -2965,7 +4765,7 @@ export interface ClusterSpecForProviderMonitoringConfigManagedPrometheus {
    *
    * @schema ClusterSpecForProviderMonitoringConfigManagedPrometheus#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -3066,7 +4866,7 @@ export interface ClusterSpecForProviderNodeConfigAdvancedMachineFeatures {
    *
    * @schema ClusterSpecForProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
    */
-  readonly threadsPerCore: number;
+  readonly threadsPerCore?: number;
 
 }
 
@@ -3094,7 +4894,7 @@ export interface ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig 
    * @default 0.
    * @schema ClusterSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
    */
-  readonly localSsdCount: number;
+  readonly localSsdCount?: number;
 
 }
 
@@ -3121,7 +4921,7 @@ export interface ClusterSpecForProviderNodeConfigGcfsConfig {
    *
    * @schema ClusterSpecForProviderNodeConfigGcfsConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -3149,6 +4949,13 @@ export interface ClusterSpecForProviderNodeConfigGuestAccelerator {
    * @schema ClusterSpecForProviderNodeConfigGuestAccelerator#count
    */
   readonly count?: number;
+
+  /**
+   * Configuration for auto installation of GPU driver. Structure is documented below.
+   *
+   * @schema ClusterSpecForProviderNodeConfigGuestAccelerator#gpuDriverInstallationConfig
+   */
+  readonly gpuDriverInstallationConfig?: ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig[];
 
   /**
    * Size of partitions to create on the GPU. Valid values are described in the NVIDIA mig user guide.
@@ -3181,6 +4988,7 @@ export function toJson_ClusterSpecForProviderNodeConfigGuestAccelerator(obj: Clu
   if (obj === undefined) { return undefined; }
   const result = {
     'count': obj.count,
+    'gpuDriverInstallationConfig': obj.gpuDriverInstallationConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(y)),
     'gpuPartitionSize': obj.gpuPartitionSize,
     'gpuSharingConfig': obj.gpuSharingConfig?.map(y => toJson_ClusterSpecForProviderNodeConfigGuestAcceleratorGpuSharingConfig(y)),
     'type': obj.type,
@@ -3199,7 +5007,7 @@ export interface ClusterSpecForProviderNodeConfigGvnic {
    *
    * @schema ClusterSpecForProviderNodeConfigGvnic#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -3211,6 +5019,31 @@ export function toJson_ClusterSpecForProviderNodeConfigGvnic(obj: ClusterSpecFor
   if (obj === undefined) { return undefined; }
   const result = {
     'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecForProviderNodeConfigHostMaintenancePolicy
+ */
+export interface ClusterSpecForProviderNodeConfigHostMaintenancePolicy {
+  /**
+   * @schema ClusterSpecForProviderNodeConfigHostMaintenancePolicy#maintenanceInterval
+   */
+  readonly maintenanceInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigHostMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigHostMaintenancePolicy(obj: ClusterSpecForProviderNodeConfigHostMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maintenanceInterval': obj.maintenanceInterval,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3241,7 +5074,7 @@ export interface ClusterSpecForProviderNodeConfigKubeletConfig {
    * @default none when kubelet_config is unset.
    * @schema ClusterSpecForProviderNodeConfigKubeletConfig#cpuManagerPolicy
    */
-  readonly cpuManagerPolicy: string;
+  readonly cpuManagerPolicy?: string;
 
   /**
    * Controls the maximum number of processes allowed to run in a pod. The value must be greater than or equal to 1024 and less than 4194304.
@@ -3278,7 +5111,7 @@ export interface ClusterSpecForProviderNodeConfigLinuxNodeConfig {
    *
    * @schema ClusterSpecForProviderNodeConfigLinuxNodeConfig#sysctls
    */
-  readonly sysctls: { [key: string]: string };
+  readonly sysctls?: { [key: string]: string };
 
 }
 
@@ -3306,7 +5139,7 @@ export interface ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig {
    * @default 0.
    * @schema ClusterSpecForProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
    */
-  readonly localSsdCount: number;
+  readonly localSsdCount?: number;
 
 }
 
@@ -3333,7 +5166,7 @@ export interface ClusterSpecForProviderNodeConfigReservationAffinity {
    *
    * @schema ClusterSpecForProviderNodeConfigReservationAffinity#consumeReservationType
    */
-  readonly consumeReservationType: string;
+  readonly consumeReservationType?: string;
 
   /**
    * Key for taint.
@@ -3485,6 +5318,31 @@ export function toJson_ClusterSpecForProviderNodeConfigShieldedInstanceConfig(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderNodeConfigSoleTenantConfig
+ */
+export interface ClusterSpecForProviderNodeConfigSoleTenantConfig {
+  /**
+   * @schema ClusterSpecForProviderNodeConfigSoleTenantConfig#nodeAffinity
+   */
+  readonly nodeAffinity?: ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigSoleTenantConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigSoleTenantConfig(obj: ClusterSpecForProviderNodeConfigSoleTenantConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeAffinity': obj.nodeAffinity?.map(y => toJson_ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderNodeConfigTaint
  */
 export interface ClusterSpecForProviderNodeConfigTaint {
@@ -3536,7 +5394,7 @@ export interface ClusterSpecForProviderNodeConfigWorkloadMetadataConfig {
    *
    * @schema ClusterSpecForProviderNodeConfigWorkloadMetadataConfig#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
 }
 
@@ -3590,7 +5448,7 @@ export interface ClusterSpecForProviderNotificationConfigPubsub {
    *
    * @schema ClusterSpecForProviderNotificationConfigPubsub#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * Choose what type of notifications you want to receive. If no filters are applied, you'll receive all notification types. Structure is documented below.
@@ -3633,7 +5491,7 @@ export interface ClusterSpecForProviderPrivateClusterConfigMasterGlobalAccessCon
    *
    * @schema ClusterSpecForProviderPrivateClusterConfigMasterGlobalAccessConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -3660,7 +5518,7 @@ export interface ClusterSpecForProviderResourceUsageExportConfigBigqueryDestinat
    *
    * @schema ClusterSpecForProviderResourceUsageExportConfigBigqueryDestination#datasetId
    */
-  readonly datasetId: string;
+  readonly datasetId?: string;
 
 }
 
@@ -3753,6 +5611,1247 @@ export function toJson_ClusterSpecForProviderSubnetworkSelectorPolicy(obj: Clust
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecInitProviderAddonsConfigCloudrunConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigCloudrunConfig {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigCloudrunConfig#disabled
+   */
+  readonly disabled?: boolean;
+
+  /**
+   * The load balancer type of CloudRun ingress service. It is external load balancer by default. Set load_balancer_type=LOAD_BALANCER_TYPE_INTERNAL to configure it as internal load balancer.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigCloudrunConfig#loadBalancerType
+   */
+  readonly loadBalancerType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigCloudrunConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigCloudrunConfig(obj: ClusterSpecInitProviderAddonsConfigCloudrunConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+    'loadBalancerType': obj.loadBalancerType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigConfigConnectorConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigConfigConnectorConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigConfigConnectorConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigConfigConnectorConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigConfigConnectorConfig(obj: ClusterSpecInitProviderAddonsConfigConfigConnectorConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigDnsCacheConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigDnsCacheConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigDnsCacheConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigDnsCacheConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigDnsCacheConfig(obj: ClusterSpecInitProviderAddonsConfigDnsCacheConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig(obj: ClusterSpecInitProviderAddonsConfigGcePersistentDiskCsiDriverConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig(obj: ClusterSpecInitProviderAddonsConfigGcpFilestoreCsiDriverConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig(obj: ClusterSpecInitProviderAddonsConfigGcsFuseCsiDriverConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig(obj: ClusterSpecInitProviderAddonsConfigGkeBackupAgentConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling
+ */
+export interface ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling(obj: ClusterSpecInitProviderAddonsConfigHorizontalPodAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigHttpLoadBalancing
+ */
+export interface ClusterSpecInitProviderAddonsConfigHttpLoadBalancing {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigHttpLoadBalancing#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigHttpLoadBalancing' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigHttpLoadBalancing(obj: ClusterSpecInitProviderAddonsConfigHttpLoadBalancing | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig
+ */
+export interface ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig(obj: ClusterSpecInitProviderAddonsConfigNetworkPolicyConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults {
+  /**
+   * The Customer Managed Encryption Key used to encrypt the boot disk attached to each node in the node pool. This should be of the form projects/[KEY_PROJECT_ID]/locations/[LOCATION]/keyRings/[RING_NAME]/cryptoKeys/[KEY_NAME]. For more information about protecting resources with Cloud KMS Keys please see: https://cloud.google.com/compute/docs/disks/customer-managed-encryption
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#bootDiskKmsKey
+   */
+  readonly bootDiskKmsKey?: string;
+
+  /**
+   * Size of the disk attached to each node, specified in GB. The smallest allowed disk size is 10GB. Defaults to 100
+   *
+   * @default 100
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#diskSize
+   */
+  readonly diskSize?: number;
+
+  /**
+   * Type of the disk attached to each node (e.g. 'pd-standard', 'pd-balanced' or 'pd-ssd'). If unspecified, the default disk type is 'pd-standard'
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#diskType
+   */
+  readonly diskType?: string;
+
+  /**
+   * The image type to use for this node. Note that changing the image type will delete and recreate all nodes in the node pool.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#imageType
+   */
+  readonly imageType?: string;
+
+  /**
+   * NodeManagement configuration for this NodePool. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#management
+   */
+  readonly management?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement[];
+
+  /**
+   * Minimum CPU platform to be used by this instance. The instance may be scheduled on the specified or newer CPU platform. Applicable values are the friendly names of CPU platforms, such as Intel Haswell. See the official documentation for more information.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * The set of Google API scopes to be made available on all of the node VMs under the "default" service account. Use the "https://www.googleapis.com/auth/cloud-platform" scope to grant access to all APIs. It is recommended that you set service_account to a non-default service account and grant IAM roles to that service account for only the resources that it needs.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#oauthScopes
+   */
+  readonly oauthScopes?: string[];
+
+  /**
+   * The service account to be used by the Node VMs. If not specified, the "default" service account is used.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#serviceAccount
+   */
+  readonly serviceAccount?: string;
+
+  /**
+   * Shielded Instance options. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig[];
+
+  /**
+   * Specifies the upgrade settings for NAP created node pools. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults#upgradeSettings
+   */
+  readonly upgradeSettings?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaults | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bootDiskKmsKey': obj.bootDiskKmsKey,
+    'diskSize': obj.diskSize,
+    'diskType': obj.diskType,
+    'imageType': obj.imageType,
+    'management': obj.management?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement(y)),
+    'minCpuPlatform': obj.minCpuPlatform,
+    'oauthScopes': obj.oauthScopes?.map(y => y),
+    'serviceAccount': obj.serviceAccount,
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig(y)),
+    'upgradeSettings': obj.upgradeSettings?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingResourceLimits
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingResourceLimits {
+  /**
+   * Maximum amount of the resource in the cluster.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingResourceLimits#maximum
+   */
+  readonly maximum?: number;
+
+  /**
+   * Minimum amount of the resource in the cluster.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingResourceLimits#minimum
+   */
+  readonly minimum?: number;
+
+  /**
+   * The type of the resource. For example, cpu and memory.  See the guide to using Node Auto-Provisioning for a list of types.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingResourceLimits#resourceType
+   */
+  readonly resourceType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingResourceLimits' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingResourceLimits(obj: ClusterSpecInitProviderClusterAutoscalingResourceLimits | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximum': obj.maximum,
+    'minimum': obj.minimum,
+    'resourceType': obj.resourceType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig
+ */
+export interface ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig {
+  /**
+   * The status of the Istio addon, which makes it easy to set up Istio for services in a cluster. It is disabled by default. Set disabled = false to enable.
+   *
+   * @schema ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig(obj: ClusterSpecInitProviderIpAllocationPolicyPodCidrOverprovisionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow
+ */
+export interface ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow {
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow#startTime
+   */
+  readonly startTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow(obj: ClusterSpecInitProviderMaintenancePolicyDailyMaintenanceWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'startTime': obj.startTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion
+ */
+export interface ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion {
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion#endTime
+   */
+  readonly endTime?: string;
+
+  /**
+   * The name of the cluster, unique within the project and location.
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion#exclusionName
+   */
+  readonly exclusionName?: string;
+
+  /**
+   * MaintenanceExclusionOptions provides maintenance exclusion related options.
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion#exclusionOptions
+   */
+  readonly exclusionOptions?: ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions[];
+
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion#startTime
+   */
+  readonly startTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion(obj: ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endTime': obj.endTime,
+    'exclusionName': obj.exclusionName,
+    'exclusionOptions': obj.exclusionOptions?.map(y => toJson_ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions(y)),
+    'startTime': obj.startTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMaintenancePolicyRecurringWindow
+ */
+export interface ClusterSpecInitProviderMaintenancePolicyRecurringWindow {
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyRecurringWindow#endTime
+   */
+  readonly endTime?: string;
+
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyRecurringWindow#recurrence
+   */
+  readonly recurrence?: string;
+
+  /**
+   * @schema ClusterSpecInitProviderMaintenancePolicyRecurringWindow#startTime
+   */
+  readonly startTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMaintenancePolicyRecurringWindow' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMaintenancePolicyRecurringWindow(obj: ClusterSpecInitProviderMaintenancePolicyRecurringWindow | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endTime': obj.endTime,
+    'recurrence': obj.recurrence,
+    'startTime': obj.startTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMasterAuthClientCertificateConfig
+ */
+export interface ClusterSpecInitProviderMasterAuthClientCertificateConfig {
+  /**
+   * @schema ClusterSpecInitProviderMasterAuthClientCertificateConfig#issueClientCertificate
+   */
+  readonly issueClientCertificate?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMasterAuthClientCertificateConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMasterAuthClientCertificateConfig(obj: ClusterSpecInitProviderMasterAuthClientCertificateConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'issueClientCertificate': obj.issueClientCertificate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks
+ */
+export interface ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks {
+  /**
+   * External network that can access Kubernetes master through HTTPS. Must be specified in CIDR notation.
+   *
+   * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks#cidrBlock
+   */
+  readonly cidrBlock?: string;
+
+  /**
+   * Field for users to identify CIDR blocks.
+   *
+   * @schema ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks#displayName
+   */
+  readonly displayName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks(obj: ClusterSpecInitProviderMasterAuthorizedNetworksConfigCidrBlocks | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidrBlock': obj.cidrBlock,
+    'displayName': obj.displayName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMonitoringConfigManagedPrometheus
+ */
+export interface ClusterSpecInitProviderMonitoringConfigManagedPrometheus {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderMonitoringConfigManagedPrometheus#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMonitoringConfigManagedPrometheus' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMonitoringConfigManagedPrometheus(obj: ClusterSpecInitProviderMonitoringConfigManagedPrometheus | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures
+ */
+export interface ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures {
+  /**
+   * The number of threads per physical core. To disable simultaneous multithreading (SMT) set this to 1. If unset, the maximum number of threads supported per core by the underlying processor is assumed.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures(obj: ClusterSpecInitProviderNodeConfigAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig {
+  /**
+   * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig(obj: ClusterSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigGcfsConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigGcfsConfig {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGcfsConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigGcfsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigGcfsConfig(obj: ClusterSpecInitProviderNodeConfigGcfsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator
+ */
+export interface ClusterSpecInitProviderNodeConfigGuestAccelerator {
+  /**
+   * The number of the guest accelerator cards exposed to this instance.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator#count
+   */
+  readonly count?: number;
+
+  /**
+   * Configuration for auto installation of GPU driver. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator#gpuDriverInstallationConfig
+   */
+  readonly gpuDriverInstallationConfig?: ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig[];
+
+  /**
+   * Size of partitions to create on the GPU. Valid values are described in the NVIDIA mig user guide.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator#gpuPartitionSize
+   */
+  readonly gpuPartitionSize?: string;
+
+  /**
+   * Configuration for GPU sharing. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator#gpuSharingConfig
+   */
+  readonly gpuSharingConfig?: ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig[];
+
+  /**
+   * The accelerator type resource to expose to this instance. E.g. nvidia-tesla-k80.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAccelerator#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigGuestAccelerator' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigGuestAccelerator(obj: ClusterSpecInitProviderNodeConfigGuestAccelerator | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'gpuDriverInstallationConfig': obj.gpuDriverInstallationConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(y)),
+    'gpuPartitionSize': obj.gpuPartitionSize,
+    'gpuSharingConfig': obj.gpuSharingConfig?.map(y => toJson_ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigGvnic
+ */
+export interface ClusterSpecInitProviderNodeConfigGvnic {
+  /**
+   * Enables vertical pod autoscaling
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGvnic#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigGvnic' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigGvnic(obj: ClusterSpecInitProviderNodeConfigGvnic | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigHostMaintenancePolicy
+ */
+export interface ClusterSpecInitProviderNodeConfigHostMaintenancePolicy {
+  /**
+   * @schema ClusterSpecInitProviderNodeConfigHostMaintenancePolicy#maintenanceInterval
+   */
+  readonly maintenanceInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigHostMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigHostMaintenancePolicy(obj: ClusterSpecInitProviderNodeConfigHostMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maintenanceInterval': obj.maintenanceInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigKubeletConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigKubeletConfig {
+  /**
+   * If true, enables CPU CFS quota enforcement for containers that specify CPU limits.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigKubeletConfig#cpuCfsQuota
+   */
+  readonly cpuCfsQuota?: boolean;
+
+  /**
+   * The CPU CFS quota period value. Specified as a sequence of decimal numbers, each with optional fraction and a unit suffix, such as "300ms". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h". The value must be a positive duration.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigKubeletConfig#cpuCfsQuotaPeriod
+   */
+  readonly cpuCfsQuotaPeriod?: string;
+
+  /**
+   * The CPU management policy on the node. See K8S CPU Management Policies. One of "none" or "static". Defaults to none when kubelet_config is unset.
+   *
+   * @default none when kubelet_config is unset.
+   * @schema ClusterSpecInitProviderNodeConfigKubeletConfig#cpuManagerPolicy
+   */
+  readonly cpuManagerPolicy?: string;
+
+  /**
+   * Controls the maximum number of processes allowed to run in a pod. The value must be greater than or equal to 1024 and less than 4194304.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigKubeletConfig#podPidsLimit
+   */
+  readonly podPidsLimit?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigKubeletConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigKubeletConfig(obj: ClusterSpecInitProviderNodeConfigKubeletConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpuCfsQuota': obj.cpuCfsQuota,
+    'cpuCfsQuotaPeriod': obj.cpuCfsQuotaPeriod,
+    'cpuManagerPolicy': obj.cpuManagerPolicy,
+    'podPidsLimit': obj.podPidsLimit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigLinuxNodeConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigLinuxNodeConfig {
+  /**
+   * The Linux kernel parameters to be applied to the nodes and all pods running on the nodes. Specified as a map from the key, such as net.core.wmem_max, to a string value.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigLinuxNodeConfig#sysctls
+   */
+  readonly sysctls?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigLinuxNodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigLinuxNodeConfig(obj: ClusterSpecInitProviderNodeConfigLinuxNodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sysctls': ((obj.sysctls) === undefined) ? undefined : (Object.entries(obj.sysctls).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig {
+  /**
+   * The amount of local SSD disks that will be attached to each cluster node. Defaults to 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig(obj: ClusterSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigReservationAffinity
+ */
+export interface ClusterSpecInitProviderNodeConfigReservationAffinity {
+  /**
+   * The type of reservation consumption Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderNodeConfigReservationAffinity#consumeReservationType
+   */
+  readonly consumeReservationType?: string;
+
+  /**
+   * Key for taint.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigReservationAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * name"
+   *
+   * @schema ClusterSpecInitProviderNodeConfigReservationAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigReservationAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigReservationAffinity(obj: ClusterSpecInitProviderNodeConfigReservationAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumeReservationType': obj.consumeReservationType,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigShieldedInstanceConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigShieldedInstanceConfig {
+  /**
+   * Defines if the instance has integrity monitoring enabled.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines if the instance has Secure Boot enabled.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigShieldedInstanceConfig(obj: ClusterSpecInitProviderNodeConfigShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigSoleTenantConfig {
+  /**
+   * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfig#nodeAffinity
+   */
+  readonly nodeAffinity?: ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigSoleTenantConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigSoleTenantConfig(obj: ClusterSpecInitProviderNodeConfigSoleTenantConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeAffinity': obj.nodeAffinity?.map(y => toJson_ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigTaint
+ */
+export interface ClusterSpecInitProviderNodeConfigTaint {
+  /**
+   * Effect for taint. Accepted values are NO_SCHEDULE, PREFER_NO_SCHEDULE, and NO_EXECUTE.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigTaint#effect
+   */
+  readonly effect?: string;
+
+  /**
+   * Key for taint.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigTaint#key
+   */
+  readonly key?: string;
+
+  /**
+   * Value for taint.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigTaint#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigTaint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigTaint(obj: ClusterSpecInitProviderNodeConfigTaint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'effect': obj.effect,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig {
+  /**
+   * How to expose the node metadata to the workload running on the node. Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig#mode
+   */
+  readonly mode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig(obj: ClusterSpecInitProviderNodeConfigWorkloadMetadataConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults
+ */
+export interface ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults {
+  /**
+   * The type of logging agent that is deployed by default for newly created node pools in the cluster. Valid values include DEFAULT and MAX_THROUGHPUT. See Increasing logging agent throughput for more information.
+   *
+   * @schema ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults#loggingVariant
+   */
+  readonly loggingVariant?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults(obj: ClusterSpecInitProviderNodePoolDefaultsNodeConfigDefaults | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'loggingVariant': obj.loggingVariant,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNotificationConfigPubsub
+ */
+export interface ClusterSpecInitProviderNotificationConfigPubsub {
+  /**
+   * Whether or not the notification config is enabled
+   *
+   * @schema ClusterSpecInitProviderNotificationConfigPubsub#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Choose what type of notifications you want to receive. If no filters are applied, you'll receive all notification types. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderNotificationConfigPubsub#filter
+   */
+  readonly filter?: ClusterSpecInitProviderNotificationConfigPubsubFilter[];
+
+  /**
+   * The pubsub topic to push upgrade notifications to. Must be in the same project as the cluster. Must be in the format: projects/{project}/topics/{topic}.
+   *
+   * @schema ClusterSpecInitProviderNotificationConfigPubsub#topic
+   */
+  readonly topic?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNotificationConfigPubsub' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNotificationConfigPubsub(obj: ClusterSpecInitProviderNotificationConfigPubsub | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'filter': obj.filter?.map(y => toJson_ClusterSpecInitProviderNotificationConfigPubsubFilter(y)),
+    'topic': obj.topic,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig
+ */
+export interface ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig {
+  /**
+   * Whether the cluster master is accessible globally or not.
+   *
+   * @schema ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig(obj: ClusterSpecInitProviderPrivateClusterConfigMasterGlobalAccessConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination
+ */
+export interface ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination {
+  /**
+   * The ID of a BigQuery Dataset. For Example:
+   *
+   * @schema ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination#datasetId
+   */
+  readonly datasetId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination(obj: ClusterSpecInitProviderResourceUsageExportConfigBigqueryDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'datasetId': obj.datasetId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ClusterSpecProviderConfigRefPolicyResolution
@@ -3770,30 +6869,6 @@ export enum ClusterSpecProviderConfigRefPolicyResolution {
  * @schema ClusterSpecProviderConfigRefPolicyResolve
  */
 export enum ClusterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClusterSpecProviderRefPolicyResolution
- */
-export enum ClusterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClusterSpecProviderRefPolicyResolve
- */
-export enum ClusterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3969,7 +7044,7 @@ export interface ClusterSpecForProviderMaintenancePolicyMaintenanceExclusionExcl
    *
    * @schema ClusterSpecForProviderMaintenancePolicyMaintenanceExclusionExclusionOptions#scope
    */
-  readonly scope: string;
+  readonly scope?: string;
 
 }
 
@@ -4034,6 +7109,33 @@ export enum ClusterSpecForProviderNetworkSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig
+ */
+export interface ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig {
+  /**
+   * Mode for how the GPU driver is installed. Accepted values are:
+   *
+   * @schema ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig#gpuDriverVersion
+   */
+  readonly gpuDriverVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(obj: ClusterSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuDriverVersion': obj.gpuDriverVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * @schema ClusterSpecForProviderNodeConfigGuestAcceleratorGpuSharingConfig
@@ -4145,6 +7247,49 @@ export function toJson_ClusterSpecForProviderNodeConfigServiceAccountSelectorPol
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity
+ */
+export interface ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity {
+  /**
+   * Key for taint.
+   *
+   * @schema ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * Specifies affinity or anti-affinity. Accepted values are "IN" or "NOT_IN"
+   *
+   * @schema ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#operator
+   */
+  readonly operator?: string;
+
+  /**
+   * name"
+   *
+   * @schema ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity(obj: ClusterSpecForProviderNodeConfigSoleTenantConfigNodeAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'operator': obj.operator,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderNotificationConfigPubsubFilter
  */
 export interface ClusterSpecForProviderNotificationConfigPubsubFilter {
@@ -4153,7 +7298,7 @@ export interface ClusterSpecForProviderNotificationConfigPubsubFilter {
    *
    * @schema ClusterSpecForProviderNotificationConfigPubsubFilter#eventType
    */
-  readonly eventType: string[];
+  readonly eventType?: string[];
 
 }
 
@@ -4218,6 +7363,288 @@ export enum ClusterSpecForProviderSubnetworkSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement {
+  /**
+   * Specifies whether the node auto-repair is enabled for the node pool. If enabled, the nodes in this node pool will be monitored and, if they fail health checks too many times, an automatic repair action will be triggered.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement#autoRepair
+   */
+  readonly autoRepair?: boolean;
+
+  /**
+   * Specifies whether node auto-upgrade is enabled for the node pool. If enabled, node auto-upgrade helps keep the nodes in your node pool up to date with the latest release version of Kubernetes.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement#autoUpgrade
+   */
+  readonly autoUpgrade?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsManagement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoRepair': obj.autoRepair,
+    'autoUpgrade': obj.autoUpgrade,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig {
+  /**
+   * Defines if the instance has integrity monitoring enabled.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * Defines if the instance has Secure Boot enabled.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings {
+  /**
+   * Settings for blue-green upgrade strategy. To be specified when strategy is set to BLUE_GREEN. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings#blueGreenSettings
+   */
+  readonly blueGreenSettings?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings[];
+
+  /**
+   * The maximum number of nodes that can be created beyond the current size of the node pool during the upgrade process. To be used when strategy is set to SURGE. Default is 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings#maxSurge
+   */
+  readonly maxSurge?: number;
+
+  /**
+   * The maximum number of nodes that can be simultaneously unavailable during the upgrade process. To be used when strategy is set to SURGE. Default is 0.
+   *
+   * @default 0.
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings#maxUnavailable
+   */
+  readonly maxUnavailable?: number;
+
+  /**
+   * Strategy used for node pool update. Strategy can only be one of BLUE_GREEN or SURGE. The default is value is SURGE.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings#strategy
+   */
+  readonly strategy?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blueGreenSettings': obj.blueGreenSettings?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings(y)),
+    'maxSurge': obj.maxSurge,
+    'maxUnavailable': obj.maxUnavailable,
+    'strategy': obj.strategy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions
+ */
+export interface ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions {
+  /**
+   * The scope of automatic upgrades to restrict in the exclusion window. One of: NO_UPGRADES | NO_MINOR_UPGRADES | NO_MINOR_OR_NODE_UPGRADES
+   *
+   * @schema ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions#scope
+   */
+  readonly scope?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions(obj: ClusterSpecInitProviderMaintenancePolicyMaintenanceExclusionExclusionOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scope': obj.scope,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig {
+  /**
+   * Mode for how the GPU driver is installed. Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig#gpuDriverVersion
+   */
+  readonly gpuDriverVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(obj: ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuDriverVersion': obj.gpuDriverVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig
+ */
+export interface ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig {
+  /**
+   * The type of GPU sharing strategy to enable on the GPU node. Accepted values are:
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig#gpuSharingStrategy
+   */
+  readonly gpuSharingStrategy?: string;
+
+  /**
+   * The maximum number of containers that can share a GPU.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig#maxSharedClientsPerGpu
+   */
+  readonly maxSharedClientsPerGpu?: number;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig(obj: ClusterSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuSharingStrategy': obj.gpuSharingStrategy,
+    'maxSharedClientsPerGpu': obj.maxSharedClientsPerGpu,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity
+ */
+export interface ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity {
+  /**
+   * Key for taint.
+   *
+   * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * Specifies affinity or anti-affinity. Accepted values are "IN" or "NOT_IN"
+   *
+   * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#operator
+   */
+  readonly operator?: string;
+
+  /**
+   * name"
+   *
+   * @schema ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity(obj: ClusterSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'operator': obj.operator,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderNotificationConfigPubsubFilter
+ */
+export interface ClusterSpecInitProviderNotificationConfigPubsubFilter {
+  /**
+   * Can be used to filter what notifications are sent. Accepted values are UPGRADE_AVAILABLE_EVENT, UPGRADE_EVENT and SECURITY_BULLETIN_EVENT. See Filtering notifications for more details.
+   *
+   * @schema ClusterSpecInitProviderNotificationConfigPubsubFilter#eventType
+   */
+  readonly eventType?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderNotificationConfigPubsubFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderNotificationConfigPubsubFilter(obj: ClusterSpecInitProviderNotificationConfigPubsubFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventType': obj.eventType?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -4327,6 +7754,41 @@ export enum ClusterSpecForProviderNodeConfigServiceAccountSelectorPolicyResolve 
 }
 
 /**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings {
+  /**
+   * Time needed after draining entire blue pool. After this period, blue pool will be cleaned up. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings#nodePoolSoakDuration
+   */
+  readonly nodePoolSoakDuration?: string;
+
+  /**
+   * green upgrade. To be specified when strategy is set to BLUE_GREEN. Structure is documented below.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings#standardRolloutPolicy
+   */
+  readonly standardRolloutPolicy?: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy[];
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodePoolSoakDuration': obj.nodePoolSoakDuration,
+    'standardRolloutPolicy': obj.standardRolloutPolicy?.map(y => toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClusterSpecForProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy
  */
 export interface ClusterSpecForProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy {
@@ -4358,6 +7820,49 @@ export interface ClusterSpecForProviderClusterAutoscalingAutoProvisioningDefault
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClusterSpecForProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(obj: ClusterSpecForProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchNodeCount': obj.batchNodeCount,
+    'batchPercentage': obj.batchPercentage,
+    'batchSoakDuration': obj.batchSoakDuration,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy
+ */
+export interface ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy {
+  /**
+   * Number of blue nodes to drain in a batch. Only one of the batch_percentage or batch_node_count can be specified.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchNodeCount
+   */
+  readonly batchNodeCount?: number;
+
+  /**
+   * :  Percentage of the bool pool nodes to drain in a batch. The range of this field should be (0.0, 1.0). Only one of the batch_percentage or batch_node_count can be specified.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchPercentage
+   */
+  readonly batchPercentage?: number;
+
+  /**
+   * Soak time after each batch gets drained. A duration in seconds with up to nine fractional digits, ending with 's'. Example: "3.5s".`.
+   *
+   * @schema ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchSoakDuration
+   */
+  readonly batchSoakDuration?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(obj: ClusterSpecInitProviderClusterAutoscalingAutoProvisioningDefaultsUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'batchNodeCount': obj.batchNodeCount,
@@ -4466,7 +7971,7 @@ export function toJson_NodePoolProps(obj: NodePoolProps | undefined): Record<str
  */
 export interface NodePoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NodePoolSpec#deletionPolicy
    */
@@ -4478,11 +7983,18 @@ export interface NodePoolSpec {
   readonly forProvider: NodePoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NodePoolSpec#managementPolicy
+   * @schema NodePoolSpec#initProvider
    */
-  readonly managementPolicy?: NodePoolSpecManagementPolicy;
+  readonly initProvider?: NodePoolSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NodePoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: NodePoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4490,13 +8002,6 @@ export interface NodePoolSpec {
    * @schema NodePoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: NodePoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NodePoolSpec#providerRef
-   */
-  readonly providerRef?: NodePoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4523,9 +8028,9 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NodePoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NodePoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NodePoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NodePoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NodePoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NodePoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4535,7 +8040,7 @@ export function toJson_NodePoolSpec(obj: NodePoolSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NodePoolSpecDeletionPolicy
  */
@@ -4694,17 +8199,140 @@ export function toJson_NodePoolSpecForProvider(obj: NodePoolSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NodePoolSpecManagementPolicy
+ * @schema NodePoolSpecInitProvider
  */
-export enum NodePoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NodePoolSpecInitProvider {
+  /**
+   * Configuration required by cluster autoscaler to adjust the size of the node pool to the current cluster usage. Structure is documented below.
+   *
+   * @schema NodePoolSpecInitProvider#autoscaling
+   */
+  readonly autoscaling?: NodePoolSpecInitProviderAutoscaling[];
+
+  /**
+   * The initial number of nodes for the pool. In regional or multi-zonal clusters, this is the number of nodes per zone. Changing this will force recreation of the resource.  If you don't need this value, don't set it.  If you do need it, you can use a lifecycle block to ignore subsequent changes to this field.
+   *
+   * @schema NodePoolSpecInitProvider#initialNodeCount
+   */
+  readonly initialNodeCount?: number;
+
+  /**
+   * Node management configuration, wherein auto-repair and auto-upgrade is configured. Structure is documented below.
+   *
+   * @schema NodePoolSpecInitProvider#management
+   */
+  readonly management?: NodePoolSpecInitProviderManagement[];
+
+  /**
+   * The maximum number of pods per node in this node pool. Note that this does not work on node pools which are "route-based" - that is, node pools belonging to clusters that do not have IP Aliasing enabled. See the official documentation for more information.
+   *
+   * @schema NodePoolSpecInitProvider#maxPodsPerNode
+   */
+  readonly maxPodsPerNode?: number;
+
+  /**
+   * The network configuration of the pool. Such as configuration for Adding Pod IP address ranges) to the node pool. Or enabling private nodes. Structure is documented below
+   *
+   * @schema NodePoolSpecInitProvider#networkConfig
+   */
+  readonly networkConfig?: NodePoolSpecInitProviderNetworkConfig[];
+
+  /**
+   * Parameters used in creating the node pool. See google_container_cluster for schema.
+   *
+   * @schema NodePoolSpecInitProvider#nodeConfig
+   */
+  readonly nodeConfig?: NodePoolSpecInitProviderNodeConfig[];
+
+  /**
+   * The number of nodes per instance group. This field can be used to update the number of nodes per instance group but should not be used alongside autoscaling.
+   *
+   * @schema NodePoolSpecInitProvider#nodeCount
+   */
+  readonly nodeCount?: number;
+
+  /**
+   * The list of zones in which the node pool's nodes should be located. Nodes must be in the region of their regional cluster or in the same region as their cluster's zone for zonal clusters. If unspecified, the cluster-level node_locations will be used.
+   *
+   * @schema NodePoolSpecInitProvider#nodeLocations
+   */
+  readonly nodeLocations?: string[];
+
+  /**
+   * Specifies a custom placement policy for the nodes.
+   *
+   * @schema NodePoolSpecInitProvider#placementPolicy
+   */
+  readonly placementPolicy?: NodePoolSpecInitProviderPlacementPolicy[];
+
+  /**
+   * The ID of the project in which to create the node pool. If blank, the provider-configured project will be used.
+   *
+   * @schema NodePoolSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Specify node upgrade settings to change how GKE upgrades nodes. The maximum number of nodes upgraded simultaneously is limited to 20. Structure is documented below.
+   *
+   * @schema NodePoolSpecInitProvider#upgradeSettings
+   */
+  readonly upgradeSettings?: NodePoolSpecInitProviderUpgradeSettings[];
+
+  /**
+   * The Kubernetes version for the nodes in this pool. Note that if this field and auto_upgrade are both specified, they will fight each other for what the node version should be, so setting both is highly discouraged.
+   *
+   * @schema NodePoolSpecInitProvider#version
+   */
+  readonly version?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProvider(obj: NodePoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoscaling': obj.autoscaling?.map(y => toJson_NodePoolSpecInitProviderAutoscaling(y)),
+    'initialNodeCount': obj.initialNodeCount,
+    'management': obj.management?.map(y => toJson_NodePoolSpecInitProviderManagement(y)),
+    'maxPodsPerNode': obj.maxPodsPerNode,
+    'networkConfig': obj.networkConfig?.map(y => toJson_NodePoolSpecInitProviderNetworkConfig(y)),
+    'nodeConfig': obj.nodeConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfig(y)),
+    'nodeCount': obj.nodeCount,
+    'nodeLocations': obj.nodeLocations?.map(y => y),
+    'placementPolicy': obj.placementPolicy?.map(y => toJson_NodePoolSpecInitProviderPlacementPolicy(y)),
+    'project': obj.project,
+    'upgradeSettings': obj.upgradeSettings?.map(y => toJson_NodePoolSpecInitProviderUpgradeSettings(y)),
+    'version': obj.version,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NodePoolSpecManagementPolicies
+ */
+export enum NodePoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4738,43 +8366,6 @@ export function toJson_NodePoolSpecProviderConfigRef(obj: NodePoolSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_NodePoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NodePoolSpecProviderRef
- */
-export interface NodePoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NodePoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NodePoolSpecProviderRef#policy
-   */
-  readonly policy?: NodePoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NodePoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodePoolSpecProviderRef(obj: NodePoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NodePoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5141,6 +8732,11 @@ export interface NodePoolSpecForProviderNodeConfig {
   readonly gvnic?: NodePoolSpecForProviderNodeConfigGvnic[];
 
   /**
+   * @schema NodePoolSpecForProviderNodeConfig#hostMaintenancePolicy
+   */
+  readonly hostMaintenancePolicy?: NodePoolSpecForProviderNodeConfigHostMaintenancePolicy[];
+
+  /**
    * @schema NodePoolSpecForProviderNodeConfig#imageType
    */
   readonly imageType?: string;
@@ -5242,6 +8838,11 @@ export interface NodePoolSpecForProviderNodeConfig {
   readonly shieldedInstanceConfig?: NodePoolSpecForProviderNodeConfigShieldedInstanceConfig[];
 
   /**
+   * @schema NodePoolSpecForProviderNodeConfig#soleTenantConfig
+   */
+  readonly soleTenantConfig?: NodePoolSpecForProviderNodeConfigSoleTenantConfig[];
+
+  /**
    * @schema NodePoolSpecForProviderNodeConfig#spot
    */
   readonly spot?: boolean;
@@ -5278,6 +8879,7 @@ export function toJson_NodePoolSpecForProviderNodeConfig(obj: NodePoolSpecForPro
     'gcfsConfig': obj.gcfsConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigGcfsConfig(y)),
     'guestAccelerator': obj.guestAccelerator?.map(y => toJson_NodePoolSpecForProviderNodeConfigGuestAccelerator(y)),
     'gvnic': obj.gvnic?.map(y => toJson_NodePoolSpecForProviderNodeConfigGvnic(y)),
+    'hostMaintenancePolicy': obj.hostMaintenancePolicy?.map(y => toJson_NodePoolSpecForProviderNodeConfigHostMaintenancePolicy(y)),
     'imageType': obj.imageType,
     'kubeletConfig': obj.kubeletConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigKubeletConfig(y)),
     'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -5297,6 +8899,7 @@ export function toJson_NodePoolSpecForProviderNodeConfig(obj: NodePoolSpecForPro
     'serviceAccountRef': toJson_NodePoolSpecForProviderNodeConfigServiceAccountRef(obj.serviceAccountRef),
     'serviceAccountSelector': toJson_NodePoolSpecForProviderNodeConfigServiceAccountSelector(obj.serviceAccountSelector),
     'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigShieldedInstanceConfig(y)),
+    'soleTenantConfig': obj.soleTenantConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigSoleTenantConfig(y)),
     'spot': obj.spot,
     'tags': obj.tags?.map(y => y),
     'taint': obj.taint?.map(y => toJson_NodePoolSpecForProviderNodeConfigTaint(y)),
@@ -5312,11 +8915,18 @@ export function toJson_NodePoolSpecForProviderNodeConfig(obj: NodePoolSpecForPro
  */
 export interface NodePoolSpecForProviderPlacementPolicy {
   /**
+   * If set, refers to the name of a custom resource policy supplied by the user. The resource policy must be in the same project and region as the node pool. If not found, InvalidArgument error is returned.
+   *
+   * @schema NodePoolSpecForProviderPlacementPolicy#policyName
+   */
+  readonly policyName?: string;
+
+  /**
    * The type of the policy. Supports a single value: COMPACT. Specifying COMPACT placement policy type places node pool's nodes in a closer physical proximity in order to reduce network latency between nodes.
    *
    * @schema NodePoolSpecForProviderPlacementPolicy#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -5327,6 +8937,7 @@ export interface NodePoolSpecForProviderPlacementPolicy {
 export function toJson_NodePoolSpecForProviderPlacementPolicy(obj: NodePoolSpecForProviderPlacementPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
+    'policyName': obj.policyName,
     'type': obj.type,
   };
   // filter undefined values
@@ -5386,6 +8997,444 @@ export function toJson_NodePoolSpecForProviderUpgradeSettings(obj: NodePoolSpecF
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodePoolSpecInitProviderAutoscaling
+ */
+export interface NodePoolSpecInitProviderAutoscaling {
+  /**
+   * Location policy specifies the algorithm used when scaling-up the node pool. Location policy is supported only in 1.24.1+ clusters.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#locationPolicy
+   */
+  readonly locationPolicy?: string;
+
+  /**
+   * Maximum number of nodes per zone in the NodePool. Must be >= min_node_count. Cannot be used with total limits.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#maxNodeCount
+   */
+  readonly maxNodeCount?: number;
+
+  /**
+   * Minimum number of nodes per zone in the NodePool. Must be >=0 and <= max_node_count. Cannot be used with total limits.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#minNodeCount
+   */
+  readonly minNodeCount?: number;
+
+  /**
+   * Total maximum number of nodes in the NodePool. Must be >= total_min_node_count. Cannot be used with per zone limits. Total size limits are supported only in 1.24.1+ clusters.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#totalMaxNodeCount
+   */
+  readonly totalMaxNodeCount?: number;
+
+  /**
+   * Total minimum number of nodes in the NodePool. Must be >=0 and <= total_max_node_count. Cannot be used with per zone limits. Total size limits are supported only in 1.24.1+ clusters.
+   *
+   * @schema NodePoolSpecInitProviderAutoscaling#totalMinNodeCount
+   */
+  readonly totalMinNodeCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderAutoscaling' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderAutoscaling(obj: NodePoolSpecInitProviderAutoscaling | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'locationPolicy': obj.locationPolicy,
+    'maxNodeCount': obj.maxNodeCount,
+    'minNodeCount': obj.minNodeCount,
+    'totalMaxNodeCount': obj.totalMaxNodeCount,
+    'totalMinNodeCount': obj.totalMinNodeCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderManagement
+ */
+export interface NodePoolSpecInitProviderManagement {
+  /**
+   * Whether the nodes will be automatically repaired.
+   *
+   * @schema NodePoolSpecInitProviderManagement#autoRepair
+   */
+  readonly autoRepair?: boolean;
+
+  /**
+   * Whether the nodes will be automatically upgraded.
+   *
+   * @schema NodePoolSpecInitProviderManagement#autoUpgrade
+   */
+  readonly autoUpgrade?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderManagement' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderManagement(obj: NodePoolSpecInitProviderManagement | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoRepair': obj.autoRepair,
+    'autoUpgrade': obj.autoUpgrade,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNetworkConfig
+ */
+export interface NodePoolSpecInitProviderNetworkConfig {
+  /**
+   * Whether to create a new range for pod IPs in this node pool. Defaults are provided for pod_range and pod_ipv4_cidr_block if they are not specified.
+   *
+   * @schema NodePoolSpecInitProviderNetworkConfig#createPodRange
+   */
+  readonly createPodRange?: boolean;
+
+  /**
+   * Whether nodes have internal IP addresses only.
+   *
+   * @schema NodePoolSpecInitProviderNetworkConfig#enablePrivateNodes
+   */
+  readonly enablePrivateNodes?: boolean;
+
+  /**
+   * @schema NodePoolSpecInitProviderNetworkConfig#podCidrOverprovisionConfig
+   */
+  readonly podCidrOverprovisionConfig?: NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig[];
+
+  /**
+   * The IP address range for pod IPs in this node pool. Only applicable if createPodRange is true. Set to blank to have a range chosen with the default size. Set to /netmask (e.g. /14) to have a range chosen with a specific netmask. Set to a CIDR notation (e.g. 10.96.0.0/14) to pick a specific range to use.
+   *
+   * @schema NodePoolSpecInitProviderNetworkConfig#podIpv4CidrBlock
+   */
+  readonly podIpv4CidrBlock?: string;
+
+  /**
+   * The ID of the secondary range for pod IPs. If create_pod_range is true, this ID is used for the new range. If create_pod_range is false, uses an existing secondary range with this ID.
+   *
+   * @schema NodePoolSpecInitProviderNetworkConfig#podRange
+   */
+  readonly podRange?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNetworkConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNetworkConfig(obj: NodePoolSpecInitProviderNetworkConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'createPodRange': obj.createPodRange,
+    'enablePrivateNodes': obj.enablePrivateNodes,
+    'podCidrOverprovisionConfig': obj.podCidrOverprovisionConfig?.map(y => toJson_NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig(y)),
+    'podIpv4CidrBlock': obj.podIpv4CidrBlock,
+    'podRange': obj.podRange,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#advancedMachineFeatures
+   */
+  readonly advancedMachineFeatures?: NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#bootDiskKmsKey
+   */
+  readonly bootDiskKmsKey?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#diskSizeGb
+   */
+  readonly diskSizeGb?: number;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#diskType
+   */
+  readonly diskType?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#ephemeralStorageLocalSsdConfig
+   */
+  readonly ephemeralStorageLocalSsdConfig?: NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#gcfsConfig
+   */
+  readonly gcfsConfig?: NodePoolSpecInitProviderNodeConfigGcfsConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#guestAccelerator
+   */
+  readonly guestAccelerator?: NodePoolSpecInitProviderNodeConfigGuestAccelerator[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#gvnic
+   */
+  readonly gvnic?: NodePoolSpecInitProviderNodeConfigGvnic[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#hostMaintenancePolicy
+   */
+  readonly hostMaintenancePolicy?: NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#imageType
+   */
+  readonly imageType?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#kubeletConfig
+   */
+  readonly kubeletConfig?: NodePoolSpecInitProviderNodeConfigKubeletConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * Parameters used in creating the node pool. See google_container_cluster for schema.
+   *
+   * @schema NodePoolSpecInitProviderNodeConfig#linuxNodeConfig
+   */
+  readonly linuxNodeConfig?: NodePoolSpecInitProviderNodeConfigLinuxNodeConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#localNvmeSsdBlockConfig
+   */
+  readonly localNvmeSsdBlockConfig?: NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#loggingVariant
+   */
+  readonly loggingVariant?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#machineType
+   */
+  readonly machineType?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#metadata
+   */
+  readonly metadata?: { [key: string]: string };
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#minCpuPlatform
+   */
+  readonly minCpuPlatform?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#nodeGroup
+   */
+  readonly nodeGroup?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#oauthScopes
+   */
+  readonly oauthScopes?: string[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#preemptible
+   */
+  readonly preemptible?: boolean;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#reservationAffinity
+   */
+  readonly reservationAffinity?: NodePoolSpecInitProviderNodeConfigReservationAffinity[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#resourceLabels
+   */
+  readonly resourceLabels?: { [key: string]: string };
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#shieldedInstanceConfig
+   */
+  readonly shieldedInstanceConfig?: NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#soleTenantConfig
+   */
+  readonly soleTenantConfig?: NodePoolSpecInitProviderNodeConfigSoleTenantConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#spot
+   */
+  readonly spot?: boolean;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#tags
+   */
+  readonly tags?: string[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#taint
+   */
+  readonly taint?: NodePoolSpecInitProviderNodeConfigTaint[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfig#workloadMetadataConfig
+   */
+  readonly workloadMetadataConfig?: NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfig(obj: NodePoolSpecInitProviderNodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'advancedMachineFeatures': obj.advancedMachineFeatures?.map(y => toJson_NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures(y)),
+    'bootDiskKmsKey': obj.bootDiskKmsKey,
+    'diskSizeGb': obj.diskSizeGb,
+    'diskType': obj.diskType,
+    'ephemeralStorageLocalSsdConfig': obj.ephemeralStorageLocalSsdConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig(y)),
+    'gcfsConfig': obj.gcfsConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigGcfsConfig(y)),
+    'guestAccelerator': obj.guestAccelerator?.map(y => toJson_NodePoolSpecInitProviderNodeConfigGuestAccelerator(y)),
+    'gvnic': obj.gvnic?.map(y => toJson_NodePoolSpecInitProviderNodeConfigGvnic(y)),
+    'hostMaintenancePolicy': obj.hostMaintenancePolicy?.map(y => toJson_NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy(y)),
+    'imageType': obj.imageType,
+    'kubeletConfig': obj.kubeletConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigKubeletConfig(y)),
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'linuxNodeConfig': obj.linuxNodeConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigLinuxNodeConfig(y)),
+    'localNvmeSsdBlockConfig': obj.localNvmeSsdBlockConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig(y)),
+    'localSsdCount': obj.localSsdCount,
+    'loggingVariant': obj.loggingVariant,
+    'machineType': obj.machineType,
+    'metadata': ((obj.metadata) === undefined) ? undefined : (Object.entries(obj.metadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'minCpuPlatform': obj.minCpuPlatform,
+    'nodeGroup': obj.nodeGroup,
+    'oauthScopes': obj.oauthScopes?.map(y => y),
+    'preemptible': obj.preemptible,
+    'reservationAffinity': obj.reservationAffinity?.map(y => toJson_NodePoolSpecInitProviderNodeConfigReservationAffinity(y)),
+    'resourceLabels': ((obj.resourceLabels) === undefined) ? undefined : (Object.entries(obj.resourceLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'shieldedInstanceConfig': obj.shieldedInstanceConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig(y)),
+    'soleTenantConfig': obj.soleTenantConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigSoleTenantConfig(y)),
+    'spot': obj.spot,
+    'tags': obj.tags?.map(y => y),
+    'taint': obj.taint?.map(y => toJson_NodePoolSpecInitProviderNodeConfigTaint(y)),
+    'workloadMetadataConfig': obj.workloadMetadataConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderPlacementPolicy
+ */
+export interface NodePoolSpecInitProviderPlacementPolicy {
+  /**
+   * If set, refers to the name of a custom resource policy supplied by the user. The resource policy must be in the same project and region as the node pool. If not found, InvalidArgument error is returned.
+   *
+   * @schema NodePoolSpecInitProviderPlacementPolicy#policyName
+   */
+  readonly policyName?: string;
+
+  /**
+   * The type of the policy. Supports a single value: COMPACT. Specifying COMPACT placement policy type places node pool's nodes in a closer physical proximity in order to reduce network latency between nodes.
+   *
+   * @schema NodePoolSpecInitProviderPlacementPolicy#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderPlacementPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderPlacementPolicy(obj: NodePoolSpecInitProviderPlacementPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policyName': obj.policyName,
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderUpgradeSettings
+ */
+export interface NodePoolSpecInitProviderUpgradeSettings {
+  /**
+   * The settings to adjust blue green upgrades. Structure is documented below
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettings#blueGreenSettings
+   */
+  readonly blueGreenSettings?: NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings[];
+
+  /**
+   * The number of additional nodes that can be added to the node pool during an upgrade. Increasing max_surge raises the number of nodes that can be upgraded simultaneously. Can be set to 0 or greater.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettings#maxSurge
+   */
+  readonly maxSurge?: number;
+
+  /**
+   * The number of nodes that can be simultaneously unavailable during an upgrade. Increasing max_unavailable raises the number of nodes that can be upgraded in parallel. Can be set to 0 or greater.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettings#maxUnavailable
+   */
+  readonly maxUnavailable?: number;
+
+  /**
+   * (Default SURGE) The upgrade stragey to be used for upgrading the nodes.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettings#strategy
+   */
+  readonly strategy?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderUpgradeSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderUpgradeSettings(obj: NodePoolSpecInitProviderUpgradeSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blueGreenSettings': obj.blueGreenSettings?.map(y => toJson_NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings(y)),
+    'maxSurge': obj.maxSurge,
+    'maxUnavailable': obj.maxUnavailable,
+    'strategy': obj.strategy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema NodePoolSpecProviderConfigRefPolicy
@@ -5412,43 +9461,6 @@ export interface NodePoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodePoolSpecProviderConfigRefPolicy(obj: NodePoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NodePoolSpecProviderRefPolicy
- */
-export interface NodePoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NodePoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NodePoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NodePoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NodePoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NodePoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NodePoolSpecProviderRefPolicy(obj: NodePoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5622,7 +9634,7 @@ export interface NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig 
   /**
    * @schema NodePoolSpecForProviderNetworkConfigPodCidrOverprovisionConfig#disabled
    */
-  readonly disabled: boolean;
+  readonly disabled?: boolean;
 
 }
 
@@ -5647,7 +9659,7 @@ export interface NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures {
   /**
    * @schema NodePoolSpecForProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
    */
-  readonly threadsPerCore: number;
+  readonly threadsPerCore?: number;
 
 }
 
@@ -5672,7 +9684,7 @@ export interface NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig
   /**
    * @schema NodePoolSpecForProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
    */
-  readonly localSsdCount: number;
+  readonly localSsdCount?: number;
 
 }
 
@@ -5697,7 +9709,7 @@ export interface NodePoolSpecForProviderNodeConfigGcfsConfig {
   /**
    * @schema NodePoolSpecForProviderNodeConfigGcfsConfig#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -5723,6 +9735,11 @@ export interface NodePoolSpecForProviderNodeConfigGuestAccelerator {
    * @schema NodePoolSpecForProviderNodeConfigGuestAccelerator#count
    */
   readonly count?: number;
+
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigGuestAccelerator#gpuDriverInstallationConfig
+   */
+  readonly gpuDriverInstallationConfig?: NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig[];
 
   /**
    * @schema NodePoolSpecForProviderNodeConfigGuestAccelerator#gpuPartitionSize
@@ -5751,6 +9768,7 @@ export function toJson_NodePoolSpecForProviderNodeConfigGuestAccelerator(obj: No
   if (obj === undefined) { return undefined; }
   const result = {
     'count': obj.count,
+    'gpuDriverInstallationConfig': obj.gpuDriverInstallationConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(y)),
     'gpuPartitionSize': obj.gpuPartitionSize,
     'gpuSharingConfig': obj.gpuSharingConfig?.map(y => toJson_NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuSharingConfig(y)),
     'type': obj.type,
@@ -5767,7 +9785,7 @@ export interface NodePoolSpecForProviderNodeConfigGvnic {
   /**
    * @schema NodePoolSpecForProviderNodeConfigGvnic#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -5779,6 +9797,31 @@ export function toJson_NodePoolSpecForProviderNodeConfigGvnic(obj: NodePoolSpecF
   if (obj === undefined) { return undefined; }
   const result = {
     'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecForProviderNodeConfigHostMaintenancePolicy
+ */
+export interface NodePoolSpecForProviderNodeConfigHostMaintenancePolicy {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigHostMaintenancePolicy#maintenanceInterval
+   */
+  readonly maintenanceInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigHostMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigHostMaintenancePolicy(obj: NodePoolSpecForProviderNodeConfigHostMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maintenanceInterval': obj.maintenanceInterval,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5802,7 +9845,7 @@ export interface NodePoolSpecForProviderNodeConfigKubeletConfig {
   /**
    * @schema NodePoolSpecForProviderNodeConfigKubeletConfig#cpuManagerPolicy
    */
-  readonly cpuManagerPolicy: string;
+  readonly cpuManagerPolicy?: string;
 
   /**
    * @schema NodePoolSpecForProviderNodeConfigKubeletConfig#podPidsLimit
@@ -5835,7 +9878,7 @@ export interface NodePoolSpecForProviderNodeConfigLinuxNodeConfig {
   /**
    * @schema NodePoolSpecForProviderNodeConfigLinuxNodeConfig#sysctls
    */
-  readonly sysctls: { [key: string]: string };
+  readonly sysctls?: { [key: string]: string };
 
 }
 
@@ -5860,7 +9903,7 @@ export interface NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig {
   /**
    * @schema NodePoolSpecForProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
    */
-  readonly localSsdCount: number;
+  readonly localSsdCount?: number;
 
 }
 
@@ -5885,7 +9928,7 @@ export interface NodePoolSpecForProviderNodeConfigReservationAffinity {
   /**
    * @schema NodePoolSpecForProviderNodeConfigReservationAffinity#consumeReservationType
    */
-  readonly consumeReservationType: string;
+  readonly consumeReservationType?: string;
 
   /**
    * @schema NodePoolSpecForProviderNodeConfigReservationAffinity#key
@@ -6029,6 +10072,31 @@ export function toJson_NodePoolSpecForProviderNodeConfigShieldedInstanceConfig(o
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfig
+ */
+export interface NodePoolSpecForProviderNodeConfigSoleTenantConfig {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfig#nodeAffinity
+   */
+  readonly nodeAffinity?: NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigSoleTenantConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigSoleTenantConfig(obj: NodePoolSpecForProviderNodeConfigSoleTenantConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeAffinity': obj.nodeAffinity?.map(y => toJson_NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema NodePoolSpecForProviderNodeConfigTaint
  */
 export interface NodePoolSpecForProviderNodeConfigTaint {
@@ -6072,7 +10140,7 @@ export interface NodePoolSpecForProviderNodeConfigWorkloadMetadataConfig {
   /**
    * @schema NodePoolSpecForProviderNodeConfigWorkloadMetadataConfig#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
 }
 
@@ -6106,7 +10174,7 @@ export interface NodePoolSpecForProviderUpgradeSettingsBlueGreenSettings {
    *
    * @schema NodePoolSpecForProviderUpgradeSettingsBlueGreenSettings#standardRolloutPolicy
    */
-  readonly standardRolloutPolicy: NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy[];
+  readonly standardRolloutPolicy?: NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy[];
 
 }
 
@@ -6119,6 +10187,490 @@ export function toJson_NodePoolSpecForProviderUpgradeSettingsBlueGreenSettings(o
   const result = {
     'nodePoolSoakDuration': obj.nodePoolSoakDuration,
     'standardRolloutPolicy': obj.standardRolloutPolicy?.map(y => toJson_NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig
+ */
+export interface NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig#disabled
+   */
+  readonly disabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig(obj: NodePoolSpecInitProviderNetworkConfigPodCidrOverprovisionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'disabled': obj.disabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures
+ */
+export interface NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures#threadsPerCore
+   */
+  readonly threadsPerCore?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures(obj: NodePoolSpecInitProviderNodeConfigAdvancedMachineFeatures | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threadsPerCore': obj.threadsPerCore,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig(obj: NodePoolSpecInitProviderNodeConfigEphemeralStorageLocalSsdConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigGcfsConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigGcfsConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGcfsConfig#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigGcfsConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigGcfsConfig(obj: NodePoolSpecInitProviderNodeConfigGcfsConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator
+ */
+export interface NodePoolSpecInitProviderNodeConfigGuestAccelerator {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator#count
+   */
+  readonly count?: number;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator#gpuDriverInstallationConfig
+   */
+  readonly gpuDriverInstallationConfig?: NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig[];
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator#gpuPartitionSize
+   */
+  readonly gpuPartitionSize?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator#gpuSharingConfig
+   */
+  readonly gpuSharingConfig?: NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig[];
+
+  /**
+   * The type of the policy. Supports a single value: COMPACT. Specifying COMPACT placement policy type places node pool's nodes in a closer physical proximity in order to reduce network latency between nodes.
+   *
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAccelerator#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigGuestAccelerator' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigGuestAccelerator(obj: NodePoolSpecInitProviderNodeConfigGuestAccelerator | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'gpuDriverInstallationConfig': obj.gpuDriverInstallationConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(y)),
+    'gpuPartitionSize': obj.gpuPartitionSize,
+    'gpuSharingConfig': obj.gpuSharingConfig?.map(y => toJson_NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig(y)),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigGvnic
+ */
+export interface NodePoolSpecInitProviderNodeConfigGvnic {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGvnic#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigGvnic' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigGvnic(obj: NodePoolSpecInitProviderNodeConfigGvnic | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy
+ */
+export interface NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy#maintenanceInterval
+   */
+  readonly maintenanceInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy(obj: NodePoolSpecInitProviderNodeConfigHostMaintenancePolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maintenanceInterval': obj.maintenanceInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigKubeletConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigKubeletConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigKubeletConfig#cpuCfsQuota
+   */
+  readonly cpuCfsQuota?: boolean;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigKubeletConfig#cpuCfsQuotaPeriod
+   */
+  readonly cpuCfsQuotaPeriod?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigKubeletConfig#cpuManagerPolicy
+   */
+  readonly cpuManagerPolicy?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigKubeletConfig#podPidsLimit
+   */
+  readonly podPidsLimit?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigKubeletConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigKubeletConfig(obj: NodePoolSpecInitProviderNodeConfigKubeletConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cpuCfsQuota': obj.cpuCfsQuota,
+    'cpuCfsQuotaPeriod': obj.cpuCfsQuotaPeriod,
+    'cpuManagerPolicy': obj.cpuManagerPolicy,
+    'podPidsLimit': obj.podPidsLimit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigLinuxNodeConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigLinuxNodeConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigLinuxNodeConfig#sysctls
+   */
+  readonly sysctls?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigLinuxNodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigLinuxNodeConfig(obj: NodePoolSpecInitProviderNodeConfigLinuxNodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sysctls': ((obj.sysctls) === undefined) ? undefined : (Object.entries(obj.sysctls).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig#localSsdCount
+   */
+  readonly localSsdCount?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig(obj: NodePoolSpecInitProviderNodeConfigLocalNvmeSsdBlockConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'localSsdCount': obj.localSsdCount,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigReservationAffinity
+ */
+export interface NodePoolSpecInitProviderNodeConfigReservationAffinity {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigReservationAffinity#consumeReservationType
+   */
+  readonly consumeReservationType?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigReservationAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigReservationAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigReservationAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigReservationAffinity(obj: NodePoolSpecInitProviderNodeConfigReservationAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consumeReservationType': obj.consumeReservationType,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig#enableIntegrityMonitoring
+   */
+  readonly enableIntegrityMonitoring?: boolean;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig#enableSecureBoot
+   */
+  readonly enableSecureBoot?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig(obj: NodePoolSpecInitProviderNodeConfigShieldedInstanceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableIntegrityMonitoring': obj.enableIntegrityMonitoring,
+    'enableSecureBoot': obj.enableSecureBoot,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigSoleTenantConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfig#nodeAffinity
+   */
+  readonly nodeAffinity?: NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigSoleTenantConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigSoleTenantConfig(obj: NodePoolSpecInitProviderNodeConfigSoleTenantConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodeAffinity': obj.nodeAffinity?.map(y => toJson_NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigTaint
+ */
+export interface NodePoolSpecInitProviderNodeConfigTaint {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigTaint#effect
+   */
+  readonly effect?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigTaint#key
+   */
+  readonly key?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigTaint#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigTaint' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigTaint(obj: NodePoolSpecInitProviderNodeConfigTaint | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'effect': obj.effect,
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig#mode
+   */
+  readonly mode?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig(obj: NodePoolSpecInitProviderNodeConfigWorkloadMetadataConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings
+ */
+export interface NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings {
+  /**
+   * Time needed after draining the entire blue pool. After this period, the blue pool will be cleaned up.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings#nodePoolSoakDuration
+   */
+  readonly nodePoolSoakDuration?: string;
+
+  /**
+   * Specifies the standard policy settings for blue-green upgrades.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings#standardRolloutPolicy
+   */
+  readonly standardRolloutPolicy?: NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings(obj: NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nodePoolSoakDuration': obj.nodePoolSoakDuration,
+    'standardRolloutPolicy': obj.standardRolloutPolicy?.map(y => toJson_NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6143,30 +10695,6 @@ export enum NodePoolSpecProviderConfigRefPolicyResolution {
  * @schema NodePoolSpecProviderConfigRefPolicyResolve
  */
 export enum NodePoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NodePoolSpecProviderRefPolicyResolution
- */
-export enum NodePoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NodePoolSpecProviderRefPolicyResolve
- */
-export enum NodePoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6257,6 +10785,33 @@ export enum NodePoolSpecForProviderClusterSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig
+ */
+export interface NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig {
+  /**
+   * The Kubernetes version for the nodes in this pool. Note that if this field and auto_upgrade are both specified, they will fight each other for what the node version should be, so setting both is highly discouraged.
+   *
+   * @schema NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig#gpuDriverVersion
+   */
+  readonly gpuDriverVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(obj: NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuDriverVersion': obj.gpuDriverVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * @schema NodePoolSpecForProviderNodeConfigGuestAcceleratorGpuSharingConfig
@@ -6364,6 +10919,43 @@ export function toJson_NodePoolSpecForProviderNodeConfigServiceAccountSelectorPo
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity
+ */
+export interface NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity {
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#operator
+   */
+  readonly operator?: string;
+
+  /**
+   * @schema NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity(obj: NodePoolSpecForProviderNodeConfigSoleTenantConfigNodeAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'operator': obj.operator,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy
  */
 export interface NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy {
@@ -6395,6 +10987,144 @@ export interface NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandard
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(obj: NodePoolSpecForProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'batchNodeCount': obj.batchNodeCount,
+    'batchPercentage': obj.batchPercentage,
+    'batchSoakDuration': obj.batchSoakDuration,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig {
+  /**
+   * The Kubernetes version for the nodes in this pool. Note that if this field and auto_upgrade are both specified, they will fight each other for what the node version should be, so setting both is highly discouraged.
+   *
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig#gpuDriverVersion
+   */
+  readonly gpuDriverVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig(obj: NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuDriverInstallationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuDriverVersion': obj.gpuDriverVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig
+ */
+export interface NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig#gpuSharingStrategy
+   */
+  readonly gpuSharingStrategy?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig#maxSharedClientsPerGpu
+   */
+  readonly maxSharedClientsPerGpu?: number;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig(obj: NodePoolSpecInitProviderNodeConfigGuestAcceleratorGpuSharingConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gpuSharingStrategy': obj.gpuSharingStrategy,
+    'maxSharedClientsPerGpu': obj.maxSharedClientsPerGpu,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity
+ */
+export interface NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity {
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#key
+   */
+  readonly key?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#operator
+   */
+  readonly operator?: string;
+
+  /**
+   * @schema NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity(obj: NodePoolSpecInitProviderNodeConfigSoleTenantConfigNodeAffinity | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'operator': obj.operator,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy
+ */
+export interface NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy {
+  /**
+   * Number of blue nodes to drain in a batch.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchNodeCount
+   */
+  readonly batchNodeCount?: number;
+
+  /**
+   * Percentage of the blue pool nodes to drain in a batch.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchPercentage
+   */
+  readonly batchPercentage?: number;
+
+  /**
+   * (Optionial) Soak time after each batch gets drained.
+   *
+   * @schema NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy#batchSoakDuration
+   */
+  readonly batchSoakDuration?: string;
+
+}
+
+/**
+ * Converts an object of type 'NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy(obj: NodePoolSpecInitProviderUpgradeSettingsBlueGreenSettingsStandardRolloutPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'batchNodeCount': obj.batchNodeCount,
@@ -6575,7 +11305,7 @@ export function toJson_RegistryProps(obj: RegistryProps | undefined): Record<str
  */
 export interface RegistrySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RegistrySpec#deletionPolicy
    */
@@ -6587,11 +11317,18 @@ export interface RegistrySpec {
   readonly forProvider: RegistrySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RegistrySpec#managementPolicy
+   * @schema RegistrySpec#initProvider
    */
-  readonly managementPolicy?: RegistrySpecManagementPolicy;
+  readonly initProvider?: RegistrySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RegistrySpec#managementPolicies
+   */
+  readonly managementPolicies?: RegistrySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6599,13 +11336,6 @@ export interface RegistrySpec {
    * @schema RegistrySpec#providerConfigRef
    */
   readonly providerConfigRef?: RegistrySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RegistrySpec#providerRef
-   */
-  readonly providerRef?: RegistrySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6632,9 +11362,9 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RegistrySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RegistrySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RegistrySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RegistrySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RegistrySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RegistrySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6644,7 +11374,7 @@ export function toJson_RegistrySpec(obj: RegistrySpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RegistrySpecDeletionPolicy
  */
@@ -6691,17 +11421,60 @@ export function toJson_RegistrySpecForProvider(obj: RegistrySpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RegistrySpecManagementPolicy
+ * @schema RegistrySpecInitProvider
  */
-export enum RegistrySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RegistrySpecInitProvider {
+  /**
+   * The location of the registry. One of ASIA, EU, US or not specified. See the official documentation for more information on registry locations.
+   *
+   * @schema RegistrySpecInitProvider#location
+   */
+  readonly location?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema RegistrySpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'RegistrySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RegistrySpecInitProvider(obj: RegistrySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'location': obj.location,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RegistrySpecManagementPolicies
+ */
+export enum RegistrySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6735,43 +11508,6 @@ export function toJson_RegistrySpecProviderConfigRef(obj: RegistrySpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_RegistrySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RegistrySpecProviderRef
- */
-export interface RegistrySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RegistrySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RegistrySpecProviderRef#policy
-   */
-  readonly policy?: RegistrySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RegistrySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistrySpecProviderRef(obj: RegistrySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RegistrySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6898,43 +11634,6 @@ export function toJson_RegistrySpecProviderConfigRefPolicy(obj: RegistrySpecProv
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema RegistrySpecProviderRefPolicy
- */
-export interface RegistrySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RegistrySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RegistrySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RegistrySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RegistrySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RegistrySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RegistrySpecProviderRefPolicy(obj: RegistrySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema RegistrySpecPublishConnectionDetailsToConfigRef
@@ -7034,30 +11733,6 @@ export enum RegistrySpecProviderConfigRefPolicyResolution {
  * @schema RegistrySpecProviderConfigRefPolicyResolve
  */
 export enum RegistrySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RegistrySpecProviderRefPolicyResolution
- */
-export enum RegistrySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RegistrySpecProviderRefPolicyResolve
- */
-export enum RegistrySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

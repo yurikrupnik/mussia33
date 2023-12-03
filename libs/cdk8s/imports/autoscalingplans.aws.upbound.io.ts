@@ -99,7 +99,7 @@ export function toJson_ScalingPlanProps(obj: ScalingPlanProps | undefined): Reco
  */
 export interface ScalingPlanSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ScalingPlanSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ScalingPlanSpec {
   readonly forProvider: ScalingPlanSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ScalingPlanSpec#managementPolicy
+   * @schema ScalingPlanSpec#initProvider
    */
-  readonly managementPolicy?: ScalingPlanSpecManagementPolicy;
+  readonly initProvider?: ScalingPlanSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ScalingPlanSpec#managementPolicies
+   */
+  readonly managementPolicies?: ScalingPlanSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ScalingPlanSpec {
    * @schema ScalingPlanSpec#providerConfigRef
    */
   readonly providerConfigRef?: ScalingPlanSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ScalingPlanSpec#providerRef
-   */
-  readonly providerRef?: ScalingPlanSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ScalingPlanSpec(obj: ScalingPlanSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ScalingPlanSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ScalingPlanSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ScalingPlanSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ScalingPlanSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ScalingPlanSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ScalingPlanSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ScalingPlanSpec(obj: ScalingPlanSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ScalingPlanSpecDeletionPolicy
  */
@@ -231,17 +231,68 @@ export function toJson_ScalingPlanSpecForProvider(obj: ScalingPlanSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ScalingPlanSpecManagementPolicy
+ * @schema ScalingPlanSpecInitProvider
  */
-export enum ScalingPlanSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ScalingPlanSpecInitProvider {
+  /**
+   * CloudFormation stack or set of tags. You can create one scaling plan per application source.
+   *
+   * @schema ScalingPlanSpecInitProvider#applicationSource
+   */
+  readonly applicationSource?: ScalingPlanSpecInitProviderApplicationSource[];
+
+  /**
+   * Name of the scaling plan. Names cannot contain vertical bars, colons, or forward slashes.
+   *
+   * @schema ScalingPlanSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Scaling instructions. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProvider#scalingInstruction
+   */
+  readonly scalingInstruction?: ScalingPlanSpecInitProviderScalingInstruction[];
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProvider(obj: ScalingPlanSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applicationSource': obj.applicationSource?.map(y => toJson_ScalingPlanSpecInitProviderApplicationSource(y)),
+    'name': obj.name,
+    'scalingInstruction': obj.scalingInstruction?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstruction(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ScalingPlanSpecManagementPolicies
+ */
+export enum ScalingPlanSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -275,43 +326,6 @@ export function toJson_ScalingPlanSpecProviderConfigRef(obj: ScalingPlanSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_ScalingPlanSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ScalingPlanSpecProviderRef
- */
-export interface ScalingPlanSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ScalingPlanSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ScalingPlanSpecProviderRef#policy
-   */
-  readonly policy?: ScalingPlanSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ScalingPlanSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScalingPlanSpecProviderRef(obj: ScalingPlanSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ScalingPlanSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -459,14 +473,14 @@ export interface ScalingPlanSpecForProviderScalingInstruction {
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#maxCapacity
    */
-  readonly maxCapacity: number;
+  readonly maxCapacity?: number;
 
   /**
    * Minimum capacity of the resource.
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#minCapacity
    */
-  readonly minCapacity: number;
+  readonly minCapacity?: number;
 
   /**
    * Predefined load metric to use for predictive scaling. You must specify either predefined_load_metric_specification or customized_load_metric_specification when configuring predictive scaling. More details can be found in the AWS Auto Scaling API Reference.
@@ -501,14 +515,14 @@ export interface ScalingPlanSpecForProviderScalingInstruction {
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#resourceId
    */
-  readonly resourceId: string;
+  readonly resourceId?: string;
 
   /**
    * Scalable dimension associated with the resource. Valid values: autoscaling:autoScalingGroup:DesiredCapacity, dynamodb:index:ReadCapacityUnits, dynamodb:index:WriteCapacityUnits, dynamodb:table:ReadCapacityUnits, dynamodb:table:WriteCapacityUnits, ecs:service:DesiredCount, ec2:spot-fleet-request:TargetCapacity, rds:cluster:ReadReplicaCount.
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#scalableDimension
    */
-  readonly scalableDimension: string;
+  readonly scalableDimension?: string;
 
   /**
    * Controls whether a resource's externally created scaling policies are kept or replaced. Valid values: KeepExternalPolicies, ReplaceExternalPolicies. Defaults to KeepExternalPolicies.
@@ -530,14 +544,14 @@ export interface ScalingPlanSpecForProviderScalingInstruction {
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#serviceNamespace
    */
-  readonly serviceNamespace: string;
+  readonly serviceNamespace?: string;
 
   /**
    * Structure that defines new target tracking configurations. Each of these structures includes a specific scaling metric and a target value for the metric, along with various parameters to use with dynamic scaling. More details can be found in the AWS Auto Scaling API Reference.
    *
    * @schema ScalingPlanSpecForProviderScalingInstruction#targetTrackingConfiguration
    */
-  readonly targetTrackingConfiguration: ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfiguration[];
+  readonly targetTrackingConfiguration?: ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfiguration[];
 
 }
 
@@ -562,6 +576,174 @@ export function toJson_ScalingPlanSpecForProviderScalingInstruction(obj: Scaling
     'scheduledActionBufferTime': obj.scheduledActionBufferTime,
     'serviceNamespace': obj.serviceNamespace,
     'targetTrackingConfiguration': obj.targetTrackingConfiguration?.map(y => toJson_ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderApplicationSource
+ */
+export interface ScalingPlanSpecInitProviderApplicationSource {
+  /**
+   * ARN of a AWS CloudFormation stack.
+   *
+   * @schema ScalingPlanSpecInitProviderApplicationSource#cloudformationStackArn
+   */
+  readonly cloudformationStackArn?: string;
+
+  /**
+   * Set of tags.
+   *
+   * @schema ScalingPlanSpecInitProviderApplicationSource#tagFilter
+   */
+  readonly tagFilter?: ScalingPlanSpecInitProviderApplicationSourceTagFilter[];
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderApplicationSource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderApplicationSource(obj: ScalingPlanSpecInitProviderApplicationSource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudformationStackArn': obj.cloudformationStackArn,
+    'tagFilter': obj.tagFilter?.map(y => toJson_ScalingPlanSpecInitProviderApplicationSourceTagFilter(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstruction
+ */
+export interface ScalingPlanSpecInitProviderScalingInstruction {
+  /**
+   * Customized load metric to use for predictive scaling. You must specify either customized_load_metric_specification or predefined_load_metric_specification when configuring predictive scaling. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#customizedLoadMetricSpecification
+   */
+  readonly customizedLoadMetricSpecification?: ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification[];
+
+  /**
+   * Boolean controlling whether dynamic scaling by AWS Auto Scaling is disabled. Defaults to false.
+   *
+   * @default false.
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#disableDynamicScaling
+   */
+  readonly disableDynamicScaling?: boolean;
+
+  /**
+   * Maximum capacity of the resource. The exception to this upper limit is if you specify a non-default setting for predictive_scaling_max_capacity_behavior.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#maxCapacity
+   */
+  readonly maxCapacity?: number;
+
+  /**
+   * Minimum capacity of the resource.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#minCapacity
+   */
+  readonly minCapacity?: number;
+
+  /**
+   * Predefined load metric to use for predictive scaling. You must specify either predefined_load_metric_specification or customized_load_metric_specification when configuring predictive scaling. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#predefinedLoadMetricSpecification
+   */
+  readonly predefinedLoadMetricSpecification?: ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification[];
+
+  /**
+   * Defines the behavior that should be applied if the forecast capacity approaches or exceeds the maximum capacity specified for the resource. Valid values: SetForecastCapacityToMaxCapacity, SetMaxCapacityAboveForecastCapacity, SetMaxCapacityToForecastCapacity.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#predictiveScalingMaxCapacityBehavior
+   */
+  readonly predictiveScalingMaxCapacityBehavior?: string;
+
+  /**
+   * Size of the capacity buffer to use when the forecast capacity is close to or exceeds the maximum capacity.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#predictiveScalingMaxCapacityBuffer
+   */
+  readonly predictiveScalingMaxCapacityBuffer?: number;
+
+  /**
+   * Predictive scaling mode. Valid values: ForecastAndScale, ForecastOnly.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#predictiveScalingMode
+   */
+  readonly predictiveScalingMode?: string;
+
+  /**
+   * ID of the resource. This string consists of the resource type and unique identifier.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#resourceId
+   */
+  readonly resourceId?: string;
+
+  /**
+   * Scalable dimension associated with the resource. Valid values: autoscaling:autoScalingGroup:DesiredCapacity, dynamodb:index:ReadCapacityUnits, dynamodb:index:WriteCapacityUnits, dynamodb:table:ReadCapacityUnits, dynamodb:table:WriteCapacityUnits, ecs:service:DesiredCount, ec2:spot-fleet-request:TargetCapacity, rds:cluster:ReadReplicaCount.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#scalableDimension
+   */
+  readonly scalableDimension?: string;
+
+  /**
+   * Controls whether a resource's externally created scaling policies are kept or replaced. Valid values: KeepExternalPolicies, ReplaceExternalPolicies. Defaults to KeepExternalPolicies.
+   *
+   * @default KeepExternalPolicies.
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#scalingPolicyUpdateBehavior
+   */
+  readonly scalingPolicyUpdateBehavior?: string;
+
+  /**
+   * Amount of time, in seconds, to buffer the run time of scheduled scaling actions when scaling out.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#scheduledActionBufferTime
+   */
+  readonly scheduledActionBufferTime?: number;
+
+  /**
+   * Namespace of the AWS service. Valid values: autoscaling, dynamodb, ecs, ec2, rds.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#serviceNamespace
+   */
+  readonly serviceNamespace?: string;
+
+  /**
+   * Structure that defines new target tracking configurations. Each of these structures includes a specific scaling metric and a target value for the metric, along with various parameters to use with dynamic scaling. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstruction#targetTrackingConfiguration
+   */
+  readonly targetTrackingConfiguration?: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstruction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstruction(obj: ScalingPlanSpecInitProviderScalingInstruction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customizedLoadMetricSpecification': obj.customizedLoadMetricSpecification?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification(y)),
+    'disableDynamicScaling': obj.disableDynamicScaling,
+    'maxCapacity': obj.maxCapacity,
+    'minCapacity': obj.minCapacity,
+    'predefinedLoadMetricSpecification': obj.predefinedLoadMetricSpecification?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification(y)),
+    'predictiveScalingMaxCapacityBehavior': obj.predictiveScalingMaxCapacityBehavior,
+    'predictiveScalingMaxCapacityBuffer': obj.predictiveScalingMaxCapacityBuffer,
+    'predictiveScalingMode': obj.predictiveScalingMode,
+    'resourceId': obj.resourceId,
+    'scalableDimension': obj.scalableDimension,
+    'scalingPolicyUpdateBehavior': obj.scalingPolicyUpdateBehavior,
+    'scheduledActionBufferTime': obj.scheduledActionBufferTime,
+    'serviceNamespace': obj.serviceNamespace,
+    'targetTrackingConfiguration': obj.targetTrackingConfiguration?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -595,43 +777,6 @@ export interface ScalingPlanSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ScalingPlanSpecProviderConfigRefPolicy(obj: ScalingPlanSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ScalingPlanSpecProviderRefPolicy
- */
-export interface ScalingPlanSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ScalingPlanSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ScalingPlanSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ScalingPlanSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ScalingPlanSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ScalingPlanSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScalingPlanSpecProviderRefPolicy(obj: ScalingPlanSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -733,7 +878,7 @@ export interface ScalingPlanSpecForProviderApplicationSourceTagFilter {
    *
    * @schema ScalingPlanSpecForProviderApplicationSourceTagFilter#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * Tag values.
@@ -775,21 +920,21 @@ export interface ScalingPlanSpecForProviderScalingInstructionCustomizedLoadMetri
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionCustomizedLoadMetricSpecification#metricName
    */
-  readonly metricName: string;
+  readonly metricName?: string;
 
   /**
    * Namespace of the metric.
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionCustomizedLoadMetricSpecification#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
   /**
    * Statistic of the metric. Currently, the value must always be Sum.
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionCustomizedLoadMetricSpecification#statistic
    */
-  readonly statistic: string;
+  readonly statistic?: string;
 
   /**
    * Unit of the metric.
@@ -827,7 +972,7 @@ export interface ScalingPlanSpecForProviderScalingInstructionPredefinedLoadMetri
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionPredefinedLoadMetricSpecification#predefinedLoadMetricType
    */
-  readonly predefinedLoadMetricType: string;
+  readonly predefinedLoadMetricType?: string;
 
   /**
    * Identifies the resource associated with the metric type.
@@ -905,7 +1050,7 @@ export interface ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfi
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfiguration#targetValue
    */
-  readonly targetValue: number;
+  readonly targetValue?: number;
 
 }
 
@@ -920,6 +1065,211 @@ export function toJson_ScalingPlanSpecForProviderScalingInstructionTargetTrackin
     'disableScaleIn': obj.disableScaleIn,
     'estimatedInstanceWarmup': obj.estimatedInstanceWarmup,
     'predefinedScalingMetricSpecification': obj.predefinedScalingMetricSpecification?.map(y => toJson_ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification(y)),
+    'scaleInCooldown': obj.scaleInCooldown,
+    'scaleOutCooldown': obj.scaleOutCooldown,
+    'targetValue': obj.targetValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderApplicationSourceTagFilter
+ */
+export interface ScalingPlanSpecInitProviderApplicationSourceTagFilter {
+  /**
+   * Tag key.
+   *
+   * @schema ScalingPlanSpecInitProviderApplicationSourceTagFilter#key
+   */
+  readonly key?: string;
+
+  /**
+   * Tag values.
+   *
+   * @schema ScalingPlanSpecInitProviderApplicationSourceTagFilter#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderApplicationSourceTagFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderApplicationSourceTagFilter(obj: ScalingPlanSpecInitProviderApplicationSourceTagFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification
+ */
+export interface ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification {
+  /**
+   * Dimensions of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification#dimensions
+   */
+  readonly dimensions?: { [key: string]: string };
+
+  /**
+   * Name of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * Namespace of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Statistic of the metric. Currently, the value must always be Sum.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification#statistic
+   */
+  readonly statistic?: string;
+
+  /**
+   * Unit of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification(obj: ScalingPlanSpecInitProviderScalingInstructionCustomizedLoadMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimensions': ((obj.dimensions) === undefined) ? undefined : (Object.entries(obj.dimensions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'metricName': obj.metricName,
+    'namespace': obj.namespace,
+    'statistic': obj.statistic,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification
+ */
+export interface ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification {
+  /**
+   * Metric type. Valid values: ALBTargetGroupRequestCount, ASGTotalCPUUtilization, ASGTotalNetworkIn, ASGTotalNetworkOut.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification#predefinedLoadMetricType
+   */
+  readonly predefinedLoadMetricType?: string;
+
+  /**
+   * Identifies the resource associated with the metric type.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification#resourceLabel
+   */
+  readonly resourceLabel?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification(obj: ScalingPlanSpecInitProviderScalingInstructionPredefinedLoadMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'predefinedLoadMetricType': obj.predefinedLoadMetricType,
+    'resourceLabel': obj.resourceLabel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration
+ */
+export interface ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration {
+  /**
+   * Customized metric. You can specify either customized_scaling_metric_specification or predefined_scaling_metric_specification. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#customizedScalingMetricSpecification
+   */
+  readonly customizedScalingMetricSpecification?: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification[];
+
+  /**
+   * Boolean indicating whether scale in by the target tracking scaling policy is disabled. Defaults to false.
+   *
+   * @default false.
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#disableScaleIn
+   */
+  readonly disableScaleIn?: boolean;
+
+  /**
+   * Estimated time, in seconds, until a newly launched instance can contribute to the CloudWatch metrics. This value is used only if the resource is an Auto Scaling group.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#estimatedInstanceWarmup
+   */
+  readonly estimatedInstanceWarmup?: number;
+
+  /**
+   * Predefined metric. You can specify either predefined_scaling_metric_specification or customized_scaling_metric_specification. More details can be found in the AWS Auto Scaling API Reference.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#predefinedScalingMetricSpecification
+   */
+  readonly predefinedScalingMetricSpecification?: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification[];
+
+  /**
+   * Amount of time, in seconds, after a scale in activity completes before another scale in activity can start. This value is not used if the scalable resource is an Auto Scaling group.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#scaleInCooldown
+   */
+  readonly scaleInCooldown?: number;
+
+  /**
+   * Amount of time, in seconds, after a scale-out activity completes before another scale-out activity can start. This value is not used if the scalable resource is an Auto Scaling group.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#scaleOutCooldown
+   */
+  readonly scaleOutCooldown?: number;
+
+  /**
+   * Target value for the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration#targetValue
+   */
+  readonly targetValue?: number;
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration(obj: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customizedScalingMetricSpecification': obj.customizedScalingMetricSpecification?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification(y)),
+    'disableScaleIn': obj.disableScaleIn,
+    'estimatedInstanceWarmup': obj.estimatedInstanceWarmup,
+    'predefinedScalingMetricSpecification': obj.predefinedScalingMetricSpecification?.map(y => toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification(y)),
     'scaleInCooldown': obj.scaleInCooldown,
     'scaleOutCooldown': obj.scaleOutCooldown,
     'targetValue': obj.targetValue,
@@ -947,30 +1297,6 @@ export enum ScalingPlanSpecProviderConfigRefPolicyResolution {
  * @schema ScalingPlanSpecProviderConfigRefPolicyResolve
  */
 export enum ScalingPlanSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ScalingPlanSpecProviderRefPolicyResolution
- */
-export enum ScalingPlanSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ScalingPlanSpecProviderRefPolicyResolve
- */
-export enum ScalingPlanSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1030,21 +1356,21 @@ export interface ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfi
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#metricName
    */
-  readonly metricName: string;
+  readonly metricName?: string;
 
   /**
    * Namespace of the metric.
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
   /**
    * Statistic of the metric. Currently, the value must always be Sum.
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#statistic
    */
-  readonly statistic: string;
+  readonly statistic?: string;
 
   /**
    * Unit of the metric.
@@ -1082,7 +1408,7 @@ export interface ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfi
    *
    * @schema ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification#predefinedScalingMetricType
    */
-  readonly predefinedScalingMetricType: string;
+  readonly predefinedScalingMetricType?: string;
 
   /**
    * Identifies the resource associated with the metric type.
@@ -1098,6 +1424,100 @@ export interface ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfi
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification(obj: ScalingPlanSpecForProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'predefinedScalingMetricType': obj.predefinedScalingMetricType,
+    'resourceLabel': obj.resourceLabel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification
+ */
+export interface ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification {
+  /**
+   * Dimensions of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#dimensions
+   */
+  readonly dimensions?: { [key: string]: string };
+
+  /**
+   * Name of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * Namespace of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Statistic of the metric. Currently, the value must always be Sum.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#statistic
+   */
+  readonly statistic?: string;
+
+  /**
+   * Unit of the metric.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification(obj: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationCustomizedScalingMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimensions': ((obj.dimensions) === undefined) ? undefined : (Object.entries(obj.dimensions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'metricName': obj.metricName,
+    'namespace': obj.namespace,
+    'statistic': obj.statistic,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification
+ */
+export interface ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification {
+  /**
+   * Metric type. Valid values: ALBRequestCountPerTarget, ASGAverageCPUUtilization, ASGAverageNetworkIn, ASGAverageNetworkOut, DynamoDBReadCapacityUtilization, DynamoDBWriteCapacityUtilization, ECSServiceAverageCPUUtilization, ECSServiceAverageMemoryUtilization, EC2SpotFleetRequestAverageCPUUtilization, EC2SpotFleetRequestAverageNetworkIn, EC2SpotFleetRequestAverageNetworkOut, RDSReaderAverageCPUUtilization, RDSReaderAverageDatabaseConnections.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification#predefinedScalingMetricType
+   */
+  readonly predefinedScalingMetricType?: string;
+
+  /**
+   * Identifies the resource associated with the metric type.
+   *
+   * @schema ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification#resourceLabel
+   */
+  readonly resourceLabel?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification(obj: ScalingPlanSpecInitProviderScalingInstructionTargetTrackingConfigurationPredefinedScalingMetricSpecification | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'predefinedScalingMetricType': obj.predefinedScalingMetricType,

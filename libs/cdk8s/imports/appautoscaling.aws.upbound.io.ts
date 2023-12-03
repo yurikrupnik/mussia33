@@ -99,7 +99,7 @@ export function toJson_PolicyProps(obj: PolicyProps | undefined): Record<string,
  */
 export interface PolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PolicySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface PolicySpec {
   readonly forProvider: PolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PolicySpec#managementPolicy
+   * @schema PolicySpec#initProvider
    */
-  readonly managementPolicy?: PolicySpecManagementPolicy;
+  readonly initProvider?: PolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: PolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface PolicySpec {
    * @schema PolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: PolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PolicySpec#providerRef
-   */
-  readonly providerRef?: PolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PolicySpecDeletionPolicy
  */
@@ -304,17 +304,69 @@ export function toJson_PolicySpecForProvider(obj: PolicySpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PolicySpecManagementPolicy
+ * @schema PolicySpecInitProvider
  */
-export enum PolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PolicySpecInitProvider {
+  /**
+   * Policy type. Valid values are StepScaling and TargetTrackingScaling. Defaults to StepScaling. Certain services only support only one policy type. For more information see the Target Tracking Scaling Policies and Step Scaling Policies documentation.
+   *
+   * @default StepScaling. Certain services only support only one policy type. For more information see the Target Tracking Scaling Policies and Step Scaling Policies documentation.
+   * @schema PolicySpecInitProvider#policyType
+   */
+  readonly policyType?: string;
+
+  /**
+   * Step scaling policy configuration, requires policy_type = "StepScaling" (default). See supported fields below.
+   *
+   * @schema PolicySpecInitProvider#stepScalingPolicyConfiguration
+   */
+  readonly stepScalingPolicyConfiguration?: PolicySpecInitProviderStepScalingPolicyConfiguration[];
+
+  /**
+   * Target tracking policy, requires policy_type = "TargetTrackingScaling". See supported fields below.
+   *
+   * @schema PolicySpecInitProvider#targetTrackingScalingPolicyConfiguration
+   */
+  readonly targetTrackingScalingPolicyConfiguration?: PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProvider(obj: PolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policyType': obj.policyType,
+    'stepScalingPolicyConfiguration': obj.stepScalingPolicyConfiguration?.map(y => toJson_PolicySpecInitProviderStepScalingPolicyConfiguration(y)),
+    'targetTrackingScalingPolicyConfiguration': obj.targetTrackingScalingPolicyConfiguration?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PolicySpecManagementPolicies
+ */
+export enum PolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -348,43 +400,6 @@ export function toJson_PolicySpecProviderConfigRef(obj: PolicySpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_PolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PolicySpecProviderRef
- */
-export interface PolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PolicySpecProviderRef#policy
-   */
-  readonly policy?: PolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRef(obj: PolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -822,7 +837,7 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfiguration {
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfiguration#targetValue
    */
-  readonly targetValue: number;
+  readonly targetValue?: number;
 
 }
 
@@ -836,6 +851,132 @@ export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigura
     'customizedMetricSpecification': obj.customizedMetricSpecification?.map(y => toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification(y)),
     'disableScaleIn': obj.disableScaleIn,
     'predefinedMetricSpecification': obj.predefinedMetricSpecification?.map(y => toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification(y)),
+    'scaleInCooldown': obj.scaleInCooldown,
+    'scaleOutCooldown': obj.scaleOutCooldown,
+    'targetValue': obj.targetValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderStepScalingPolicyConfiguration
+ */
+export interface PolicySpecInitProviderStepScalingPolicyConfiguration {
+  /**
+   * Whether the adjustment is an absolute number or a percentage of the current capacity. Valid values are ChangeInCapacity, ExactCapacity, and PercentChangeInCapacity.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfiguration#adjustmentType
+   */
+  readonly adjustmentType?: string;
+
+  /**
+   * Amount of time, in seconds, after a scaling activity completes and before the next scaling activity can start.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfiguration#cooldown
+   */
+  readonly cooldown?: number;
+
+  /**
+   * Aggregation type for the policy's metrics. Valid values are "Minimum", "Maximum", and "Average". Without a value, AWS will treat the aggregation type as "Average".
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfiguration#metricAggregationType
+   */
+  readonly metricAggregationType?: string;
+
+  /**
+   * Minimum number to adjust your scalable dimension as a result of a scaling activity. If the adjustment type is PercentChangeInCapacity, the scaling policy changes the scalable dimension of the scalable target by this amount.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfiguration#minAdjustmentMagnitude
+   */
+  readonly minAdjustmentMagnitude?: number;
+
+  /**
+   * Set of adjustments that manage scaling. These have the following structure:
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfiguration#stepAdjustment
+   */
+  readonly stepAdjustment?: PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment[];
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderStepScalingPolicyConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderStepScalingPolicyConfiguration(obj: PolicySpecInitProviderStepScalingPolicyConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adjustmentType': obj.adjustmentType,
+    'cooldown': obj.cooldown,
+    'metricAggregationType': obj.metricAggregationType,
+    'minAdjustmentMagnitude': obj.minAdjustmentMagnitude,
+    'stepAdjustment': obj.stepAdjustment?.map(y => toJson_PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration {
+  /**
+   * Custom CloudWatch metric. Documentation can be found  at: AWS Customized Metric Specification. See supported fields below.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#customizedMetricSpecification
+   */
+  readonly customizedMetricSpecification?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification[];
+
+  /**
+   * Whether scale in by the target tracking policy is disabled. If the value is true, scale in is disabled and the target tracking policy won't remove capacity from the scalable resource. Otherwise, scale in is enabled and the target tracking policy can remove capacity from the scalable resource. The default value is false.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#disableScaleIn
+   */
+  readonly disableScaleIn?: boolean;
+
+  /**
+   * Predefined metric. See supported fields below.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#predefinedMetricSpecification
+   */
+  readonly predefinedMetricSpecification?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification[];
+
+  /**
+   * Amount of time, in seconds, after a scale in activity completes before another scale in activity can start.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#scaleInCooldown
+   */
+  readonly scaleInCooldown?: number;
+
+  /**
+   * Amount of time, in seconds, after a scale out activity completes before another scale out activity can start.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#scaleOutCooldown
+   */
+  readonly scaleOutCooldown?: number;
+
+  /**
+   * Target value for the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration#targetValue
+   */
+  readonly targetValue?: number;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customizedMetricSpecification': obj.customizedMetricSpecification?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification(y)),
+    'disableScaleIn': obj.disableScaleIn,
+    'predefinedMetricSpecification': obj.predefinedMetricSpecification?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification(y)),
     'scaleInCooldown': obj.scaleInCooldown,
     'scaleOutCooldown': obj.scaleOutCooldown,
     'targetValue': obj.targetValue,
@@ -872,43 +1013,6 @@ export interface PolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecProviderConfigRefPolicy(obj: PolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PolicySpecProviderRefPolicy
- */
-export interface PolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRefPolicy(obj: PolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1246,7 +1350,7 @@ export interface PolicySpecForProviderStepScalingPolicyConfigurationStepAdjustme
    *
    * @schema PolicySpecForProviderStepScalingPolicyConfigurationStepAdjustment#scalingAdjustment
    */
-  readonly scalingAdjustment: number;
+  readonly scalingAdjustment?: number;
 
 }
 
@@ -1342,7 +1446,7 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPr
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification#predefinedMetricType
    */
-  readonly predefinedMetricType: string;
+  readonly predefinedMetricType?: string;
 
   /**
    * Reserved for future use if the predefined_metric_type is not ALBRequestCountPerTarget. If the predefined_metric_type is ALBRequestCountPerTarget, you must specify this argument. Documentation can be found at: AWS Predefined Scaling Metric Specification. Must be less than or equal to 1023 characters in length.
@@ -1358,6 +1462,151 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPr
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification(obj: PolicySpecForProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'predefinedMetricType': obj.predefinedMetricType,
+    'resourceLabel': obj.resourceLabel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment
+ */
+export interface PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment {
+  /**
+   * Lower bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as negative infinity.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment#metricIntervalLowerBound
+   */
+  readonly metricIntervalLowerBound?: string;
+
+  /**
+   * Upper bound for the difference between the alarm threshold and the CloudWatch metric. Without a value, AWS will treat this bound as infinity. The upper bound must be greater than the lower bound.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment#metricIntervalUpperBound
+   */
+  readonly metricIntervalUpperBound?: string;
+
+  /**
+   * Number of members by which to scale, when the adjustment bounds are breached. A positive value scales up. A negative value scales down.
+   *
+   * @schema PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment#scalingAdjustment
+   */
+  readonly scalingAdjustment?: number;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment(obj: PolicySpecInitProviderStepScalingPolicyConfigurationStepAdjustment | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metricIntervalLowerBound': obj.metricIntervalLowerBound,
+    'metricIntervalUpperBound': obj.metricIntervalUpperBound,
+    'scalingAdjustment': obj.scalingAdjustment,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification {
+  /**
+   * Configuration block(s) with the dimensions of the metric if the metric was published with dimensions. Detailed below.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#dimensions
+   */
+  readonly dimensions?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions[];
+
+  /**
+   * Name of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * Metrics to include, as a metric data query.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#metrics
+   */
+  readonly metrics?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics[];
+
+  /**
+   * Namespace of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Statistic of the metric. Valid values: Average, Minimum, Maximum, SampleCount, and Sum.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#statistic
+   */
+  readonly statistic?: string;
+
+  /**
+   * Unit of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimensions': obj.dimensions?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions(y)),
+    'metricName': obj.metricName,
+    'metrics': obj.metrics?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics(y)),
+    'namespace': obj.namespace,
+    'statistic': obj.statistic,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification {
+  /**
+   * Metric type.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification#predefinedMetricType
+   */
+  readonly predefinedMetricType?: string;
+
+  /**
+   * Reserved for future use if the predefined_metric_type is not ALBRequestCountPerTarget. If the predefined_metric_type is ALBRequestCountPerTarget, you must specify this argument. Documentation can be found at: AWS Predefined Scaling Metric Specification. Must be less than or equal to 1023 characters in length.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification#resourceLabel
+   */
+  readonly resourceLabel?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationPredefinedMetricSpecification | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'predefinedMetricType': obj.predefinedMetricType,
@@ -1386,30 +1635,6 @@ export enum PolicySpecProviderConfigRefPolicyResolution {
  * @schema PolicySpecProviderConfigRefPolicyResolve
  */
 export enum PolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PolicySpecProviderRefPolicyResolution
- */
-export enum PolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PolicySpecProviderRefPolicyResolve
- */
-export enum PolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1606,14 +1831,14 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Value of the dimension.
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1648,7 +1873,7 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * Human-readable label for this metric or expression.
@@ -1692,6 +1917,100 @@ export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigura
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions {
+  /**
+   * Name of the dimension.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions#name
+   */
+  readonly name?: string;
+
+  /**
+   * Value of the dimension.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationDimensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics {
+  /**
+   * Math expression used on the returned metric. You must specify either expression or metric_stat, but not both.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * Short name for the metric used in target tracking scaling policy.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#id
+   */
+  readonly id?: string;
+
+  /**
+   * Human-readable label for this metric or expression.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#label
+   */
+  readonly label?: string;
+
+  /**
+   * Structure that defines CloudWatch metric to be used in target tracking scaling policy. You must specify either expression or metric_stat, but not both.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#metricStat
+   */
+  readonly metricStat?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat[];
+
+  /**
+   * Boolean that indicates whether to return the timestamps and raw data values of this metric, the default is true
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics#returnData
+   */
+  readonly returnData?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'expression': obj.expression,
+    'id': obj.id,
+    'label': obj.label,
+    'metricStat': obj.metricStat?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat(y)),
+    'returnData': obj.returnData,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema PolicySpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -1724,14 +2043,14 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat#metric
    */
-  readonly metric: PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric[];
+  readonly metric?: PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric[];
 
   /**
    * Statistic of the metrics to return.
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat#stat
    */
-  readonly stat: string;
+  readonly stat?: string;
 
   /**
    * Unit of the metric.
@@ -1759,6 +2078,49 @@ export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigura
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat {
+  /**
+   * Structure that defines the CloudWatch metric to return, including the metric name, namespace, and dimensions.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat#metric
+   */
+  readonly metric?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric[];
+
+  /**
+   * Statistic of the metrics to return.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat#stat
+   */
+  readonly stat?: string;
+
+  /**
+   * Unit of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStat | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metric': obj.metric?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric(y)),
+    'stat': obj.stat,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric
  */
 export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric {
@@ -1774,14 +2136,14 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric#metricName
    */
-  readonly metricName: string;
+  readonly metricName?: string;
 
   /**
    * Namespace of the metric.
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
 }
 
@@ -1802,6 +2164,49 @@ export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigura
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric {
+  /**
+   * Configuration block(s) with the dimensions of the metric if the metric was published with dimensions. Detailed below.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric#dimensions
+   */
+  readonly dimensions?: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions[];
+
+  /**
+   * Name of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * Namespace of the metric.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetric | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimensions': obj.dimensions?.map(y => toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions(y)),
+    'metricName': obj.metricName,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions
  */
 export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions {
@@ -1810,14 +2215,14 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Value of the dimension.
    *
    * @schema PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions#value
    */
-  readonly value: string;
+  readonly value?: string;
 
 }
 
@@ -1826,6 +2231,41 @@ export interface PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCu
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions(obj: PolicySpecForProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions
+ */
+export interface PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions {
+  /**
+   * Name of the dimension.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions#name
+   */
+  readonly name?: string;
+
+  /**
+   * Value of the dimension.
+   *
+   * @schema PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions(obj: PolicySpecInitProviderTargetTrackingScalingPolicyConfigurationCustomizedMetricSpecificationMetricsMetricStatMetricDimensions | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
@@ -1933,7 +2373,7 @@ export function toJson_ScheduledActionProps(obj: ScheduledActionProps | undefine
  */
 export interface ScheduledActionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ScheduledActionSpec#deletionPolicy
    */
@@ -1945,11 +2385,18 @@ export interface ScheduledActionSpec {
   readonly forProvider: ScheduledActionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ScheduledActionSpec#managementPolicy
+   * @schema ScheduledActionSpec#initProvider
    */
-  readonly managementPolicy?: ScheduledActionSpecManagementPolicy;
+  readonly initProvider?: ScheduledActionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ScheduledActionSpec#managementPolicies
+   */
+  readonly managementPolicies?: ScheduledActionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1957,13 +2404,6 @@ export interface ScheduledActionSpec {
    * @schema ScheduledActionSpec#providerConfigRef
    */
   readonly providerConfigRef?: ScheduledActionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ScheduledActionSpec#providerRef
-   */
-  readonly providerRef?: ScheduledActionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1990,9 +2430,9 @@ export function toJson_ScheduledActionSpec(obj: ScheduledActionSpec | undefined)
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ScheduledActionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ScheduledActionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ScheduledActionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ScheduledActionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ScheduledActionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ScheduledActionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2002,7 +2442,7 @@ export function toJson_ScheduledActionSpec(obj: ScheduledActionSpec | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ScheduledActionSpecDeletionPolicy
  */
@@ -2162,17 +2602,93 @@ export function toJson_ScheduledActionSpecForProvider(obj: ScheduledActionSpecFo
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ScheduledActionSpecManagementPolicy
+ * @schema ScheduledActionSpecInitProvider
  */
-export enum ScheduledActionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ScheduledActionSpecInitProvider {
+  /**
+   * Date and time for the scheduled action to end in RFC 3339 format. The timezone is not affected by the setting of timezone.
+   *
+   * @schema ScheduledActionSpecInitProvider#endTime
+   */
+  readonly endTime?: string;
+
+  /**
+   * Name of the scheduled action.
+   *
+   * @schema ScheduledActionSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * New minimum and maximum capacity. You can set both values or just one. See below
+   *
+   * @schema ScheduledActionSpecInitProvider#scalableTargetAction
+   */
+  readonly scalableTargetAction?: ScheduledActionSpecInitProviderScalableTargetAction[];
+
+  /**
+   * Schedule for this action. The following formats are supported: At expressions - at(yyyy-mm-ddThh:mm:ss), Rate expressions - rate(valueunit), Cron expressions - cron(fields). Times for at expressions and cron expressions are evaluated using the time zone configured in timezone. Documentation can be found in the Timezone parameter at: AWS Application Auto Scaling API Reference
+   *
+   * @schema ScheduledActionSpecInitProvider#schedule
+   */
+  readonly schedule?: string;
+
+  /**
+   * Date and time for the scheduled action to start in RFC 3339 format. The timezone is not affected by the setting of timezone.
+   *
+   * @schema ScheduledActionSpecInitProvider#startTime
+   */
+  readonly startTime?: string;
+
+  /**
+   * Time zone used when setting a scheduled action by using an at or cron expression. Does not affect timezone for start_time and end_time. Valid values are the canonical names of the IANA time zones supported by Joda-Time, such as Etc/GMT+9 or Pacific/Tahiti. Default is UTC.
+   *
+   * @default UTC.
+   * @schema ScheduledActionSpecInitProvider#timezone
+   */
+  readonly timezone?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduledActionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduledActionSpecInitProvider(obj: ScheduledActionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'endTime': obj.endTime,
+    'name': obj.name,
+    'scalableTargetAction': obj.scalableTargetAction?.map(y => toJson_ScheduledActionSpecInitProviderScalableTargetAction(y)),
+    'schedule': obj.schedule,
+    'startTime': obj.startTime,
+    'timezone': obj.timezone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ScheduledActionSpecManagementPolicies
+ */
+export enum ScheduledActionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2206,43 +2722,6 @@ export function toJson_ScheduledActionSpecProviderConfigRef(obj: ScheduledAction
   const result = {
     'name': obj.name,
     'policy': toJson_ScheduledActionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ScheduledActionSpecProviderRef
- */
-export interface ScheduledActionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ScheduledActionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ScheduledActionSpecProviderRef#policy
-   */
-  readonly policy?: ScheduledActionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ScheduledActionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduledActionSpecProviderRef(obj: ScheduledActionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ScheduledActionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2613,6 +3092,41 @@ export function toJson_ScheduledActionSpecForProviderServiceNamespaceSelector(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ScheduledActionSpecInitProviderScalableTargetAction
+ */
+export interface ScheduledActionSpecInitProviderScalableTargetAction {
+  /**
+   * Maximum capacity. At least one of max_capacity or min_capacity must be set.
+   *
+   * @schema ScheduledActionSpecInitProviderScalableTargetAction#maxCapacity
+   */
+  readonly maxCapacity?: string;
+
+  /**
+   * Minimum capacity. At least one of min_capacity or max_capacity must be set.
+   *
+   * @schema ScheduledActionSpecInitProviderScalableTargetAction#minCapacity
+   */
+  readonly minCapacity?: string;
+
+}
+
+/**
+ * Converts an object of type 'ScheduledActionSpecInitProviderScalableTargetAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ScheduledActionSpecInitProviderScalableTargetAction(obj: ScheduledActionSpecInitProviderScalableTargetAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxCapacity': obj.maxCapacity,
+    'minCapacity': obj.minCapacity,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ScheduledActionSpecProviderConfigRefPolicy
@@ -2639,43 +3153,6 @@ export interface ScheduledActionSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ScheduledActionSpecProviderConfigRefPolicy(obj: ScheduledActionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ScheduledActionSpecProviderRefPolicy
- */
-export interface ScheduledActionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ScheduledActionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ScheduledActionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ScheduledActionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ScheduledActionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ScheduledActionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ScheduledActionSpecProviderRefPolicy(obj: ScheduledActionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3015,30 +3492,6 @@ export enum ScheduledActionSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ScheduledActionSpecProviderRefPolicyResolution
- */
-export enum ScheduledActionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ScheduledActionSpecProviderRefPolicyResolve
- */
-export enum ScheduledActionSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema ScheduledActionSpecPublishConnectionDetailsToConfigRefPolicy
@@ -3340,7 +3793,7 @@ export function toJson_TargetProps(obj: TargetProps | undefined): Record<string,
  */
 export interface TargetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema TargetSpec#deletionPolicy
    */
@@ -3352,11 +3805,18 @@ export interface TargetSpec {
   readonly forProvider: TargetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema TargetSpec#managementPolicy
+   * @schema TargetSpec#initProvider
    */
-  readonly managementPolicy?: TargetSpecManagementPolicy;
+  readonly initProvider?: TargetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema TargetSpec#managementPolicies
+   */
+  readonly managementPolicies?: TargetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3364,13 +3824,6 @@ export interface TargetSpec {
    * @schema TargetSpec#providerConfigRef
    */
   readonly providerConfigRef?: TargetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema TargetSpec#providerRef
-   */
-  readonly providerRef?: TargetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3397,9 +3850,9 @@ export function toJson_TargetSpec(obj: TargetSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_TargetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_TargetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_TargetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_TargetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_TargetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_TargetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3409,7 +3862,7 @@ export function toJson_TargetSpec(obj: TargetSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema TargetSpecDeletionPolicy
  */
@@ -3450,7 +3903,7 @@ export interface TargetSpecForProvider {
    *
    * @schema TargetSpecForProvider#resourceId
    */
-  readonly resourceId: string;
+  readonly resourceId?: string;
 
   /**
    * ARN of the IAM role that allows Application AutoScaling to modify your scalable target on your behalf. This defaults to an IAM Service-Linked Role for most services and custom IAM Roles are ignored by the API for those namespaces. See the AWS Application Auto Scaling documentation for more information about how this service interacts with IAM.
@@ -3478,14 +3931,14 @@ export interface TargetSpecForProvider {
    *
    * @schema TargetSpecForProvider#scalableDimension
    */
-  readonly scalableDimension: string;
+  readonly scalableDimension?: string;
 
   /**
    * AWS service namespace of the scalable target. Documentation can be found in the ServiceNamespace parameter at: AWS Application Auto Scaling API Reference
    *
    * @schema TargetSpecForProvider#serviceNamespace
    */
-  readonly serviceNamespace: string;
+  readonly serviceNamespace?: string;
 
   /**
    * Key-value map of resource tags.
@@ -3520,17 +3973,92 @@ export function toJson_TargetSpecForProvider(obj: TargetSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema TargetSpecManagementPolicy
+ * @schema TargetSpecInitProvider
  */
-export enum TargetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface TargetSpecInitProvider {
+  /**
+   * Max capacity of the scalable target.
+   *
+   * @schema TargetSpecInitProvider#maxCapacity
+   */
+  readonly maxCapacity?: number;
+
+  /**
+   * Min capacity of the scalable target.
+   *
+   * @schema TargetSpecInitProvider#minCapacity
+   */
+  readonly minCapacity?: number;
+
+  /**
+   * Resource type and unique identifier string for the resource associated with the scaling policy. Documentation can be found in the ResourceId parameter at: AWS Application Auto Scaling API Reference
+   *
+   * @schema TargetSpecInitProvider#resourceId
+   */
+  readonly resourceId?: string;
+
+  /**
+   * Scalable dimension of the scalable target. Documentation can be found in the ScalableDimension parameter at: AWS Application Auto Scaling API Reference
+   *
+   * @schema TargetSpecInitProvider#scalableDimension
+   */
+  readonly scalableDimension?: string;
+
+  /**
+   * AWS service namespace of the scalable target. Documentation can be found in the ServiceNamespace parameter at: AWS Application Auto Scaling API Reference
+   *
+   * @schema TargetSpecInitProvider#serviceNamespace
+   */
+  readonly serviceNamespace?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema TargetSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'TargetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_TargetSpecInitProvider(obj: TargetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxCapacity': obj.maxCapacity,
+    'minCapacity': obj.minCapacity,
+    'resourceId': obj.resourceId,
+    'scalableDimension': obj.scalableDimension,
+    'serviceNamespace': obj.serviceNamespace,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema TargetSpecManagementPolicies
+ */
+export enum TargetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3564,43 +4092,6 @@ export function toJson_TargetSpecProviderConfigRef(obj: TargetSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_TargetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema TargetSpecProviderRef
- */
-export interface TargetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema TargetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema TargetSpecProviderRef#policy
-   */
-  readonly policy?: TargetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'TargetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TargetSpecProviderRef(obj: TargetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_TargetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3809,43 +4300,6 @@ export function toJson_TargetSpecProviderConfigRefPolicy(obj: TargetSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema TargetSpecProviderRefPolicy
- */
-export interface TargetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema TargetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: TargetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema TargetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: TargetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'TargetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_TargetSpecProviderRefPolicy(obj: TargetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema TargetSpecPublishConnectionDetailsToConfigRef
@@ -4019,30 +4473,6 @@ export enum TargetSpecProviderConfigRefPolicyResolution {
  * @schema TargetSpecProviderConfigRefPolicyResolve
  */
 export enum TargetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema TargetSpecProviderRefPolicyResolution
- */
-export enum TargetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema TargetSpecProviderRefPolicyResolve
- */
-export enum TargetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -99,7 +99,7 @@ export function toJson_BrokerProps(obj: BrokerProps | undefined): Record<string,
  */
 export interface BrokerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BrokerSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface BrokerSpec {
   readonly forProvider: BrokerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BrokerSpec#managementPolicy
+   * @schema BrokerSpec#initProvider
    */
-  readonly managementPolicy?: BrokerSpecManagementPolicy;
+  readonly initProvider?: BrokerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BrokerSpec#managementPolicies
+   */
+  readonly managementPolicies?: BrokerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface BrokerSpec {
    * @schema BrokerSpec#providerConfigRef
    */
   readonly providerConfigRef?: BrokerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BrokerSpec#providerRef
-   */
-  readonly providerRef?: BrokerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_BrokerSpec(obj: BrokerSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BrokerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BrokerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BrokerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BrokerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BrokerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BrokerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_BrokerSpec(obj: BrokerSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BrokerSpecDeletionPolicy
  */
@@ -291,6 +291,20 @@ export interface BrokerSpecForProvider {
   readonly region: string;
 
   /**
+   * References to SecurityGroup in ec2 to populate securityGroups.
+   *
+   * @schema BrokerSpecForProvider#securityGroupRefs
+   */
+  readonly securityGroupRefs?: BrokerSpecForProviderSecurityGroupRefs[];
+
+  /**
+   * Selector for a list of SecurityGroup in ec2 to populate securityGroups.
+   *
+   * @schema BrokerSpecForProvider#securityGroupSelector
+   */
+  readonly securityGroupSelector?: BrokerSpecForProviderSecurityGroupSelector;
+
+  /**
    * List of security group IDs assigned to the broker.
    *
    * @schema BrokerSpecForProvider#securityGroups
@@ -363,6 +377,8 @@ export function toJson_BrokerSpecForProvider(obj: BrokerSpecForProvider | undefi
     'maintenanceWindowStartTime': obj.maintenanceWindowStartTime?.map(y => toJson_BrokerSpecForProviderMaintenanceWindowStartTime(y)),
     'publiclyAccessible': obj.publiclyAccessible,
     'region': obj.region,
+    'securityGroupRefs': obj.securityGroupRefs?.map(y => toJson_BrokerSpecForProviderSecurityGroupRefs(y)),
+    'securityGroupSelector': toJson_BrokerSpecForProviderSecurityGroupSelector(obj.securityGroupSelector),
     'securityGroups': obj.securityGroups?.map(y => y),
     'storageType': obj.storageType,
     'subnetIdRefs': obj.subnetIdRefs?.map(y => toJson_BrokerSpecForProviderSubnetIdRefs(y)),
@@ -377,17 +393,182 @@ export function toJson_BrokerSpecForProvider(obj: BrokerSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BrokerSpecManagementPolicy
+ * @schema BrokerSpecInitProvider
  */
-export enum BrokerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BrokerSpecInitProvider {
+  /**
+   * Specifies whether any broker modifications are applied immediately, or during the next maintenance window. Default is false.
+   *
+   * @default false.
+   * @schema BrokerSpecInitProvider#applyImmediately
+   */
+  readonly applyImmediately?: boolean;
+
+  /**
+   * Authentication strategy used to secure the broker. Valid values are simple and ldap. ldap is not supported for engine_type RabbitMQ.
+   *
+   * @schema BrokerSpecInitProvider#authenticationStrategy
+   */
+  readonly authenticationStrategy?: string;
+
+  /**
+   * Whether to automatically upgrade to new minor versions of brokers as Amazon MQ makes releases available.
+   *
+   * @schema BrokerSpecInitProvider#autoMinorVersionUpgrade
+   */
+  readonly autoMinorVersionUpgrade?: boolean;
+
+  /**
+   * Name of the broker.
+   *
+   * @schema BrokerSpecInitProvider#brokerName
+   */
+  readonly brokerName?: string;
+
+  /**
+   * Configuration block for broker configuration. Applies to engine_type of ActiveMQ only. Detailed below.
+   *
+   * @schema BrokerSpecInitProvider#configuration
+   */
+  readonly configuration?: BrokerSpecInitProviderConfiguration[];
+
+  /**
+   * Deployment mode of the broker. Valid values are SINGLE_INSTANCE, ACTIVE_STANDBY_MULTI_AZ, and CLUSTER_MULTI_AZ. Default is SINGLE_INSTANCE.
+   *
+   * @default SINGLE_INSTANCE.
+   * @schema BrokerSpecInitProvider#deploymentMode
+   */
+  readonly deploymentMode?: string;
+
+  /**
+   * Configuration block containing encryption options. Detailed below.
+   *
+   * @schema BrokerSpecInitProvider#encryptionOptions
+   */
+  readonly encryptionOptions?: BrokerSpecInitProviderEncryptionOptions[];
+
+  /**
+   * Type of broker engine. Valid values are ActiveMQ and RabbitMQ.
+   *
+   * @schema BrokerSpecInitProvider#engineType
+   */
+  readonly engineType?: string;
+
+  /**
+   * Version of the broker engine. See the AmazonMQ Broker Engine docs for supported versions. For example, 5.15.0.
+   *
+   * @schema BrokerSpecInitProvider#engineVersion
+   */
+  readonly engineVersion?: string;
+
+  /**
+   * Broker's instance type. For example, mq.t3.micro, mq.m5.large.
+   *
+   * @schema BrokerSpecInitProvider#hostInstanceType
+   */
+  readonly hostInstanceType?: string;
+
+  /**
+   * Configuration block for the LDAP server used to authenticate and authorize connections to the broker. Not supported for engine_type RabbitMQ. Detailed below. (Currently, AWS may not process changes to LDAP server metadata.)
+   *
+   * @schema BrokerSpecInitProvider#ldapServerMetadata
+   */
+  readonly ldapServerMetadata?: BrokerSpecInitProviderLdapServerMetadata[];
+
+  /**
+   * Configuration block for the logging configuration of the broker. Detailed below.
+   *
+   * @schema BrokerSpecInitProvider#logs
+   */
+  readonly logs?: BrokerSpecInitProviderLogs[];
+
+  /**
+   * Configuration block for the maintenance window start time. Detailed below.
+   *
+   * @schema BrokerSpecInitProvider#maintenanceWindowStartTime
+   */
+  readonly maintenanceWindowStartTime?: BrokerSpecInitProviderMaintenanceWindowStartTime[];
+
+  /**
+   * Whether to enable connections from applications outside of the VPC that hosts the broker's subnets.
+   *
+   * @schema BrokerSpecInitProvider#publiclyAccessible
+   */
+  readonly publiclyAccessible?: boolean;
+
+  /**
+   * Storage type of the broker. For engine_type ActiveMQ, the valid values are efs and ebs, and the AWS-default is efs. For engine_type RabbitMQ, only ebs is supported. When using ebs, only the mq.m5 broker instance type family is supported.
+   *
+   * @schema BrokerSpecInitProvider#storageType
+   */
+  readonly storageType?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema BrokerSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Configuration block for broker users. For engine_type of RabbitMQ, Amazon MQ does not return broker users preventing this resource from making user updates and drift detection. Detailed below.
+   *
+   * @schema BrokerSpecInitProvider#user
+   */
+  readonly user?: BrokerSpecInitProviderUser[];
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProvider(obj: BrokerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applyImmediately': obj.applyImmediately,
+    'authenticationStrategy': obj.authenticationStrategy,
+    'autoMinorVersionUpgrade': obj.autoMinorVersionUpgrade,
+    'brokerName': obj.brokerName,
+    'configuration': obj.configuration?.map(y => toJson_BrokerSpecInitProviderConfiguration(y)),
+    'deploymentMode': obj.deploymentMode,
+    'encryptionOptions': obj.encryptionOptions?.map(y => toJson_BrokerSpecInitProviderEncryptionOptions(y)),
+    'engineType': obj.engineType,
+    'engineVersion': obj.engineVersion,
+    'hostInstanceType': obj.hostInstanceType,
+    'ldapServerMetadata': obj.ldapServerMetadata?.map(y => toJson_BrokerSpecInitProviderLdapServerMetadata(y)),
+    'logs': obj.logs?.map(y => toJson_BrokerSpecInitProviderLogs(y)),
+    'maintenanceWindowStartTime': obj.maintenanceWindowStartTime?.map(y => toJson_BrokerSpecInitProviderMaintenanceWindowStartTime(y)),
+    'publiclyAccessible': obj.publiclyAccessible,
+    'storageType': obj.storageType,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'user': obj.user?.map(y => toJson_BrokerSpecInitProviderUser(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BrokerSpecManagementPolicies
+ */
+export enum BrokerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -421,43 +602,6 @@ export function toJson_BrokerSpecProviderConfigRef(obj: BrokerSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_BrokerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BrokerSpecProviderRef
- */
-export interface BrokerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BrokerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BrokerSpecProviderRef#policy
-   */
-  readonly policy?: BrokerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BrokerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BrokerSpecProviderRef(obj: BrokerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BrokerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -786,21 +930,21 @@ export interface BrokerSpecForProviderMaintenanceWindowStartTime {
    *
    * @schema BrokerSpecForProviderMaintenanceWindowStartTime#dayOfWeek
    */
-  readonly dayOfWeek: string;
+  readonly dayOfWeek?: string;
 
   /**
    * Time, in 24-hour format, e.g., 02:00.
    *
    * @schema BrokerSpecForProviderMaintenanceWindowStartTime#timeOfDay
    */
-  readonly timeOfDay: string;
+  readonly timeOfDay?: string;
 
   /**
    * Time zone in either the Country/City format or the UTC offset format, e.g., CET.
    *
    * @schema BrokerSpecForProviderMaintenanceWindowStartTime#timeZone
    */
-  readonly timeZone: string;
+  readonly timeZone?: string;
 
 }
 
@@ -814,6 +958,88 @@ export function toJson_BrokerSpecForProviderMaintenanceWindowStartTime(obj: Brok
     'dayOfWeek': obj.dayOfWeek,
     'timeOfDay': obj.timeOfDay,
     'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A Reference to a named object.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupRefs
+ */
+export interface BrokerSpecForProviderSecurityGroupRefs {
+  /**
+   * Name of the referenced object.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupRefs#name
+   */
+  readonly name: string;
+
+  /**
+   * Policies for referencing.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupRefs#policy
+   */
+  readonly policy?: BrokerSpecForProviderSecurityGroupRefsPolicy;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecForProviderSecurityGroupRefs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecForProviderSecurityGroupRefs(obj: BrokerSpecForProviderSecurityGroupRefs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': toJson_BrokerSpecForProviderSecurityGroupRefsPolicy(obj.policy),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Selector for a list of SecurityGroup in ec2 to populate securityGroups.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupSelector
+ */
+export interface BrokerSpecForProviderSecurityGroupSelector {
+  /**
+   * MatchControllerRef ensures an object with the same controller reference as the selecting object is selected.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupSelector#matchControllerRef
+   */
+  readonly matchControllerRef?: boolean;
+
+  /**
+   * MatchLabels ensures an object with matching labels is selected.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupSelector#matchLabels
+   */
+  readonly matchLabels?: { [key: string]: string };
+
+  /**
+   * Policies for selection.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupSelector#policy
+   */
+  readonly policy?: BrokerSpecForProviderSecurityGroupSelectorPolicy;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecForProviderSecurityGroupSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecForProviderSecurityGroupSelector(obj: BrokerSpecForProviderSecurityGroupSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'matchControllerRef': obj.matchControllerRef,
+    'matchLabels': ((obj.matchLabels) === undefined) ? undefined : (Object.entries(obj.matchLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'policy': toJson_BrokerSpecForProviderSecurityGroupSelectorPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -932,7 +1158,7 @@ export interface BrokerSpecForProviderUser {
    *
    * @schema BrokerSpecForProviderUser#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -946,6 +1172,291 @@ export function toJson_BrokerSpecForProviderUser(obj: BrokerSpecForProviderUser 
     'consoleAccess': obj.consoleAccess,
     'groups': obj.groups?.map(y => y),
     'passwordSecretRef': toJson_BrokerSpecForProviderUserPasswordSecretRef(obj.passwordSecretRef),
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderConfiguration
+ */
+export interface BrokerSpecInitProviderConfiguration {
+  /**
+   * Revision of the Configuration.
+   *
+   * @schema BrokerSpecInitProviderConfiguration#revision
+   */
+  readonly revision?: number;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderConfiguration(obj: BrokerSpecInitProviderConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'revision': obj.revision,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderEncryptionOptions
+ */
+export interface BrokerSpecInitProviderEncryptionOptions {
+  /**
+   * Amazon Resource Name (ARN) of Key Management Service (KMS) Customer Master Key (CMK) to use for encryption at rest. Requires setting use_aws_owned_key to false. To perform drift detection when AWS-managed CMKs or customer-managed CMKs are in use, this value must be configured.
+   *
+   * @schema BrokerSpecInitProviderEncryptionOptions#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * Whether to enable an AWS-owned KMS CMK that is not in your account. Defaults to true. Setting to false without configuring kms_key_id will create an AWS-managed CMK aliased to aws/mq in your account.
+   *
+   * @default true. Setting to false without configuring kms_key_id will create an AWS-managed CMK aliased to aws/mq in your account.
+   * @schema BrokerSpecInitProviderEncryptionOptions#useAwsOwnedKey
+   */
+  readonly useAwsOwnedKey?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderEncryptionOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderEncryptionOptions(obj: BrokerSpecInitProviderEncryptionOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+    'useAwsOwnedKey': obj.useAwsOwnedKey,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderLdapServerMetadata
+ */
+export interface BrokerSpecInitProviderLdapServerMetadata {
+  /**
+   * List of a fully qualified domain name of the LDAP server and an optional failover server.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#hosts
+   */
+  readonly hosts?: string[];
+
+  /**
+   * Fully qualified name of the directory to search for a user’s groups.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#roleBase
+   */
+  readonly roleBase?: string;
+
+  /**
+   * Specifies the LDAP attribute that identifies the group name attribute in the object returned from the group membership query.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#roleName
+   */
+  readonly roleName?: string;
+
+  /**
+   * Search criteria for groups.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#roleSearchMatching
+   */
+  readonly roleSearchMatching?: string;
+
+  /**
+   * Whether the directory search scope is the entire sub-tree.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#roleSearchSubtree
+   */
+  readonly roleSearchSubtree?: boolean;
+
+  /**
+   * Service account username.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#serviceAccountUsername
+   */
+  readonly serviceAccountUsername?: string;
+
+  /**
+   * Fully qualified name of the directory where you want to search for users.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#userBase
+   */
+  readonly userBase?: string;
+
+  /**
+   * Specifies the name of the LDAP attribute for the user group membership.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#userRoleName
+   */
+  readonly userRoleName?: string;
+
+  /**
+   * Search criteria for users.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#userSearchMatching
+   */
+  readonly userSearchMatching?: string;
+
+  /**
+   * Whether the directory search scope is the entire sub-tree.
+   *
+   * @schema BrokerSpecInitProviderLdapServerMetadata#userSearchSubtree
+   */
+  readonly userSearchSubtree?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderLdapServerMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderLdapServerMetadata(obj: BrokerSpecInitProviderLdapServerMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hosts': obj.hosts?.map(y => y),
+    'roleBase': obj.roleBase,
+    'roleName': obj.roleName,
+    'roleSearchMatching': obj.roleSearchMatching,
+    'roleSearchSubtree': obj.roleSearchSubtree,
+    'serviceAccountUsername': obj.serviceAccountUsername,
+    'userBase': obj.userBase,
+    'userRoleName': obj.userRoleName,
+    'userSearchMatching': obj.userSearchMatching,
+    'userSearchSubtree': obj.userSearchSubtree,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderLogs
+ */
+export interface BrokerSpecInitProviderLogs {
+  /**
+   * Enables audit logging. Auditing is only possible for engine_type of ActiveMQ. User management action made using JMX or the ActiveMQ Web Console is logged. Defaults to false.
+   *
+   * @default false.
+   * @schema BrokerSpecInitProviderLogs#audit
+   */
+  readonly audit?: string;
+
+  /**
+   * Enables general logging via CloudWatch. Defaults to false.
+   *
+   * @default false.
+   * @schema BrokerSpecInitProviderLogs#general
+   */
+  readonly general?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderLogs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderLogs(obj: BrokerSpecInitProviderLogs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audit': obj.audit,
+    'general': obj.general,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderMaintenanceWindowStartTime
+ */
+export interface BrokerSpecInitProviderMaintenanceWindowStartTime {
+  /**
+   * Day of the week, e.g., MONDAY, TUESDAY, or WEDNESDAY.
+   *
+   * @schema BrokerSpecInitProviderMaintenanceWindowStartTime#dayOfWeek
+   */
+  readonly dayOfWeek?: string;
+
+  /**
+   * Time, in 24-hour format, e.g., 02:00.
+   *
+   * @schema BrokerSpecInitProviderMaintenanceWindowStartTime#timeOfDay
+   */
+  readonly timeOfDay?: string;
+
+  /**
+   * Time zone in either the Country/City format or the UTC offset format, e.g., CET.
+   *
+   * @schema BrokerSpecInitProviderMaintenanceWindowStartTime#timeZone
+   */
+  readonly timeZone?: string;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderMaintenanceWindowStartTime' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderMaintenanceWindowStartTime(obj: BrokerSpecInitProviderMaintenanceWindowStartTime | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dayOfWeek': obj.dayOfWeek,
+    'timeOfDay': obj.timeOfDay,
+    'timeZone': obj.timeZone,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BrokerSpecInitProviderUser
+ */
+export interface BrokerSpecInitProviderUser {
+  /**
+   * Whether to enable access to the ActiveMQ Web Console for the user. Applies to engine_type of ActiveMQ only.
+   *
+   * @schema BrokerSpecInitProviderUser#consoleAccess
+   */
+  readonly consoleAccess?: boolean;
+
+  /**
+   * List of groups (20 maximum) to which the ActiveMQ user belongs. Applies to engine_type of ActiveMQ only.
+   *
+   * @schema BrokerSpecInitProviderUser#groups
+   */
+  readonly groups?: string[];
+
+  /**
+   * Username of the user.
+   *
+   * @schema BrokerSpecInitProviderUser#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecInitProviderUser' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecInitProviderUser(obj: BrokerSpecInitProviderUser | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'consoleAccess': obj.consoleAccess,
+    'groups': obj.groups?.map(y => y),
     'username': obj.username,
   };
   // filter undefined values
@@ -980,43 +1491,6 @@ export interface BrokerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BrokerSpecProviderConfigRefPolicy(obj: BrokerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BrokerSpecProviderRefPolicy
- */
-export interface BrokerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BrokerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BrokerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BrokerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BrokerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BrokerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BrokerSpecProviderRefPolicy(obj: BrokerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1239,6 +1713,80 @@ export function toJson_BrokerSpecForProviderLdapServerMetadataServiceAccountPass
 /**
  * Policies for referencing.
  *
+ * @schema BrokerSpecForProviderSecurityGroupRefsPolicy
+ */
+export interface BrokerSpecForProviderSecurityGroupRefsPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupRefsPolicy#resolution
+   */
+  readonly resolution?: BrokerSpecForProviderSecurityGroupRefsPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupRefsPolicy#resolve
+   */
+  readonly resolve?: BrokerSpecForProviderSecurityGroupRefsPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecForProviderSecurityGroupRefsPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecForProviderSecurityGroupRefsPolicy(obj: BrokerSpecForProviderSecurityGroupRefsPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for selection.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupSelectorPolicy
+ */
+export interface BrokerSpecForProviderSecurityGroupSelectorPolicy {
+  /**
+   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupSelectorPolicy#resolution
+   */
+  readonly resolution?: BrokerSpecForProviderSecurityGroupSelectorPolicyResolution;
+
+  /**
+   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+   *
+   * @schema BrokerSpecForProviderSecurityGroupSelectorPolicy#resolve
+   */
+  readonly resolve?: BrokerSpecForProviderSecurityGroupSelectorPolicyResolve;
+
+}
+
+/**
+ * Converts an object of type 'BrokerSpecForProviderSecurityGroupSelectorPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BrokerSpecForProviderSecurityGroupSelectorPolicy(obj: BrokerSpecForProviderSecurityGroupSelectorPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+    'resolve': obj.resolve,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * Policies for referencing.
+ *
  * @schema BrokerSpecForProviderSubnetIdRefsPolicy
  */
 export interface BrokerSpecForProviderSubnetIdRefsPolicy {
@@ -1380,30 +1928,6 @@ export enum BrokerSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BrokerSpecProviderRefPolicyResolution
- */
-export enum BrokerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BrokerSpecProviderRefPolicyResolve
- */
-export enum BrokerSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema BrokerSpecPublishConnectionDetailsToConfigRefPolicy
@@ -1513,6 +2037,54 @@ export function toJson_BrokerSpecForProviderConfigurationIdSelectorPolicy(obj: B
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
 }
 /* eslint-enable max-len, quote-props */
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupRefsPolicyResolution
+ */
+export enum BrokerSpecForProviderSecurityGroupRefsPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupRefsPolicyResolve
+ */
+export enum BrokerSpecForProviderSecurityGroupRefsPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
+
+/**
+ * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupSelectorPolicyResolution
+ */
+export enum BrokerSpecForProviderSecurityGroupSelectorPolicyResolution {
+  /** Required */
+  REQUIRED = "Required",
+  /** Optional */
+  OPTIONAL = "Optional",
+}
+
+/**
+ * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
+ *
+ * @schema BrokerSpecForProviderSecurityGroupSelectorPolicyResolve
+ */
+export enum BrokerSpecForProviderSecurityGroupSelectorPolicyResolve {
+  /** Always */
+  ALWAYS = "Always",
+  /** IfNotPresent */
+  IF_NOT_PRESENT = "IfNotPresent",
+}
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -1731,7 +2303,7 @@ export function toJson_ConfigurationProps(obj: ConfigurationProps | undefined): 
  */
 export interface ConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ConfigurationSpec#deletionPolicy
    */
@@ -1743,11 +2315,18 @@ export interface ConfigurationSpec {
   readonly forProvider: ConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ConfigurationSpec#managementPolicy
+   * @schema ConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: ConfigurationSpecManagementPolicy;
+  readonly initProvider?: ConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: ConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1755,13 +2334,6 @@ export interface ConfigurationSpec {
    * @schema ConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: ConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ConfigurationSpec#providerRef
-   */
-  readonly providerRef?: ConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1788,9 +2360,9 @@ export function toJson_ConfigurationSpec(obj: ConfigurationSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1800,7 +2372,7 @@ export function toJson_ConfigurationSpec(obj: ConfigurationSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ConfigurationSpecDeletionPolicy
  */
@@ -1895,17 +2467,100 @@ export function toJson_ConfigurationSpecForProvider(obj: ConfigurationSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ConfigurationSpecManagementPolicy
+ * @schema ConfigurationSpecInitProvider
  */
-export enum ConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ConfigurationSpecInitProvider {
+  /**
+   * Authentication strategy associated with the configuration. Valid values are simple and ldap. ldap is not supported for engine_type RabbitMQ.
+   *
+   * @schema ConfigurationSpecInitProvider#authenticationStrategy
+   */
+  readonly authenticationStrategy?: string;
+
+  /**
+   * Broker configuration in XML format. See official docs for supported parameters and format of the XML.
+   *
+   * @schema ConfigurationSpecInitProvider#data
+   */
+  readonly data?: string;
+
+  /**
+   * Description of the configuration.
+   *
+   * @schema ConfigurationSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Type of broker engine. Valid values are ActiveMQ and RabbitMQ.
+   *
+   * @schema ConfigurationSpecInitProvider#engineType
+   */
+  readonly engineType?: string;
+
+  /**
+   * Version of the broker engine.
+   *
+   * @schema ConfigurationSpecInitProvider#engineVersion
+   */
+  readonly engineVersion?: string;
+
+  /**
+   * Name of the configuration.
+   *
+   * @schema ConfigurationSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ConfigurationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ConfigurationSpecInitProvider(obj: ConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authenticationStrategy': obj.authenticationStrategy,
+    'data': obj.data,
+    'description': obj.description,
+    'engineType': obj.engineType,
+    'engineVersion': obj.engineVersion,
+    'name': obj.name,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ConfigurationSpecManagementPolicies
+ */
+export enum ConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1939,43 +2594,6 @@ export function toJson_ConfigurationSpecProviderConfigRef(obj: ConfigurationSpec
   const result = {
     'name': obj.name,
     'policy': toJson_ConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ConfigurationSpecProviderRef
- */
-export interface ConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: ConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConfigurationSpecProviderRef(obj: ConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2102,43 +2720,6 @@ export function toJson_ConfigurationSpecProviderConfigRefPolicy(obj: Configurati
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ConfigurationSpecProviderRefPolicy
- */
-export interface ConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ConfigurationSpecProviderRefPolicy(obj: ConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ConfigurationSpecPublishConnectionDetailsToConfigRef
@@ -2238,30 +2819,6 @@ export enum ConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema ConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum ConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ConfigurationSpecProviderRefPolicyResolution
- */
-export enum ConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ConfigurationSpecProviderRefPolicyResolve
- */
-export enum ConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

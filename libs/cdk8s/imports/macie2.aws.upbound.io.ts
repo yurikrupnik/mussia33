@@ -99,7 +99,7 @@ export function toJson_AccountProps(obj: AccountProps | undefined): Record<strin
  */
 export interface AccountSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccountSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AccountSpec {
   readonly forProvider: AccountSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AccountSpec#managementPolicy
+   * @schema AccountSpec#initProvider
    */
-  readonly managementPolicy?: AccountSpecManagementPolicy;
+  readonly initProvider?: AccountSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AccountSpec#managementPolicies
+   */
+  readonly managementPolicies?: AccountSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AccountSpec {
    * @schema AccountSpec#providerConfigRef
    */
   readonly providerConfigRef?: AccountSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AccountSpec#providerRef
-   */
-  readonly providerRef?: AccountSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AccountSpec(obj: AccountSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccountSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AccountSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AccountSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AccountSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccountSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AccountSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AccountSpec(obj: AccountSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccountSpecDeletionPolicy
  */
@@ -223,17 +223,60 @@ export function toJson_AccountSpecForProvider(obj: AccountSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AccountSpecManagementPolicy
+ * @schema AccountSpecInitProvider
  */
-export enum AccountSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AccountSpecInitProvider {
+  /**
+   * Specifies how often to publish updates to policy findings for the account. This includes publishing updates to AWS Security Hub and Amazon EventBridge (formerly called Amazon CloudWatch Events). Valid values are FIFTEEN_MINUTES, ONE_HOUR or SIX_HOURS.
+   *
+   * @schema AccountSpecInitProvider#findingPublishingFrequency
+   */
+  readonly findingPublishingFrequency?: string;
+
+  /**
+   * Specifies the status for the account. To enable Amazon Macie and start all Macie activities for the account, set this value to ENABLED. Valid values are ENABLED or PAUSED.
+   *
+   * @schema AccountSpecInitProvider#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'AccountSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccountSpecInitProvider(obj: AccountSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'findingPublishingFrequency': obj.findingPublishingFrequency,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AccountSpecManagementPolicies
+ */
+export enum AccountSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -267,43 +310,6 @@ export function toJson_AccountSpecProviderConfigRef(obj: AccountSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_AccountSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AccountSpecProviderRef
- */
-export interface AccountSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AccountSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AccountSpecProviderRef#policy
-   */
-  readonly policy?: AccountSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AccountSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountSpecProviderRef(obj: AccountSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AccountSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -430,43 +436,6 @@ export function toJson_AccountSpecProviderConfigRefPolicy(obj: AccountSpecProvid
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AccountSpecProviderRefPolicy
- */
-export interface AccountSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AccountSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AccountSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AccountSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AccountSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AccountSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountSpecProviderRefPolicy(obj: AccountSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AccountSpecPublishConnectionDetailsToConfigRef
@@ -566,30 +535,6 @@ export enum AccountSpecProviderConfigRefPolicyResolution {
  * @schema AccountSpecProviderConfigRefPolicyResolve
  */
 export enum AccountSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AccountSpecProviderRefPolicyResolution
- */
-export enum AccountSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AccountSpecProviderRefPolicyResolve
- */
-export enum AccountSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -754,7 +699,7 @@ export function toJson_ClassificationJobProps(obj: ClassificationJobProps | unde
  */
 export interface ClassificationJobSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ClassificationJobSpec#deletionPolicy
    */
@@ -766,11 +711,18 @@ export interface ClassificationJobSpec {
   readonly forProvider: ClassificationJobSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ClassificationJobSpec#managementPolicy
+   * @schema ClassificationJobSpec#initProvider
    */
-  readonly managementPolicy?: ClassificationJobSpecManagementPolicy;
+  readonly initProvider?: ClassificationJobSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ClassificationJobSpec#managementPolicies
+   */
+  readonly managementPolicies?: ClassificationJobSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -778,13 +730,6 @@ export interface ClassificationJobSpec {
    * @schema ClassificationJobSpec#providerConfigRef
    */
   readonly providerConfigRef?: ClassificationJobSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ClassificationJobSpec#providerRef
-   */
-  readonly providerRef?: ClassificationJobSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -811,9 +756,9 @@ export function toJson_ClassificationJobSpec(obj: ClassificationJobSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ClassificationJobSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ClassificationJobSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ClassificationJobSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ClassificationJobSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ClassificationJobSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ClassificationJobSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -823,7 +768,7 @@ export function toJson_ClassificationJobSpec(obj: ClassificationJobSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ClassificationJobSpecDeletionPolicy
  */
@@ -942,17 +887,124 @@ export function toJson_ClassificationJobSpecForProvider(obj: ClassificationJobSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ClassificationJobSpecManagementPolicy
+ * @schema ClassificationJobSpecInitProvider
  */
-export enum ClassificationJobSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ClassificationJobSpecInitProvider {
+  /**
+   * The custom data identifiers to use for data analysis and classification.
+   *
+   * @schema ClassificationJobSpecInitProvider#customDataIdentifierIds
+   */
+  readonly customDataIdentifierIds?: string[];
+
+  /**
+   * A custom description of the job. The description can contain as many as 200 characters.
+   *
+   * @schema ClassificationJobSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Specifies whether to analyze all existing, eligible objects immediately after the job is created.
+   *
+   * @schema ClassificationJobSpecInitProvider#initialRun
+   */
+  readonly initialRun?: boolean;
+
+  /**
+   * The status for the job. Valid values are: CANCELLED, RUNNING and USER_PAUSED
+   *
+   * @schema ClassificationJobSpecInitProvider#jobStatus
+   */
+  readonly jobStatus?: string;
+
+  /**
+   * The schedule for running the job. Valid values are: ONE_TIME - Run the job only once. If you specify this value, don't specify a value for the schedule_frequency property. SCHEDULED - Run the job on a daily, weekly, or monthly basis. If you specify this value, use the schedule_frequency property to define the recurrence pattern for the job.
+   *
+   * @schema ClassificationJobSpecInitProvider#jobType
+   */
+  readonly jobType?: string;
+
+  /**
+   * A custom name for the job. The name can contain as many as 500 characters. Conflicts with name_prefix.
+   *
+   * @schema ClassificationJobSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The S3 buckets that contain the objects to analyze, and the scope of that analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProvider#s3JobDefinition
+   */
+  readonly s3JobDefinition?: ClassificationJobSpecInitProviderS3JobDefinition[];
+
+  /**
+   * The sampling depth, as a percentage, to apply when processing objects. This value determines the percentage of eligible objects that the job analyzes. If this value is less than 100, Amazon Macie selects the objects to analyze at random, up to the specified percentage, and analyzes all the data in those objects.
+   *
+   * @schema ClassificationJobSpecInitProvider#samplingPercentage
+   */
+  readonly samplingPercentage?: number;
+
+  /**
+   * The recurrence pattern for running the job. To run the job only once, don't specify a value for this property and set the value for the job_type property to ONE_TIME. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProvider#scheduleFrequency
+   */
+  readonly scheduleFrequency?: ClassificationJobSpecInitProviderScheduleFrequency[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ClassificationJobSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProvider(obj: ClassificationJobSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customDataIdentifierIds': obj.customDataIdentifierIds?.map(y => y),
+    'description': obj.description,
+    'initialRun': obj.initialRun,
+    'jobStatus': obj.jobStatus,
+    'jobType': obj.jobType,
+    'name': obj.name,
+    's3JobDefinition': obj.s3JobDefinition?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinition(y)),
+    'samplingPercentage': obj.samplingPercentage,
+    'scheduleFrequency': obj.scheduleFrequency?.map(y => toJson_ClassificationJobSpecInitProviderScheduleFrequency(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ClassificationJobSpecManagementPolicies
+ */
+export enum ClassificationJobSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -986,43 +1038,6 @@ export function toJson_ClassificationJobSpecProviderConfigRef(obj: Classificatio
   const result = {
     'name': obj.name,
     'policy': toJson_ClassificationJobSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ClassificationJobSpecProviderRef
- */
-export interface ClassificationJobSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ClassificationJobSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ClassificationJobSpecProviderRef#policy
-   */
-  readonly policy?: ClassificationJobSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ClassificationJobSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClassificationJobSpecProviderRef(obj: ClassificationJobSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ClassificationJobSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1198,6 +1213,92 @@ export function toJson_ClassificationJobSpecForProviderScheduleFrequency(obj: Cl
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinition
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinition {
+  /**
+   * The property- and tag-based conditions that determine which S3 buckets to include or exclude from the analysis. Conflicts with bucket_definitions. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinition#bucketCriteria
+   */
+  readonly bucketCriteria?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria[];
+
+  /**
+   * An array of objects, one for each AWS account that owns buckets to analyze. Each object specifies the account ID for an account and one or more buckets to analyze for the account. Conflicts with bucket_criteria. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinition#bucketDefinitions
+   */
+  readonly bucketDefinitions?: ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions[];
+
+  /**
+   * The property- and tag-based conditions that determine which objects to include or exclude from the analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinition#scoping
+   */
+  readonly scoping?: ClassificationJobSpecInitProviderS3JobDefinitionScoping[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinition(obj: ClassificationJobSpecInitProviderS3JobDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bucketCriteria': obj.bucketCriteria?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria(y)),
+    'bucketDefinitions': obj.bucketDefinitions?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions(y)),
+    'scoping': obj.scoping?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScoping(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderScheduleFrequency
+ */
+export interface ClassificationJobSpecInitProviderScheduleFrequency {
+  /**
+   * Specifies a daily recurrence pattern for running the job.
+   *
+   * @schema ClassificationJobSpecInitProviderScheduleFrequency#dailySchedule
+   */
+  readonly dailySchedule?: boolean;
+
+  /**
+   * Specifies a monthly recurrence pattern for running the job.
+   *
+   * @schema ClassificationJobSpecInitProviderScheduleFrequency#monthlySchedule
+   */
+  readonly monthlySchedule?: number;
+
+  /**
+   * Specifies a weekly recurrence pattern for running the job.
+   *
+   * @schema ClassificationJobSpecInitProviderScheduleFrequency#weeklySchedule
+   */
+  readonly weeklySchedule?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderScheduleFrequency' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderScheduleFrequency(obj: ClassificationJobSpecInitProviderScheduleFrequency | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dailySchedule': obj.dailySchedule,
+    'monthlySchedule': obj.monthlySchedule,
+    'weeklySchedule': obj.weeklySchedule,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ClassificationJobSpecProviderConfigRefPolicy
@@ -1224,43 +1325,6 @@ export interface ClassificationJobSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ClassificationJobSpecProviderConfigRefPolicy(obj: ClassificationJobSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ClassificationJobSpecProviderRefPolicy
- */
-export interface ClassificationJobSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ClassificationJobSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ClassificationJobSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ClassificationJobSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ClassificationJobSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ClassificationJobSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ClassificationJobSpecProviderRefPolicy(obj: ClassificationJobSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1397,14 +1461,14 @@ export interface ClassificationJobSpecForProviderS3JobDefinitionBucketDefinition
    *
    * @schema ClassificationJobSpecForProviderS3JobDefinitionBucketDefinitions#accountId
    */
-  readonly accountId: string;
+  readonly accountId?: string;
 
   /**
    * An array that lists the names of the buckets.
    *
    * @schema ClassificationJobSpecForProviderS3JobDefinitionBucketDefinitions#buckets
    */
-  readonly buckets: string[];
+  readonly buckets?: string[];
 
 }
 
@@ -1459,6 +1523,111 @@ export function toJson_ClassificationJobSpecForProviderS3JobDefinitionScoping(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria {
+  /**
+   * The property- or tag-based conditions that determine which objects to exclude from the analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria#excludes
+   */
+  readonly excludes?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes[];
+
+  /**
+   * The property- or tag-based conditions that determine which objects to include in the analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria#includes
+   */
+  readonly includes?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludes': obj.excludes?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes(y)),
+    'includes': obj.includes?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions {
+  /**
+   * The unique identifier for the AWS account that owns the buckets.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * An array that lists the names of the buckets.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions#buckets
+   */
+  readonly buckets?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketDefinitions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'buckets': obj.buckets?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScoping
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScoping {
+  /**
+   * The property- or tag-based conditions that determine which objects to exclude from the analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScoping#excludes
+   */
+  readonly excludes?: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes[];
+
+  /**
+   * The property- or tag-based conditions that determine which objects to include in the analysis. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScoping#includes
+   */
+  readonly includes?: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScoping' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScoping(obj: ClassificationJobSpecInitProviderS3JobDefinitionScoping | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludes': obj.excludes?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes(y)),
+    'includes': obj.includes?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ClassificationJobSpecProviderConfigRefPolicyResolution
@@ -1476,30 +1645,6 @@ export enum ClassificationJobSpecProviderConfigRefPolicyResolution {
  * @schema ClassificationJobSpecProviderConfigRefPolicyResolve
  */
 export enum ClassificationJobSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ClassificationJobSpecProviderRefPolicyResolution
- */
-export enum ClassificationJobSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ClassificationJobSpecProviderRefPolicyResolve
- */
-export enum ClassificationJobSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1645,6 +1790,114 @@ export function toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingInc
   if (obj === undefined) { return undefined; }
   const result = {
     'and': obj.and?.map(y => toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingIncludesAnd(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes {
+  /**
+   * An array of conditions, one for each condition that determines which objects to include or exclude from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes#and
+   */
+  readonly and?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes {
+  /**
+   * An array of conditions, one for each condition that determines which objects to include or exclude from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes#and
+   */
+  readonly and?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes {
+  /**
+   * An array of conditions, one for each condition that determines which objects to include or exclude from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes#and
+   */
+  readonly and?: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes {
+  /**
+   * An array of conditions, one for each condition that determines which objects to include or exclude from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes#and
+   */
+  readonly and?: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'and': obj.and?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1809,6 +2062,146 @@ export function toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingInc
   const result = {
     'simpleScopeTerm': obj.simpleScopeTerm?.map(y => toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm(y)),
     'tagScopeTerm': obj.tagScopeTerm?.map(y => toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingIncludesAndTagScopeTerm(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd {
+  /**
+   * A property-based condition that defines a property, operator, and one or more values for including or excluding an S3 buckets from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd#simpleCriterion
+   */
+  readonly simpleCriterion?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion[];
+
+  /**
+   * A tag-based condition that defines the operator and tag keys or tag key and value pairs for including or excluding an S3 buckets from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd#tagCriterion
+   */
+  readonly tagCriterion?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'simpleCriterion': obj.simpleCriterion?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion(y)),
+    'tagCriterion': obj.tagCriterion?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd {
+  /**
+   * A property-based condition that defines a property, operator, and one or more values for including or excluding an S3 buckets from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd#simpleCriterion
+   */
+  readonly simpleCriterion?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion[];
+
+  /**
+   * A tag-based condition that defines the operator and tag keys or tag key and value pairs for including or excluding an S3 buckets from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd#tagCriterion
+   */
+  readonly tagCriterion?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'simpleCriterion': obj.simpleCriterion?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion(y)),
+    'tagCriterion': obj.tagCriterion?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd {
+  /**
+   * A property-based condition that defines a property, operator, and one or more values for including or excluding an object from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd#simpleScopeTerm
+   */
+  readonly simpleScopeTerm?: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm[];
+
+  /**
+   * A tag-based condition that defines the operator and tag keys or tag key and value pairs for including or excluding an object from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd#tagScopeTerm
+   */
+  readonly tagScopeTerm?: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'simpleScopeTerm': obj.simpleScopeTerm?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm(y)),
+    'tagScopeTerm': obj.tagScopeTerm?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd {
+  /**
+   * A property-based condition that defines a property, operator, and one or more values for including or excluding an object from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd#simpleScopeTerm
+   */
+  readonly simpleScopeTerm?: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm[];
+
+  /**
+   * A tag-based condition that defines the operator and tag keys or tag key and value pairs for including or excluding an object from the job. (documented below)
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd#tagScopeTerm
+   */
+  readonly tagScopeTerm?: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAnd | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'simpleScopeTerm': obj.simpleScopeTerm?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm(y)),
+    'tagScopeTerm': obj.tagScopeTerm?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2160,6 +2553,350 @@ export function toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingInc
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion#key
+   */
+  readonly key?: string;
+
+  /**
+   * An array that lists the values to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndSimpleCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The tag keys or tag key and value pairs to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion#tagValues
+   */
+  readonly tagValues?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'tagValues': obj.tagValues?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion#key
+   */
+  readonly key?: string;
+
+  /**
+   * An array that lists the values to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndSimpleCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The tag keys or tag key and value pairs to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion#tagValues
+   */
+  readonly tagValues?: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'tagValues': obj.tagValues?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm#key
+   */
+  readonly key?: string;
+
+  /**
+   * An array that lists the values to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndSimpleScopeTerm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag keys or tag key and value pairs to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm#tagValues
+   */
+  readonly tagValues?: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues[];
+
+  /**
+   * The type of object to apply the condition to. The only valid value is S3_OBJECT.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm#target
+   */
+  readonly target?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTerm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'tagValues': obj.tagValues?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues(y)),
+    'target': obj.target,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm#key
+   */
+  readonly key?: string;
+
+  /**
+   * An array that lists the values to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndSimpleScopeTerm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm {
+  /**
+   * The operator to use in a condition. Valid values are: EQ, GT, GTE, LT, LTE, NE, CONTAINS, STARTS_WITH
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm#comparator
+   */
+  readonly comparator?: string;
+
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag keys or tag key and value pairs to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm#tagValues
+   */
+  readonly tagValues?: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues[];
+
+  /**
+   * The type of object to apply the condition to. The only valid value is S3_OBJECT.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm#target
+   */
+  readonly target?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTerm | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparator': obj.comparator,
+    'key': obj.key,
+    'tagValues': obj.tagValues?.map(y => toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues(y)),
+    'target': obj.target,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ClassificationJobSpecForProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues
  */
 export interface ClassificationJobSpecForProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues {
@@ -2299,6 +3036,146 @@ export function toJson_ClassificationJobSpecForProviderS3JobDefinitionScopingInc
 }
 /* eslint-enable max-len, quote-props */
 
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues {
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag value.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaExcludesAndTagCriterionTagValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues {
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag value.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues(obj: ClassificationJobSpecInitProviderS3JobDefinitionBucketCriteriaIncludesAndTagCriterionTagValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues {
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag value.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingExcludesAndTagScopeTermTagValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues
+ */
+export interface ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues {
+  /**
+   * The object property to use in the condition.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues#key
+   */
+  readonly key?: string;
+
+  /**
+   * The tag value.
+   *
+   * @schema ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues#value
+   */
+  readonly value?: string;
+
+}
+
+/**
+ * Converts an object of type 'ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues(obj: ClassificationJobSpecInitProviderS3JobDefinitionScopingIncludesAndTagScopeTermTagValues | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'key': obj.key,
+    'value': obj.value,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
 
 /**
  * CustomDataIdentifier is the Schema for the CustomDataIdentifiers API. Provides a resource to manage an AWS Macie Custom Data Identifier.
@@ -2396,7 +3273,7 @@ export function toJson_CustomDataIdentifierProps(obj: CustomDataIdentifierProps 
  */
 export interface CustomDataIdentifierSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CustomDataIdentifierSpec#deletionPolicy
    */
@@ -2408,11 +3285,18 @@ export interface CustomDataIdentifierSpec {
   readonly forProvider: CustomDataIdentifierSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CustomDataIdentifierSpec#managementPolicy
+   * @schema CustomDataIdentifierSpec#initProvider
    */
-  readonly managementPolicy?: CustomDataIdentifierSpecManagementPolicy;
+  readonly initProvider?: CustomDataIdentifierSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CustomDataIdentifierSpec#managementPolicies
+   */
+  readonly managementPolicies?: CustomDataIdentifierSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2420,13 +3304,6 @@ export interface CustomDataIdentifierSpec {
    * @schema CustomDataIdentifierSpec#providerConfigRef
    */
   readonly providerConfigRef?: CustomDataIdentifierSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CustomDataIdentifierSpec#providerRef
-   */
-  readonly providerRef?: CustomDataIdentifierSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2453,9 +3330,9 @@ export function toJson_CustomDataIdentifierSpec(obj: CustomDataIdentifierSpec | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CustomDataIdentifierSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CustomDataIdentifierSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CustomDataIdentifierSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CustomDataIdentifierSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CustomDataIdentifierSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CustomDataIdentifierSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2465,7 +3342,7 @@ export function toJson_CustomDataIdentifierSpec(obj: CustomDataIdentifierSpec | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CustomDataIdentifierSpecDeletionPolicy
  */
@@ -2560,17 +3437,100 @@ export function toJson_CustomDataIdentifierSpecForProvider(obj: CustomDataIdenti
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CustomDataIdentifierSpecManagementPolicy
+ * @schema CustomDataIdentifierSpecInitProvider
  */
-export enum CustomDataIdentifierSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CustomDataIdentifierSpecInitProvider {
+  /**
+   * A custom description of the custom data identifier. The description can contain as many as 512 characters.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * An array that lists specific character sequences (ignore words) to exclude from the results. If the text matched by the regular expression is the same as any string in this array, Amazon Macie ignores it. The array can contain as many as 10 ignore words. Each ignore word can contain 4 - 90 characters. Ignore words are case sensitive.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#ignoreWords
+   */
+  readonly ignoreWords?: string[];
+
+  /**
+   * An array that lists specific character sequences (keywords), one of which must be within proximity (maximum_match_distance) of the regular expression to match. The array can contain as many as 50 keywords. Each keyword can contain 3 - 90 characters. Keywords aren't case sensitive.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#keywords
+   */
+  readonly keywords?: string[];
+
+  /**
+   * The maximum number of characters that can exist between text that matches the regex pattern and the character sequences specified by the keywords array. Macie includes or excludes a result based on the proximity of a keyword to text that matches the regex pattern. The distance can be 1 - 300 characters. The default value is 50.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#maximumMatchDistance
+   */
+  readonly maximumMatchDistance?: number;
+
+  /**
+   * A custom name for the custom data identifier. The name can contain as many as 128 characters. Conflicts with name_prefix.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The regular expression (regex) that defines the pattern to match. The expression can contain as many as 512 characters.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#regex
+   */
+  readonly regex?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CustomDataIdentifierSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CustomDataIdentifierSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomDataIdentifierSpecInitProvider(obj: CustomDataIdentifierSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'ignoreWords': obj.ignoreWords?.map(y => y),
+    'keywords': obj.keywords?.map(y => y),
+    'maximumMatchDistance': obj.maximumMatchDistance,
+    'name': obj.name,
+    'regex': obj.regex,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CustomDataIdentifierSpecManagementPolicies
+ */
+export enum CustomDataIdentifierSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2604,43 +3564,6 @@ export function toJson_CustomDataIdentifierSpecProviderConfigRef(obj: CustomData
   const result = {
     'name': obj.name,
     'policy': toJson_CustomDataIdentifierSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CustomDataIdentifierSpecProviderRef
- */
-export interface CustomDataIdentifierSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CustomDataIdentifierSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CustomDataIdentifierSpecProviderRef#policy
-   */
-  readonly policy?: CustomDataIdentifierSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CustomDataIdentifierSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomDataIdentifierSpecProviderRef(obj: CustomDataIdentifierSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CustomDataIdentifierSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2767,43 +3690,6 @@ export function toJson_CustomDataIdentifierSpecProviderConfigRefPolicy(obj: Cust
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema CustomDataIdentifierSpecProviderRefPolicy
- */
-export interface CustomDataIdentifierSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CustomDataIdentifierSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CustomDataIdentifierSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CustomDataIdentifierSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CustomDataIdentifierSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CustomDataIdentifierSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomDataIdentifierSpecProviderRefPolicy(obj: CustomDataIdentifierSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema CustomDataIdentifierSpecPublishConnectionDetailsToConfigRef
@@ -2903,30 +3789,6 @@ export enum CustomDataIdentifierSpecProviderConfigRefPolicyResolution {
  * @schema CustomDataIdentifierSpecProviderConfigRefPolicyResolve
  */
 export enum CustomDataIdentifierSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CustomDataIdentifierSpecProviderRefPolicyResolution
- */
-export enum CustomDataIdentifierSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CustomDataIdentifierSpecProviderRefPolicyResolve
- */
-export enum CustomDataIdentifierSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3091,7 +3953,7 @@ export function toJson_FindingsFilterProps(obj: FindingsFilterProps | undefined)
  */
 export interface FindingsFilterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FindingsFilterSpec#deletionPolicy
    */
@@ -3103,11 +3965,18 @@ export interface FindingsFilterSpec {
   readonly forProvider: FindingsFilterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FindingsFilterSpec#managementPolicy
+   * @schema FindingsFilterSpec#initProvider
    */
-  readonly managementPolicy?: FindingsFilterSpecManagementPolicy;
+  readonly initProvider?: FindingsFilterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FindingsFilterSpec#managementPolicies
+   */
+  readonly managementPolicies?: FindingsFilterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3115,13 +3984,6 @@ export interface FindingsFilterSpec {
    * @schema FindingsFilterSpec#providerConfigRef
    */
   readonly providerConfigRef?: FindingsFilterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FindingsFilterSpec#providerRef
-   */
-  readonly providerRef?: FindingsFilterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3148,9 +4010,9 @@ export function toJson_FindingsFilterSpec(obj: FindingsFilterSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FindingsFilterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FindingsFilterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FindingsFilterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FindingsFilterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FindingsFilterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FindingsFilterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3160,7 +4022,7 @@ export function toJson_FindingsFilterSpec(obj: FindingsFilterSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FindingsFilterSpecDeletionPolicy
  */
@@ -3247,17 +4109,92 @@ export function toJson_FindingsFilterSpecForProvider(obj: FindingsFilterSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FindingsFilterSpecManagementPolicy
+ * @schema FindingsFilterSpecInitProvider
  */
-export enum FindingsFilterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FindingsFilterSpecInitProvider {
+  /**
+   * The action to perform on findings that meet the filter criteria (finding_criteria). Valid values are: ARCHIVE, suppress (automatically archive) the findings; and, NOOP, don't perform any action on the findings.
+   *
+   * @schema FindingsFilterSpecInitProvider#action
+   */
+  readonly action?: string;
+
+  /**
+   * A custom description of the filter. The description can contain as many as 512 characters.
+   *
+   * @schema FindingsFilterSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The criteria to use to filter findings.
+   *
+   * @schema FindingsFilterSpecInitProvider#findingCriteria
+   */
+  readonly findingCriteria?: FindingsFilterSpecInitProviderFindingCriteria[];
+
+  /**
+   * A custom name for the filter. The name must contain at least 3 characters and can contain as many as 64 characters. Conflicts with name_prefix.
+   *
+   * @schema FindingsFilterSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The position of the filter in the list of saved filters on the Amazon Macie console. This value also determines the order in which the filter is applied to findings, relative to other filters that are also applied to the findings.
+   *
+   * @schema FindingsFilterSpecInitProvider#position
+   */
+  readonly position?: number;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FindingsFilterSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'FindingsFilterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FindingsFilterSpecInitProvider(obj: FindingsFilterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'action': obj.action,
+    'description': obj.description,
+    'findingCriteria': obj.findingCriteria?.map(y => toJson_FindingsFilterSpecInitProviderFindingCriteria(y)),
+    'name': obj.name,
+    'position': obj.position,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FindingsFilterSpecManagementPolicies
+ */
+export enum FindingsFilterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3291,43 +4228,6 @@ export function toJson_FindingsFilterSpecProviderConfigRef(obj: FindingsFilterSp
   const result = {
     'name': obj.name,
     'policy': toJson_FindingsFilterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FindingsFilterSpecProviderRef
- */
-export interface FindingsFilterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FindingsFilterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FindingsFilterSpecProviderRef#policy
-   */
-  readonly policy?: FindingsFilterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FindingsFilterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FindingsFilterSpecProviderRef(obj: FindingsFilterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FindingsFilterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3444,6 +4344,33 @@ export function toJson_FindingsFilterSpecForProviderFindingCriteria(obj: Finding
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FindingsFilterSpecInitProviderFindingCriteria
+ */
+export interface FindingsFilterSpecInitProviderFindingCriteria {
+  /**
+   * A condition that specifies the property, operator, and one or more values to use to filter the results.  (documented below)
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteria#criterion
+   */
+  readonly criterion?: FindingsFilterSpecInitProviderFindingCriteriaCriterion[];
+
+}
+
+/**
+ * Converts an object of type 'FindingsFilterSpecInitProviderFindingCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FindingsFilterSpecInitProviderFindingCriteria(obj: FindingsFilterSpecInitProviderFindingCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'criterion': obj.criterion?.map(y => toJson_FindingsFilterSpecInitProviderFindingCriteriaCriterion(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema FindingsFilterSpecProviderConfigRefPolicy
@@ -3470,43 +4397,6 @@ export interface FindingsFilterSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FindingsFilterSpecProviderConfigRefPolicy(obj: FindingsFilterSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FindingsFilterSpecProviderRefPolicy
- */
-export interface FindingsFilterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FindingsFilterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FindingsFilterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FindingsFilterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FindingsFilterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FindingsFilterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FindingsFilterSpecProviderRefPolicy(obj: FindingsFilterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3622,7 +4512,7 @@ export interface FindingsFilterSpecForProviderFindingCriteriaCriterion {
    *
    * @schema FindingsFilterSpecForProviderFindingCriteriaCriterion#field
    */
-  readonly field: string;
+  readonly field?: string;
 
   /**
    * The value for the property is greater than the specified value.
@@ -3683,6 +4573,89 @@ export function toJson_FindingsFilterSpecForProviderFindingCriteriaCriterion(obj
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion
+ */
+export interface FindingsFilterSpecInitProviderFindingCriteriaCriterion {
+  /**
+   * The value for the property matches (equals) the specified value. If you specify multiple values, Amazon Macie uses OR logic to join the values.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#eq
+   */
+  readonly eq?: string[];
+
+  /**
+   * The value for the property exclusively matches (equals an exact match for) all the specified values. If you specify multiple values, Amazon Macie uses AND logic to join the values.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#eqExactMatch
+   */
+  readonly eqExactMatch?: string[];
+
+  /**
+   * The name of the field to be evaluated.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#field
+   */
+  readonly field?: string;
+
+  /**
+   * The value for the property is greater than the specified value.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#gt
+   */
+  readonly gt?: string;
+
+  /**
+   * The value for the property is greater than or equal to the specified value.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#gte
+   */
+  readonly gte?: string;
+
+  /**
+   * The value for the property is less than the specified value.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#lt
+   */
+  readonly lt?: string;
+
+  /**
+   * The value for the property is less than or equal to the specified value.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#lte
+   */
+  readonly lte?: string;
+
+  /**
+   * The value for the property doesn't match (doesn't equal) the specified value. If you specify multiple values, Amazon Macie uses OR logic to join the values.
+   *
+   * @schema FindingsFilterSpecInitProviderFindingCriteriaCriterion#neq
+   */
+  readonly neq?: string[];
+
+}
+
+/**
+ * Converts an object of type 'FindingsFilterSpecInitProviderFindingCriteriaCriterion' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FindingsFilterSpecInitProviderFindingCriteriaCriterion(obj: FindingsFilterSpecInitProviderFindingCriteriaCriterion | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eq': obj.eq?.map(y => y),
+    'eqExactMatch': obj.eqExactMatch?.map(y => y),
+    'field': obj.field,
+    'gt': obj.gt,
+    'gte': obj.gte,
+    'lt': obj.lt,
+    'lte': obj.lte,
+    'neq': obj.neq?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FindingsFilterSpecProviderConfigRefPolicyResolution
@@ -3700,30 +4673,6 @@ export enum FindingsFilterSpecProviderConfigRefPolicyResolution {
  * @schema FindingsFilterSpecProviderConfigRefPolicyResolve
  */
 export enum FindingsFilterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FindingsFilterSpecProviderRefPolicyResolution
- */
-export enum FindingsFilterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FindingsFilterSpecProviderRefPolicyResolve
- */
-export enum FindingsFilterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3888,7 +4837,7 @@ export function toJson_InvitationAccepterProps(obj: InvitationAccepterProps | un
  */
 export interface InvitationAccepterSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InvitationAccepterSpec#deletionPolicy
    */
@@ -3900,11 +4849,18 @@ export interface InvitationAccepterSpec {
   readonly forProvider: InvitationAccepterSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InvitationAccepterSpec#managementPolicy
+   * @schema InvitationAccepterSpec#initProvider
    */
-  readonly managementPolicy?: InvitationAccepterSpecManagementPolicy;
+  readonly initProvider?: InvitationAccepterSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InvitationAccepterSpec#managementPolicies
+   */
+  readonly managementPolicies?: InvitationAccepterSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3912,13 +4868,6 @@ export interface InvitationAccepterSpec {
    * @schema InvitationAccepterSpec#providerConfigRef
    */
   readonly providerConfigRef?: InvitationAccepterSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InvitationAccepterSpec#providerRef
-   */
-  readonly providerRef?: InvitationAccepterSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3945,9 +4894,9 @@ export function toJson_InvitationAccepterSpec(obj: InvitationAccepterSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InvitationAccepterSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InvitationAccepterSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InvitationAccepterSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InvitationAccepterSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InvitationAccepterSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InvitationAccepterSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3957,7 +4906,7 @@ export function toJson_InvitationAccepterSpec(obj: InvitationAccepterSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InvitationAccepterSpecDeletionPolicy
  */
@@ -4004,17 +4953,52 @@ export function toJson_InvitationAccepterSpecForProvider(obj: InvitationAccepter
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InvitationAccepterSpecManagementPolicy
+ * @schema InvitationAccepterSpecInitProvider
  */
-export enum InvitationAccepterSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InvitationAccepterSpecInitProvider {
+  /**
+   * The AWS account ID for the account that sent the invitation.
+   *
+   * @schema InvitationAccepterSpecInitProvider#administratorAccountId
+   */
+  readonly administratorAccountId?: string;
+
+}
+
+/**
+ * Converts an object of type 'InvitationAccepterSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InvitationAccepterSpecInitProvider(obj: InvitationAccepterSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'administratorAccountId': obj.administratorAccountId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InvitationAccepterSpecManagementPolicies
+ */
+export enum InvitationAccepterSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4048,43 +5032,6 @@ export function toJson_InvitationAccepterSpecProviderConfigRef(obj: InvitationAc
   const result = {
     'name': obj.name,
     'policy': toJson_InvitationAccepterSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InvitationAccepterSpecProviderRef
- */
-export interface InvitationAccepterSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InvitationAccepterSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InvitationAccepterSpecProviderRef#policy
-   */
-  readonly policy?: InvitationAccepterSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InvitationAccepterSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InvitationAccepterSpecProviderRef(obj: InvitationAccepterSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InvitationAccepterSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4211,43 +5158,6 @@ export function toJson_InvitationAccepterSpecProviderConfigRefPolicy(obj: Invita
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema InvitationAccepterSpecProviderRefPolicy
- */
-export interface InvitationAccepterSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InvitationAccepterSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InvitationAccepterSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InvitationAccepterSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InvitationAccepterSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InvitationAccepterSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InvitationAccepterSpecProviderRefPolicy(obj: InvitationAccepterSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema InvitationAccepterSpecPublishConnectionDetailsToConfigRef
@@ -4347,30 +5257,6 @@ export enum InvitationAccepterSpecProviderConfigRefPolicyResolution {
  * @schema InvitationAccepterSpecProviderConfigRefPolicyResolve
  */
 export enum InvitationAccepterSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InvitationAccepterSpecProviderRefPolicyResolution
- */
-export enum InvitationAccepterSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InvitationAccepterSpecProviderRefPolicyResolve
- */
-export enum InvitationAccepterSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4535,7 +5421,7 @@ export function toJson_MemberProps(obj: MemberProps | undefined): Record<string,
  */
 export interface MemberSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MemberSpec#deletionPolicy
    */
@@ -4547,11 +5433,18 @@ export interface MemberSpec {
   readonly forProvider: MemberSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MemberSpec#managementPolicy
+   * @schema MemberSpec#initProvider
    */
-  readonly managementPolicy?: MemberSpecManagementPolicy;
+  readonly initProvider?: MemberSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MemberSpec#managementPolicies
+   */
+  readonly managementPolicies?: MemberSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4559,13 +5452,6 @@ export interface MemberSpec {
    * @schema MemberSpec#providerConfigRef
    */
   readonly providerConfigRef?: MemberSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MemberSpec#providerRef
-   */
-  readonly providerRef?: MemberSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4592,9 +5478,9 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MemberSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MemberSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MemberSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MemberSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MemberSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MemberSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4604,7 +5490,7 @@ export function toJson_MemberSpec(obj: MemberSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MemberSpecDeletionPolicy
  */
@@ -4699,17 +5585,100 @@ export function toJson_MemberSpecForProvider(obj: MemberSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MemberSpecManagementPolicy
+ * @schema MemberSpecInitProvider
  */
-export enum MemberSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MemberSpecInitProvider {
+  /**
+   * The AWS account ID for the account.
+   *
+   * @schema MemberSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The email address for the account.
+   *
+   * @schema MemberSpecInitProvider#email
+   */
+  readonly email?: string;
+
+  /**
+   * Specifies whether to send an email notification to the root user of each account that the invitation will be sent to. This notification is in addition to an alert that the root user receives in AWS Personal Health Dashboard. To send an email notification to the root user of each account, set this value to true.
+   *
+   * @schema MemberSpecInitProvider#invitationDisableEmailNotification
+   */
+  readonly invitationDisableEmailNotification?: boolean;
+
+  /**
+   * A custom message to include in the invitation. Amazon Macie adds this message to the standard content that it sends for an invitation.
+   *
+   * @schema MemberSpecInitProvider#invitationMessage
+   */
+  readonly invitationMessage?: string;
+
+  /**
+   * Send an invitation to a member
+   *
+   * @schema MemberSpecInitProvider#invite
+   */
+  readonly invite?: boolean;
+
+  /**
+   * Specifies the status for the account. To enable Amazon Macie and start all Macie activities for the account, set this value to ENABLED. Valid values are ENABLED or PAUSED.
+   *
+   * @schema MemberSpecInitProvider#status
+   */
+  readonly status?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MemberSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'MemberSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MemberSpecInitProvider(obj: MemberSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'email': obj.email,
+    'invitationDisableEmailNotification': obj.invitationDisableEmailNotification,
+    'invitationMessage': obj.invitationMessage,
+    'invite': obj.invite,
+    'status': obj.status,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MemberSpecManagementPolicies
+ */
+export enum MemberSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4743,43 +5712,6 @@ export function toJson_MemberSpecProviderConfigRef(obj: MemberSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_MemberSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MemberSpecProviderRef
- */
-export interface MemberSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MemberSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MemberSpecProviderRef#policy
-   */
-  readonly policy?: MemberSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRef(obj: MemberSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MemberSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4906,43 +5838,6 @@ export function toJson_MemberSpecProviderConfigRefPolicy(obj: MemberSpecProvider
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema MemberSpecProviderRefPolicy
- */
-export interface MemberSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MemberSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MemberSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MemberSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MemberSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MemberSpecProviderRefPolicy(obj: MemberSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema MemberSpecPublishConnectionDetailsToConfigRef
@@ -5042,30 +5937,6 @@ export enum MemberSpecProviderConfigRefPolicyResolution {
  * @schema MemberSpecProviderConfigRefPolicyResolve
  */
 export enum MemberSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MemberSpecProviderRefPolicyResolution
- */
-export enum MemberSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MemberSpecProviderRefPolicyResolve
- */
-export enum MemberSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

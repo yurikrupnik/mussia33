@@ -172,6 +172,13 @@ export interface ConfigurationSpecDependsOn {
   readonly configuration?: string;
 
   /**
+   * Function is the name of a Function package image.
+   *
+   * @schema ConfigurationSpecDependsOn#function
+   */
+  readonly function?: string;
+
+  /**
    * Provider is the name of a Provider package image.
    *
    * @schema ConfigurationSpecDependsOn#provider
@@ -195,6 +202,7 @@ export function toJson_ConfigurationSpecDependsOn(obj: ConfigurationSpecDependsO
   if (obj === undefined) { return undefined; }
   const result = {
     'configuration': obj.configuration,
+    'function': obj.function,
     'provider': obj.provider,
     'version': obj.version,
   };
@@ -373,6 +381,13 @@ export interface ConfigurationV1Alpha1SpecDependsOn {
   readonly configuration?: string;
 
   /**
+   * Function is the name of a Function package image.
+   *
+   * @schema ConfigurationV1Alpha1SpecDependsOn#function
+   */
+  readonly function?: string;
+
+  /**
    * Provider is the name of a Provider package image.
    *
    * @schema ConfigurationV1Alpha1SpecDependsOn#provider
@@ -396,6 +411,7 @@ export function toJson_ConfigurationV1Alpha1SpecDependsOn(obj: ConfigurationV1Al
   if (obj === undefined) { return undefined; }
   const result = {
     'configuration': obj.configuration,
+    'function': obj.function,
     'provider': obj.provider,
     'version': obj.version,
   };
@@ -415,7 +431,7 @@ export class Function extends ApiObject {
    * Returns the apiVersion and kind for "Function"
    */
   public static readonly GVK: GroupVersionKind = {
-    apiVersion: 'meta.pkg.crossplane.io/v1alpha1',
+    apiVersion: 'meta.pkg.crossplane.io/v1beta1',
     kind: 'Function',
   }
 
@@ -514,6 +530,13 @@ export interface FunctionSpec {
    */
   readonly dependsOn?: FunctionSpecDependsOn[];
 
+  /**
+   * Image is the packaged Function image.
+   *
+   * @schema FunctionSpec#image
+   */
+  readonly image?: string;
+
 }
 
 /**
@@ -525,6 +548,7 @@ export function toJson_FunctionSpec(obj: FunctionSpec | undefined): Record<strin
   const result = {
     'crossplane': toJson_FunctionSpecCrossplane(obj.crossplane),
     'dependsOn': obj.dependsOn?.map(y => toJson_FunctionSpecDependsOn(y)),
+    'image': obj.image,
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -574,6 +598,13 @@ export interface FunctionSpecDependsOn {
   readonly configuration?: string;
 
   /**
+   * Function is the name of a Function package image.
+   *
+   * @schema FunctionSpecDependsOn#function
+   */
+  readonly function?: string;
+
+  /**
    * Provider is the name of a Provider package image.
    *
    * @schema FunctionSpecDependsOn#provider
@@ -597,6 +628,7 @@ export function toJson_FunctionSpecDependsOn(obj: FunctionSpecDependsOn | undefi
   if (obj === undefined) { return undefined; }
   const result = {
     'configuration': obj.configuration,
+    'function': obj.function,
     'provider': obj.provider,
     'version': obj.version,
   };
@@ -820,6 +852,13 @@ export interface ProviderSpecDependsOn {
   readonly configuration?: string;
 
   /**
+   * Function is the name of a Function package image.
+   *
+   * @schema ProviderSpecDependsOn#function
+   */
+  readonly function?: string;
+
+  /**
    * Provider is the name of a Provider package image.
    *
    * @schema ProviderSpecDependsOn#provider
@@ -843,6 +882,7 @@ export function toJson_ProviderSpecDependsOn(obj: ProviderSpecDependsOn | undefi
   if (obj === undefined) { return undefined; }
   const result = {
     'configuration': obj.configuration,
+    'function': obj.function,
     'provider': obj.provider,
     'version': obj.version,
   };
@@ -1127,6 +1167,13 @@ export interface ProviderV1Alpha1SpecDependsOn {
   readonly configuration?: string;
 
   /**
+   * Function is the name of a Function package image.
+   *
+   * @schema ProviderV1Alpha1SpecDependsOn#function
+   */
+  readonly function?: string;
+
+  /**
    * Provider is the name of a Provider package image.
    *
    * @schema ProviderV1Alpha1SpecDependsOn#provider
@@ -1150,6 +1197,7 @@ export function toJson_ProviderV1Alpha1SpecDependsOn(obj: ProviderV1Alpha1SpecDe
   if (obj === undefined) { return undefined; }
   const result = {
     'configuration': obj.configuration,
+    'function': obj.function,
     'provider': obj.provider,
     'version': obj.version,
   };

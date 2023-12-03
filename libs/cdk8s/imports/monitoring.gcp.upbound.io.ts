@@ -99,7 +99,7 @@ export function toJson_AlertPolicyProps(obj: AlertPolicyProps | undefined): Reco
  */
 export interface AlertPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AlertPolicySpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AlertPolicySpec {
   readonly forProvider: AlertPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AlertPolicySpec#managementPolicy
+   * @schema AlertPolicySpec#initProvider
    */
-  readonly managementPolicy?: AlertPolicySpecManagementPolicy;
+  readonly initProvider?: AlertPolicySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AlertPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: AlertPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AlertPolicySpec {
    * @schema AlertPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: AlertPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AlertPolicySpec#providerRef
-   */
-  readonly providerRef?: AlertPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AlertPolicySpec(obj: AlertPolicySpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AlertPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AlertPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AlertPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AlertPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AlertPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AlertPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AlertPolicySpec(obj: AlertPolicySpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AlertPolicySpecDeletionPolicy
  */
@@ -271,17 +271,116 @@ export function toJson_AlertPolicySpecForProvider(obj: AlertPolicySpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AlertPolicySpecManagementPolicy
+ * @schema AlertPolicySpecInitProvider
  */
-export enum AlertPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AlertPolicySpecInitProvider {
+  /**
+   * Control over how this alert policy's notification channels are notified. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProvider#alertStrategy
+   */
+  readonly alertStrategy?: AlertPolicySpecInitProviderAlertStrategy[];
+
+  /**
+   * How to combine the results of multiple conditions to determine if an incident should be opened. Possible values are: AND, OR, AND_WITH_MATCHING_RESOURCE.
+   *
+   * @schema AlertPolicySpecInitProvider#combiner
+   */
+  readonly combiner?: string;
+
+  /**
+   * A list of conditions for the policy. The conditions are combined by AND or OR according to the combiner field. If the combined conditions evaluate to true, then an incident is created. A policy can have from one to six conditions. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProvider#conditions
+   */
+  readonly conditions?: AlertPolicySpecInitProviderConditions[];
+
+  /**
+   * A short name or phrase used to identify the policy in dashboards, notifications, and incidents. To avoid confusion, don't use the same display name for multiple policies in the same project. The name is limited to 512 Unicode characters.
+   *
+   * @schema AlertPolicySpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Documentation that is included with notifications and incidents related to this policy. Best practice is for the documentation to include information to help responders understand, mitigate, escalate, and correct the underlying problems detected by the alerting policy. Notification channels that have limited capacity might not show this documentation. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProvider#documentation
+   */
+  readonly documentation?: AlertPolicySpecInitProviderDocumentation[];
+
+  /**
+   * Whether or not the policy is enabled. The default is true.
+   *
+   * @schema AlertPolicySpecInitProvider#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Identifies the notification channels to which notifications should be sent when incidents are opened or closed or when new violations occur on an already opened incident. Each element of this array corresponds to the name field in each of the NotificationChannel objects that are returned from the notificationChannels.list method. The syntax of the entries in this field is projects/[PROJECT_ID]/notificationChannels/[CHANNEL_ID]
+   *
+   * @schema AlertPolicySpecInitProvider#notificationChannels
+   */
+  readonly notificationChannels?: string[];
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AlertPolicySpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * This field is intended to be used for organizing and identifying the AlertPolicy objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter.
+   *
+   * @schema AlertPolicySpecInitProvider#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProvider(obj: AlertPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alertStrategy': obj.alertStrategy?.map(y => toJson_AlertPolicySpecInitProviderAlertStrategy(y)),
+    'combiner': obj.combiner,
+    'conditions': obj.conditions?.map(y => toJson_AlertPolicySpecInitProviderConditions(y)),
+    'displayName': obj.displayName,
+    'documentation': obj.documentation?.map(y => toJson_AlertPolicySpecInitProviderDocumentation(y)),
+    'enabled': obj.enabled,
+    'notificationChannels': obj.notificationChannels?.map(y => y),
+    'project': obj.project,
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AlertPolicySpecManagementPolicies
+ */
+export enum AlertPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +414,6 @@ export function toJson_AlertPolicySpecProviderConfigRef(obj: AlertPolicySpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_AlertPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AlertPolicySpecProviderRef
- */
-export interface AlertPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AlertPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AlertPolicySpecProviderRef#policy
-   */
-  readonly policy?: AlertPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AlertPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AlertPolicySpecProviderRef(obj: AlertPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AlertPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -509,6 +571,13 @@ export interface AlertPolicySpecForProviderConditions {
   readonly conditionMonitoringQueryLanguage?: AlertPolicySpecForProviderConditionsConditionMonitoringQueryLanguage[];
 
   /**
+   * A Monitoring Query Language query that outputs a boolean stream A condition type that allows alert policies to be defined using Prometheus Query Language (PromQL). The PrometheusQueryLanguageCondition message contains information from a Prometheus alerting rule and its associated rule group. Structure is documented below.
+   *
+   * @schema AlertPolicySpecForProviderConditions#conditionPrometheusQueryLanguage
+   */
+  readonly conditionPrometheusQueryLanguage?: AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage[];
+
+  /**
    * A condition that compares a time series against a threshold. Structure is documented below.
    *
    * @schema AlertPolicySpecForProviderConditions#conditionThreshold
@@ -520,7 +589,7 @@ export interface AlertPolicySpecForProviderConditions {
    *
    * @schema AlertPolicySpecForProviderConditions#displayName
    */
-  readonly displayName: string;
+  readonly displayName?: string;
 
 }
 
@@ -534,6 +603,7 @@ export function toJson_AlertPolicySpecForProviderConditions(obj: AlertPolicySpec
     'conditionAbsent': obj.conditionAbsent?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionAbsent(y)),
     'conditionMatchedLog': obj.conditionMatchedLog?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionMatchedLog(y)),
     'conditionMonitoringQueryLanguage': obj.conditionMonitoringQueryLanguage?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionMonitoringQueryLanguage(y)),
+    'conditionPrometheusQueryLanguage': obj.conditionPrometheusQueryLanguage?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage(y)),
     'conditionThreshold': obj.conditionThreshold?.map(y => toJson_AlertPolicySpecForProviderConditionsConditionThreshold(y)),
     'displayName': obj.displayName,
   };
@@ -578,6 +648,151 @@ export function toJson_AlertPolicySpecForProviderDocumentation(obj: AlertPolicyS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AlertPolicySpecInitProviderAlertStrategy
+ */
+export interface AlertPolicySpecInitProviderAlertStrategy {
+  /**
+   * If an alert policy that was active has no data for this long, any open incidents will close.
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategy#autoClose
+   */
+  readonly autoClose?: string;
+
+  /**
+   * Control over how the notification channels in notification_channels are notified when this alert fires, on a per-channel basis. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategy#notificationChannelStrategy
+   */
+  readonly notificationChannelStrategy?: AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy[];
+
+  /**
+   * Required for alert policies with a LogMatch condition. This limit is not implemented for alert policies that are not log-based. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategy#notificationRateLimit
+   */
+  readonly notificationRateLimit?: AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit[];
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderAlertStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderAlertStrategy(obj: AlertPolicySpecInitProviderAlertStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoClose': obj.autoClose,
+    'notificationChannelStrategy': obj.notificationChannelStrategy?.map(y => toJson_AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy(y)),
+    'notificationRateLimit': obj.notificationRateLimit?.map(y => toJson_AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditions
+ */
+export interface AlertPolicySpecInitProviderConditions {
+  /**
+   * A condition that checks that a time series continues to receive new data points. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#conditionAbsent
+   */
+  readonly conditionAbsent?: AlertPolicySpecInitProviderConditionsConditionAbsent[];
+
+  /**
+   * A condition that checks for log messages matching given constraints. If set, no other conditions can be present. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#conditionMatchedLog
+   */
+  readonly conditionMatchedLog?: AlertPolicySpecInitProviderConditionsConditionMatchedLog[];
+
+  /**
+   * A Monitoring Query Language query that outputs a boolean stream Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#conditionMonitoringQueryLanguage
+   */
+  readonly conditionMonitoringQueryLanguage?: AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage[];
+
+  /**
+   * A Monitoring Query Language query that outputs a boolean stream A condition type that allows alert policies to be defined using Prometheus Query Language (PromQL). The PrometheusQueryLanguageCondition message contains information from a Prometheus alerting rule and its associated rule group. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#conditionPrometheusQueryLanguage
+   */
+  readonly conditionPrometheusQueryLanguage?: AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage[];
+
+  /**
+   * A condition that compares a time series against a threshold. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#conditionThreshold
+   */
+  readonly conditionThreshold?: AlertPolicySpecInitProviderConditionsConditionThreshold[];
+
+  /**
+   * A short name or phrase used to identify the condition in dashboards, notifications, and incidents. To avoid confusion, don't use the same display name for multiple conditions in the same policy.
+   *
+   * @schema AlertPolicySpecInitProviderConditions#displayName
+   */
+  readonly displayName?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditions(obj: AlertPolicySpecInitProviderConditions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'conditionAbsent': obj.conditionAbsent?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionAbsent(y)),
+    'conditionMatchedLog': obj.conditionMatchedLog?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionMatchedLog(y)),
+    'conditionMonitoringQueryLanguage': obj.conditionMonitoringQueryLanguage?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage(y)),
+    'conditionPrometheusQueryLanguage': obj.conditionPrometheusQueryLanguage?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage(y)),
+    'conditionThreshold': obj.conditionThreshold?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionThreshold(y)),
+    'displayName': obj.displayName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderDocumentation
+ */
+export interface AlertPolicySpecInitProviderDocumentation {
+  /**
+   * The text of the documentation, interpreted according to mimeType. The content may not exceed 8,192 Unicode characters and may not exceed more than 10,240 bytes when encoded in UTF-8 format, whichever is smaller.
+   *
+   * @schema AlertPolicySpecInitProviderDocumentation#content
+   */
+  readonly content?: string;
+
+  /**
+   * The format of the content field. Presently, only the value "text/markdown" is supported.
+   *
+   * @schema AlertPolicySpecInitProviderDocumentation#mimeType
+   */
+  readonly mimeType?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderDocumentation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderDocumentation(obj: AlertPolicySpecInitProviderDocumentation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'mimeType': obj.mimeType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema AlertPolicySpecProviderConfigRefPolicy
@@ -604,43 +819,6 @@ export interface AlertPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AlertPolicySpecProviderConfigRefPolicy(obj: AlertPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AlertPolicySpecProviderRefPolicy
- */
-export interface AlertPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AlertPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AlertPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AlertPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AlertPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AlertPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AlertPolicySpecProviderRefPolicy(obj: AlertPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -811,7 +989,7 @@ export interface AlertPolicySpecForProviderConditionsConditionAbsent {
    *
    * @schema AlertPolicySpecForProviderConditionsConditionAbsent#duration
    */
-  readonly duration: string;
+  readonly duration?: string;
 
   /**
    * A filter that identifies which time series should be compared with the threshold.The filter is similar to the one that is specified in the MetricService.ListTimeSeries request (that call is useful to verify the time series that will be retrieved / processed) and must specify the metric type and optionally may contain restrictions on resource type, resource labels, and metric labels. This field may not exceed 2048 Unicode characters in length.
@@ -855,7 +1033,7 @@ export interface AlertPolicySpecForProviderConditionsConditionMatchedLog {
    *
    * @schema AlertPolicySpecForProviderConditionsConditionMatchedLog#filter
    */
-  readonly filter: string;
+  readonly filter?: string;
 
   /**
    * A map from a label key to an extractor expression, which is used to extract the value for this label key. Each entry in this map is a specification for how data should be extracted from log entries that match filter. Each combination of extracted values is treated as a separate rule for the purposes of triggering notifications. Label keys and corresponding values can be used in notifications generated by this condition.
@@ -890,7 +1068,7 @@ export interface AlertPolicySpecForProviderConditionsConditionMonitoringQueryLan
    *
    * @schema AlertPolicySpecForProviderConditionsConditionMonitoringQueryLanguage#duration
    */
-  readonly duration: string;
+  readonly duration?: string;
 
   /**
    * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
@@ -900,11 +1078,11 @@ export interface AlertPolicySpecForProviderConditionsConditionMonitoringQueryLan
   readonly evaluationMissingData?: string;
 
   /**
-   * Monitoring Query Language query that outputs a boolean stream.
+   * The PromQL expression to evaluate. Every evaluation cycle this expression is evaluated at the current time, and all resultant time series become pending/firing alerts. This field must not be empty.
    *
    * @schema AlertPolicySpecForProviderConditionsConditionMonitoringQueryLanguage#query
    */
-  readonly query: string;
+  readonly query?: string;
 
   /**
    * The number/percent of time series for which the comparison must hold in order for the condition to trigger. If unspecified, then the condition will trigger if the comparison is true for any of the time series that have been identified by filter and aggregations, or by the ratio, if denominator_filter and denominator_aggregations are specified. Structure is documented below.
@@ -933,6 +1111,73 @@ export function toJson_AlertPolicySpecForProviderConditionsConditionMonitoringQu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage
+ */
+export interface AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage {
+  /**
+   * The alerting rule name of this alert in the corresponding Prometheus configuration file. Some external tools may require this field to be populated correctly in order to refer to the original Prometheus configuration file. The rule group name and the alert name are necessary to update the relevant AlertPolicies in case the definition of the rule group changes in the future. This field is optional. If this field is not empty, then it must be a valid Prometheus label name.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#alertRule
+   */
+  readonly alertRule?: string;
+
+  /**
+   * The amount of time that a time series must violate the threshold to be considered failing. Currently, only values that are a multiple of a minute--e.g., 0, 60, 120, or 300 seconds--are supported. If an invalid value is given, an error will be returned. When choosing a duration, it is useful to keep in mind the frequency of the underlying time series data (which may also be affected by any alignments specified in the aggregations field); a good duration is long enough so that a single outlier does not generate spurious alerts, but short enough that unhealthy states are detected and alerted on quickly.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * How often this rule should be evaluated. Must be a positive multiple of 30 seconds or missing. The default value is 30 seconds. If this PrometheusQueryLanguageCondition was generated from a Prometheus alerting rule, then this value should be taken from the enclosing rule group.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#evaluationInterval
+   */
+  readonly evaluationInterval?: string;
+
+  /**
+   * Labels to add to or overwrite in the PromQL query result. Label names must be valid. Label values can be templatized by using variables. The only available variable names are the names of the labels in the PromQL result, including "name" and "value". "labels" may be empty. This field is intended to be used for organizing and identifying the AlertPolicy
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The PromQL expression to evaluate. Every evaluation cycle this expression is evaluated at the current time, and all resultant time series become pending/firing alerts. This field must not be empty.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#query
+   */
+  readonly query?: string;
+
+  /**
+   * The rule group name of this alert in the corresponding Prometheus configuration file. Some external tools may require this field to be populated correctly in order to refer to the original Prometheus configuration file. The rule group name and the alert name are necessary to update the relevant AlertPolicies in case the definition of the rule group changes in the future. This field is optional. If this field is not empty, then it must be a valid Prometheus label name.
+   *
+   * @schema AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage#ruleGroup
+   */
+  readonly ruleGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage(obj: AlertPolicySpecForProviderConditionsConditionPrometheusQueryLanguage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alertRule': obj.alertRule,
+    'duration': obj.duration,
+    'evaluationInterval': obj.evaluationInterval,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'query': obj.query,
+    'ruleGroup': obj.ruleGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema AlertPolicySpecForProviderConditionsConditionThreshold
  */
 export interface AlertPolicySpecForProviderConditionsConditionThreshold {
@@ -948,7 +1193,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThreshold {
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThreshold#comparison
    */
-  readonly comparison: string;
+  readonly comparison?: string;
 
   /**
    * Specifies the alignment of data points in individual time series selected by denominatorFilter as well as how to combine the retrieved time series together (such as when aggregating multiple streams on each resource to a single stream for each resource or when aggregating streams across all members of a group of resources).When computing ratios, the aggregations and denominator_aggregations fields must use the same alignment period and produce time series that have the same periodicity and labels.This field is similar to the one in the MetricService.ListTimeSeries request. It is advisable to use the ListTimeSeries method when debugging this field. Structure is documented below.
@@ -969,7 +1214,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThreshold {
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThreshold#duration
    */
-  readonly duration: string;
+  readonly duration?: string;
 
   /**
    * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
@@ -1032,6 +1277,371 @@ export function toJson_AlertPolicySpecForProviderConditionsConditionThreshold(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy
+ */
+export interface AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy {
+  /**
+   * The notification channels that these settings apply to. Each of these correspond to the name field in one of the NotificationChannel objects referenced in the notification_channels field of this AlertPolicy. The format is projects/[PROJECT_ID_OR_NUMBER]/notificationChannels/[CHANNEL_ID]
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy#notificationChannelNames
+   */
+  readonly notificationChannelNames?: string[];
+
+  /**
+   * The frequency at which to send reminder notifications for open incidents.
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy#renotifyInterval
+   */
+  readonly renotifyInterval?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy(obj: AlertPolicySpecInitProviderAlertStrategyNotificationChannelStrategy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'notificationChannelNames': obj.notificationChannelNames?.map(y => y),
+    'renotifyInterval': obj.renotifyInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit
+ */
+export interface AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit {
+  /**
+   * Not more than one notification per period.
+   *
+   * @schema AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit#period
+   */
+  readonly period?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit(obj: AlertPolicySpecInitProviderAlertStrategyNotificationRateLimit | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'period': obj.period,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionAbsent
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionAbsent {
+  /**
+   * Specifies the alignment of data points in individual time series as well as how to combine the retrieved time series together (such as when aggregating multiple streams on each resource to a single stream for each resource or when aggregating streams across all members of a group of resources). Multiple aggregations are applied in the order specified.This field is similar to the one in the MetricService.ListTimeSeries request. It is advisable to use the ListTimeSeries method when debugging this field. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsent#aggregations
+   */
+  readonly aggregations?: AlertPolicySpecInitProviderConditionsConditionAbsentAggregations[];
+
+  /**
+   * The amount of time that a time series must violate the threshold to be considered failing. Currently, only values that are a multiple of a minute--e.g., 0, 60, 120, or 300 seconds--are supported. If an invalid value is given, an error will be returned. When choosing a duration, it is useful to keep in mind the frequency of the underlying time series data (which may also be affected by any alignments specified in the aggregations field); a good duration is long enough so that a single outlier does not generate spurious alerts, but short enough that unhealthy states are detected and alerted on quickly.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsent#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * A filter that identifies which time series should be compared with the threshold.The filter is similar to the one that is specified in the MetricService.ListTimeSeries request (that call is useful to verify the time series that will be retrieved / processed) and must specify the metric type and optionally may contain restrictions on resource type, resource labels, and metric labels. This field may not exceed 2048 Unicode characters in length.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsent#filter
+   */
+  readonly filter?: string;
+
+  /**
+   * The number/percent of time series for which the comparison must hold in order for the condition to trigger. If unspecified, then the condition will trigger if the comparison is true for any of the time series that have been identified by filter and aggregations, or by the ratio, if denominator_filter and denominator_aggregations are specified. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsent#trigger
+   */
+  readonly trigger?: AlertPolicySpecInitProviderConditionsConditionAbsentTrigger[];
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionAbsent' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionAbsent(obj: AlertPolicySpecInitProviderConditionsConditionAbsent | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregations': obj.aggregations?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionAbsentAggregations(y)),
+    'duration': obj.duration,
+    'filter': obj.filter,
+    'trigger': obj.trigger?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionAbsentTrigger(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionMatchedLog
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionMatchedLog {
+  /**
+   * A filter that identifies which time series should be compared with the threshold.The filter is similar to the one that is specified in the MetricService.ListTimeSeries request (that call is useful to verify the time series that will be retrieved / processed) and must specify the metric type and optionally may contain restrictions on resource type, resource labels, and metric labels. This field may not exceed 2048 Unicode characters in length.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMatchedLog#filter
+   */
+  readonly filter?: string;
+
+  /**
+   * A map from a label key to an extractor expression, which is used to extract the value for this label key. Each entry in this map is a specification for how data should be extracted from log entries that match filter. Each combination of extracted values is treated as a separate rule for the purposes of triggering notifications. Label keys and corresponding values can be used in notifications generated by this condition.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMatchedLog#labelExtractors
+   */
+  readonly labelExtractors?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionMatchedLog' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionMatchedLog(obj: AlertPolicySpecInitProviderConditionsConditionMatchedLog | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'filter': obj.filter,
+    'labelExtractors': ((obj.labelExtractors) === undefined) ? undefined : (Object.entries(obj.labelExtractors).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage {
+  /**
+   * The amount of time that a time series must violate the threshold to be considered failing. Currently, only values that are a multiple of a minute--e.g., 0, 60, 120, or 300 seconds--are supported. If an invalid value is given, an error will be returned. When choosing a duration, it is useful to keep in mind the frequency of the underlying time series data (which may also be affected by any alignments specified in the aggregations field); a good duration is long enough so that a single outlier does not generate spurious alerts, but short enough that unhealthy states are detected and alerted on quickly.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage#evaluationMissingData
+   */
+  readonly evaluationMissingData?: string;
+
+  /**
+   * The PromQL expression to evaluate. Every evaluation cycle this expression is evaluated at the current time, and all resultant time series become pending/firing alerts. This field must not be empty.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage#query
+   */
+  readonly query?: string;
+
+  /**
+   * The number/percent of time series for which the comparison must hold in order for the condition to trigger. If unspecified, then the condition will trigger if the comparison is true for any of the time series that have been identified by filter and aggregations, or by the ratio, if denominator_filter and denominator_aggregations are specified. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage#trigger
+   */
+  readonly trigger?: AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger[];
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage(obj: AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'duration': obj.duration,
+    'evaluationMissingData': obj.evaluationMissingData,
+    'query': obj.query,
+    'trigger': obj.trigger?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage {
+  /**
+   * The alerting rule name of this alert in the corresponding Prometheus configuration file. Some external tools may require this field to be populated correctly in order to refer to the original Prometheus configuration file. The rule group name and the alert name are necessary to update the relevant AlertPolicies in case the definition of the rule group changes in the future. This field is optional. If this field is not empty, then it must be a valid Prometheus label name.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#alertRule
+   */
+  readonly alertRule?: string;
+
+  /**
+   * The amount of time that a time series must violate the threshold to be considered failing. Currently, only values that are a multiple of a minute--e.g., 0, 60, 120, or 300 seconds--are supported. If an invalid value is given, an error will be returned. When choosing a duration, it is useful to keep in mind the frequency of the underlying time series data (which may also be affected by any alignments specified in the aggregations field); a good duration is long enough so that a single outlier does not generate spurious alerts, but short enough that unhealthy states are detected and alerted on quickly.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * How often this rule should be evaluated. Must be a positive multiple of 30 seconds or missing. The default value is 30 seconds. If this PrometheusQueryLanguageCondition was generated from a Prometheus alerting rule, then this value should be taken from the enclosing rule group.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#evaluationInterval
+   */
+  readonly evaluationInterval?: string;
+
+  /**
+   * Labels to add to or overwrite in the PromQL query result. Label names must be valid. Label values can be templatized by using variables. The only available variable names are the names of the labels in the PromQL result, including "name" and "value". "labels" may be empty. This field is intended to be used for organizing and identifying the AlertPolicy
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The PromQL expression to evaluate. Every evaluation cycle this expression is evaluated at the current time, and all resultant time series become pending/firing alerts. This field must not be empty.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#query
+   */
+  readonly query?: string;
+
+  /**
+   * The rule group name of this alert in the corresponding Prometheus configuration file. Some external tools may require this field to be populated correctly in order to refer to the original Prometheus configuration file. The rule group name and the alert name are necessary to update the relevant AlertPolicies in case the definition of the rule group changes in the future. This field is optional. If this field is not empty, then it must be a valid Prometheus label name.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage#ruleGroup
+   */
+  readonly ruleGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage(obj: AlertPolicySpecInitProviderConditionsConditionPrometheusQueryLanguage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alertRule': obj.alertRule,
+    'duration': obj.duration,
+    'evaluationInterval': obj.evaluationInterval,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'query': obj.query,
+    'ruleGroup': obj.ruleGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionThreshold
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionThreshold {
+  /**
+   * Specifies the alignment of data points in individual time series as well as how to combine the retrieved time series together (such as when aggregating multiple streams on each resource to a single stream for each resource or when aggregating streams across all members of a group of resources). Multiple aggregations are applied in the order specified.This field is similar to the one in the MetricService.ListTimeSeries request. It is advisable to use the ListTimeSeries method when debugging this field. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#aggregations
+   */
+  readonly aggregations?: AlertPolicySpecInitProviderConditionsConditionThresholdAggregations[];
+
+  /**
+   * The comparison to apply between the time series (indicated by filter and aggregation) and the threshold (indicated by threshold_value). The comparison is applied on each time series, with the time series on the left-hand side and the threshold on the right-hand side. Only COMPARISON_LT and COMPARISON_GT are supported currently. Possible values are: COMPARISON_GT, COMPARISON_GE, COMPARISON_LT, COMPARISON_LE, COMPARISON_EQ, COMPARISON_NE.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#comparison
+   */
+  readonly comparison?: string;
+
+  /**
+   * Specifies the alignment of data points in individual time series selected by denominatorFilter as well as how to combine the retrieved time series together (such as when aggregating multiple streams on each resource to a single stream for each resource or when aggregating streams across all members of a group of resources).When computing ratios, the aggregations and denominator_aggregations fields must use the same alignment period and produce time series that have the same periodicity and labels.This field is similar to the one in the MetricService.ListTimeSeries request. It is advisable to use the ListTimeSeries method when debugging this field. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#denominatorAggregations
+   */
+  readonly denominatorAggregations?: AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations[];
+
+  /**
+   * A filter that identifies a time series that should be used as the denominator of a ratio that will be compared with the threshold. If a denominator_filter is specified, the time series specified by the filter field will be used as the numerator.The filter is similar to the one that is specified in the MetricService.ListTimeSeries request (that call is useful to verify the time series that will be retrieved / processed) and must specify the metric type and optionally may contain restrictions on resource type, resource labels, and metric labels. This field may not exceed 2048 Unicode characters in length.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#denominatorFilter
+   */
+  readonly denominatorFilter?: string;
+
+  /**
+   * The amount of time that a time series must violate the threshold to be considered failing. Currently, only values that are a multiple of a minute--e.g., 0, 60, 120, or 300 seconds--are supported. If an invalid value is given, an error will be returned. When choosing a duration, it is useful to keep in mind the frequency of the underlying time series data (which may also be affected by any alignments specified in the aggregations field); a good duration is long enough so that a single outlier does not generate spurious alerts, but short enough that unhealthy states are detected and alerted on quickly.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#duration
+   */
+  readonly duration?: string;
+
+  /**
+   * A condition control that determines how metric-threshold conditions are evaluated when data stops arriving. Possible values are: EVALUATION_MISSING_DATA_INACTIVE, EVALUATION_MISSING_DATA_ACTIVE, EVALUATION_MISSING_DATA_NO_OP.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#evaluationMissingData
+   */
+  readonly evaluationMissingData?: string;
+
+  /**
+   * A filter that identifies which time series should be compared with the threshold.The filter is similar to the one that is specified in the MetricService.ListTimeSeries request (that call is useful to verify the time series that will be retrieved / processed) and must specify the metric type and optionally may contain restrictions on resource type, resource labels, and metric labels. This field may not exceed 2048 Unicode characters in length.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#filter
+   */
+  readonly filter?: string;
+
+  /**
+   * When this field is present, the MetricThreshold condition forecasts whether the time series is predicted to violate the threshold within the forecastHorizon. When this field is not set, the MetricThreshold tests the current value of the timeseries against the threshold. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#forecastOptions
+   */
+  readonly forecastOptions?: AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions[];
+
+  /**
+   * A value against which to compare the time series.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#thresholdValue
+   */
+  readonly thresholdValue?: number;
+
+  /**
+   * The number/percent of time series for which the comparison must hold in order for the condition to trigger. If unspecified, then the condition will trigger if the comparison is true for any of the time series that have been identified by filter and aggregations, or by the ratio, if denominator_filter and denominator_aggregations are specified. Structure is documented below.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThreshold#trigger
+   */
+  readonly trigger?: AlertPolicySpecInitProviderConditionsConditionThresholdTrigger[];
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionThreshold' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionThreshold(obj: AlertPolicySpecInitProviderConditionsConditionThreshold | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aggregations': obj.aggregations?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionThresholdAggregations(y)),
+    'comparison': obj.comparison,
+    'denominatorAggregations': obj.denominatorAggregations?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations(y)),
+    'denominatorFilter': obj.denominatorFilter,
+    'duration': obj.duration,
+    'evaluationMissingData': obj.evaluationMissingData,
+    'filter': obj.filter,
+    'forecastOptions': obj.forecastOptions?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions(y)),
+    'thresholdValue': obj.thresholdValue,
+    'trigger': obj.trigger?.map(y => toJson_AlertPolicySpecInitProviderConditionsConditionThresholdTrigger(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema AlertPolicySpecProviderConfigRefPolicyResolution
@@ -1049,30 +1659,6 @@ export enum AlertPolicySpecProviderConfigRefPolicyResolution {
  * @schema AlertPolicySpecProviderConfigRefPolicyResolve
  */
 export enum AlertPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AlertPolicySpecProviderRefPolicyResolution
- */
-export enum AlertPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AlertPolicySpecProviderRefPolicyResolve
- */
-export enum AlertPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1348,7 +1934,7 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdForecastO
    *
    * @schema AlertPolicySpecForProviderConditionsConditionThresholdForecastOptions#forecastHorizon
    */
-  readonly forecastHorizon: string;
+  readonly forecastHorizon?: string;
 
 }
 
@@ -1391,6 +1977,291 @@ export interface AlertPolicySpecForProviderConditionsConditionThresholdTrigger {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AlertPolicySpecForProviderConditionsConditionThresholdTrigger(obj: AlertPolicySpecForProviderConditionsConditionThresholdTrigger | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'percent': obj.percent,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionAbsentAggregations
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionAbsentAggregations {
+  /**
+   * The alignment period for per-time series alignment. If present, alignmentPeriod must be at least 60 seconds. After per-time series alignment, each time series will contain data points only on the period boundaries. If perSeriesAligner is not specified or equals ALIGN_NONE, then this field is ignored. If perSeriesAligner is specified and does not equal ALIGN_NONE, then this field must be defined; otherwise an error is returned.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentAggregations#alignmentPeriod
+   */
+  readonly alignmentPeriod?: string;
+
+  /**
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentAggregations#crossSeriesReducer
+   */
+  readonly crossSeriesReducer?: string;
+
+  /**
+   * The set of fields to preserve when crossSeriesReducer is specified. The groupByFields determine how the time series are partitioned into subsets prior to applying the aggregation function. Each subset contains time series that have the same value for each of the grouping fields. Each individual time series is a member of exactly one subset. The crossSeriesReducer is applied to each subset of time series. It is not possible to reduce across different resource types, so this field implicitly contains resource.type. Fields not specified in groupByFields are aggregated away. If groupByFields is not specified and all the time series have the same resource type, then the time series are aggregated into a single output time series. If crossSeriesReducer is not defined, this field is ignored.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentAggregations#groupByFields
+   */
+  readonly groupByFields?: string[];
+
+  /**
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentAggregations#perSeriesAligner
+   */
+  readonly perSeriesAligner?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionAbsentAggregations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionAbsentAggregations(obj: AlertPolicySpecInitProviderConditionsConditionAbsentAggregations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alignmentPeriod': obj.alignmentPeriod,
+    'crossSeriesReducer': obj.crossSeriesReducer,
+    'groupByFields': obj.groupByFields?.map(y => y),
+    'perSeriesAligner': obj.perSeriesAligner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionAbsentTrigger
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionAbsentTrigger {
+  /**
+   * The absolute number of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentTrigger#count
+   */
+  readonly count?: number;
+
+  /**
+   * The percentage of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionAbsentTrigger#percent
+   */
+  readonly percent?: number;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionAbsentTrigger' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionAbsentTrigger(obj: AlertPolicySpecInitProviderConditionsConditionAbsentTrigger | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'percent': obj.percent,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger {
+  /**
+   * The absolute number of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger#count
+   */
+  readonly count?: number;
+
+  /**
+   * The percentage of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger#percent
+   */
+  readonly percent?: number;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger(obj: AlertPolicySpecInitProviderConditionsConditionMonitoringQueryLanguageTrigger | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'count': obj.count,
+    'percent': obj.percent,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionThresholdAggregations
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionThresholdAggregations {
+  /**
+   * The alignment period for per-time series alignment. If present, alignmentPeriod must be at least 60 seconds. After per-time series alignment, each time series will contain data points only on the period boundaries. If perSeriesAligner is not specified or equals ALIGN_NONE, then this field is ignored. If perSeriesAligner is specified and does not equal ALIGN_NONE, then this field must be defined; otherwise an error is returned.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdAggregations#alignmentPeriod
+   */
+  readonly alignmentPeriod?: string;
+
+  /**
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdAggregations#crossSeriesReducer
+   */
+  readonly crossSeriesReducer?: string;
+
+  /**
+   * The set of fields to preserve when crossSeriesReducer is specified. The groupByFields determine how the time series are partitioned into subsets prior to applying the aggregation function. Each subset contains time series that have the same value for each of the grouping fields. Each individual time series is a member of exactly one subset. The crossSeriesReducer is applied to each subset of time series. It is not possible to reduce across different resource types, so this field implicitly contains resource.type. Fields not specified in groupByFields are aggregated away. If groupByFields is not specified and all the time series have the same resource type, then the time series are aggregated into a single output time series. If crossSeriesReducer is not defined, this field is ignored.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdAggregations#groupByFields
+   */
+  readonly groupByFields?: string[];
+
+  /**
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdAggregations#perSeriesAligner
+   */
+  readonly perSeriesAligner?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionThresholdAggregations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionThresholdAggregations(obj: AlertPolicySpecInitProviderConditionsConditionThresholdAggregations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alignmentPeriod': obj.alignmentPeriod,
+    'crossSeriesReducer': obj.crossSeriesReducer,
+    'groupByFields': obj.groupByFields?.map(y => y),
+    'perSeriesAligner': obj.perSeriesAligner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations {
+  /**
+   * The alignment period for per-time series alignment. If present, alignmentPeriod must be at least 60 seconds. After per-time series alignment, each time series will contain data points only on the period boundaries. If perSeriesAligner is not specified or equals ALIGN_NONE, then this field is ignored. If perSeriesAligner is specified and does not equal ALIGN_NONE, then this field must be defined; otherwise an error is returned.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations#alignmentPeriod
+   */
+  readonly alignmentPeriod?: string;
+
+  /**
+   * The approach to be used to combine time series. Not all reducer functions may be applied to all time series, depending on the metric type and the value type of the original time series. Reduction may change the metric type of value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: REDUCE_NONE, REDUCE_MEAN, REDUCE_MIN, REDUCE_MAX, REDUCE_SUM, REDUCE_STDDEV, REDUCE_COUNT, REDUCE_COUNT_TRUE, REDUCE_COUNT_FALSE, REDUCE_FRACTION_TRUE, REDUCE_PERCENTILE_99, REDUCE_PERCENTILE_95, REDUCE_PERCENTILE_50, REDUCE_PERCENTILE_05.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations#crossSeriesReducer
+   */
+  readonly crossSeriesReducer?: string;
+
+  /**
+   * The set of fields to preserve when crossSeriesReducer is specified. The groupByFields determine how the time series are partitioned into subsets prior to applying the aggregation function. Each subset contains time series that have the same value for each of the grouping fields. Each individual time series is a member of exactly one subset. The crossSeriesReducer is applied to each subset of time series. It is not possible to reduce across different resource types, so this field implicitly contains resource.type. Fields not specified in groupByFields are aggregated away. If groupByFields is not specified and all the time series have the same resource type, then the time series are aggregated into a single output time series. If crossSeriesReducer is not defined, this field is ignored.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations#groupByFields
+   */
+  readonly groupByFields?: string[];
+
+  /**
+   * The approach to be used to align individual time series. Not all alignment functions may be applied to all time series, depending on the metric type and value type of the original time series. Alignment may change the metric type or the value type of the time series.Time series data must be aligned in order to perform cross- time series reduction. If crossSeriesReducer is specified, then perSeriesAligner must be specified and not equal ALIGN_NONE and alignmentPeriod must be specified; otherwise, an error is returned. Possible values are: ALIGN_NONE, ALIGN_DELTA, ALIGN_RATE, ALIGN_INTERPOLATE, ALIGN_NEXT_OLDER, ALIGN_MIN, ALIGN_MAX, ALIGN_MEAN, ALIGN_COUNT, ALIGN_SUM, ALIGN_STDDEV, ALIGN_COUNT_TRUE, ALIGN_COUNT_FALSE, ALIGN_FRACTION_TRUE, ALIGN_PERCENTILE_99, ALIGN_PERCENTILE_95, ALIGN_PERCENTILE_50, ALIGN_PERCENTILE_05, ALIGN_PERCENT_CHANGE.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations#perSeriesAligner
+   */
+  readonly perSeriesAligner?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations(obj: AlertPolicySpecInitProviderConditionsConditionThresholdDenominatorAggregations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'alignmentPeriod': obj.alignmentPeriod,
+    'crossSeriesReducer': obj.crossSeriesReducer,
+    'groupByFields': obj.groupByFields?.map(y => y),
+    'perSeriesAligner': obj.perSeriesAligner,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions {
+  /**
+   * The length of time into the future to forecast whether a timeseries will violate the threshold. If the predicted value is found to violate the threshold, and the violation is observed in all forecasts made for the Configured duration, then the timeseries is considered to be failing.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions#forecastHorizon
+   */
+  readonly forecastHorizon?: string;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions(obj: AlertPolicySpecInitProviderConditionsConditionThresholdForecastOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'forecastHorizon': obj.forecastHorizon,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AlertPolicySpecInitProviderConditionsConditionThresholdTrigger
+ */
+export interface AlertPolicySpecInitProviderConditionsConditionThresholdTrigger {
+  /**
+   * The absolute number of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdTrigger#count
+   */
+  readonly count?: number;
+
+  /**
+   * The percentage of time series that must fail the predicate for the condition to be triggered.
+   *
+   * @schema AlertPolicySpecInitProviderConditionsConditionThresholdTrigger#percent
+   */
+  readonly percent?: number;
+
+}
+
+/**
+ * Converts an object of type 'AlertPolicySpecInitProviderConditionsConditionThresholdTrigger' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AlertPolicySpecInitProviderConditionsConditionThresholdTrigger(obj: AlertPolicySpecInitProviderConditionsConditionThresholdTrigger | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'count': obj.count,
@@ -1522,7 +2393,7 @@ export function toJson_CustomServiceProps(obj: CustomServiceProps | undefined): 
  */
 export interface CustomServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CustomServiceSpec#deletionPolicy
    */
@@ -1534,11 +2405,18 @@ export interface CustomServiceSpec {
   readonly forProvider: CustomServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CustomServiceSpec#managementPolicy
+   * @schema CustomServiceSpec#initProvider
    */
-  readonly managementPolicy?: CustomServiceSpecManagementPolicy;
+  readonly initProvider?: CustomServiceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CustomServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: CustomServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1546,13 +2424,6 @@ export interface CustomServiceSpec {
    * @schema CustomServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: CustomServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CustomServiceSpec#providerRef
-   */
-  readonly providerRef?: CustomServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1579,9 +2450,9 @@ export function toJson_CustomServiceSpec(obj: CustomServiceSpec | undefined): Re
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CustomServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CustomServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CustomServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CustomServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CustomServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CustomServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1591,7 +2462,7 @@ export function toJson_CustomServiceSpec(obj: CustomServiceSpec | undefined): Re
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CustomServiceSpecDeletionPolicy
  */
@@ -1662,17 +2533,84 @@ export function toJson_CustomServiceSpecForProvider(obj: CustomServiceSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CustomServiceSpecManagementPolicy
+ * @schema CustomServiceSpecInitProvider
  */
-export enum CustomServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CustomServiceSpecInitProvider {
+  /**
+   * Name used for UI elements listing this Service.
+   *
+   * @schema CustomServiceSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema CustomServiceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * An optional service ID to use. If not given, the server will generate a service ID.
+   *
+   * @schema CustomServiceSpecInitProvider#serviceId
+   */
+  readonly serviceId?: string;
+
+  /**
+   * Configuration for how to query telemetry on a Service. Structure is documented below.
+   *
+   * @schema CustomServiceSpecInitProvider#telemetry
+   */
+  readonly telemetry?: CustomServiceSpecInitProviderTelemetry[];
+
+  /**
+   * Labels which have been used to annotate the service. Label keys must start with a letter. Label keys and values may contain lowercase letters, numbers, underscores, and dashes. Label keys and values have a maximum length of 63 characters, and must be less than 128 bytes in size. Up to 64 label entries may be stored. For labels which do not have a semantic value, the empty string may be supplied for the label value.
+   *
+   * @schema CustomServiceSpecInitProvider#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CustomServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomServiceSpecInitProvider(obj: CustomServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'project': obj.project,
+    'serviceId': obj.serviceId,
+    'telemetry': obj.telemetry?.map(y => toJson_CustomServiceSpecInitProviderTelemetry(y)),
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CustomServiceSpecManagementPolicies
+ */
+export enum CustomServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1706,43 +2644,6 @@ export function toJson_CustomServiceSpecProviderConfigRef(obj: CustomServiceSpec
   const result = {
     'name': obj.name,
     'policy': toJson_CustomServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CustomServiceSpecProviderRef
- */
-export interface CustomServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CustomServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CustomServiceSpecProviderRef#policy
-   */
-  readonly policy?: CustomServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CustomServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomServiceSpecProviderRef(obj: CustomServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CustomServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1859,6 +2760,33 @@ export function toJson_CustomServiceSpecForProviderTelemetry(obj: CustomServiceS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CustomServiceSpecInitProviderTelemetry
+ */
+export interface CustomServiceSpecInitProviderTelemetry {
+  /**
+   * The full name of the resource that defines this service. Formatted as described in https://cloud.google.com/apis/design/resource_names.
+   *
+   * @schema CustomServiceSpecInitProviderTelemetry#resourceName
+   */
+  readonly resourceName?: string;
+
+}
+
+/**
+ * Converts an object of type 'CustomServiceSpecInitProviderTelemetry' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CustomServiceSpecInitProviderTelemetry(obj: CustomServiceSpecInitProviderTelemetry | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceName': obj.resourceName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CustomServiceSpecProviderConfigRefPolicy
@@ -1885,43 +2813,6 @@ export interface CustomServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CustomServiceSpecProviderConfigRefPolicy(obj: CustomServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CustomServiceSpecProviderRefPolicy
- */
-export interface CustomServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CustomServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CustomServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CustomServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CustomServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CustomServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CustomServiceSpecProviderRefPolicy(obj: CustomServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2032,30 +2923,6 @@ export enum CustomServiceSpecProviderConfigRefPolicyResolution {
  * @schema CustomServiceSpecProviderConfigRefPolicyResolve
  */
 export enum CustomServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CustomServiceSpecProviderRefPolicyResolution
- */
-export enum CustomServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CustomServiceSpecProviderRefPolicyResolve
- */
-export enum CustomServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2220,7 +3087,7 @@ export function toJson_DashboardProps(obj: DashboardProps | undefined): Record<s
  */
 export interface DashboardSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DashboardSpec#deletionPolicy
    */
@@ -2232,11 +3099,18 @@ export interface DashboardSpec {
   readonly forProvider: DashboardSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DashboardSpec#managementPolicy
+   * @schema DashboardSpec#initProvider
    */
-  readonly managementPolicy?: DashboardSpecManagementPolicy;
+  readonly initProvider?: DashboardSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DashboardSpec#managementPolicies
+   */
+  readonly managementPolicies?: DashboardSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2244,13 +3118,6 @@ export interface DashboardSpec {
    * @schema DashboardSpec#providerConfigRef
    */
   readonly providerConfigRef?: DashboardSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DashboardSpec#providerRef
-   */
-  readonly providerRef?: DashboardSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2277,9 +3144,9 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DashboardSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DashboardSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DashboardSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DashboardSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DashboardSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DashboardSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2289,7 +3156,7 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DashboardSpecDeletionPolicy
  */
@@ -2336,17 +3203,60 @@ export function toJson_DashboardSpecForProvider(obj: DashboardSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DashboardSpecManagementPolicy
+ * @schema DashboardSpecInitProvider
  */
-export enum DashboardSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DashboardSpecInitProvider {
+  /**
+   * The JSON representation of a dashboard, following the format at https://cloud.google.com/monitoring/api/ref_v3/rest/v1/projects.dashboards. The representation of an existing dashboard can be found by using the API Explorer
+   *
+   * @schema DashboardSpecInitProvider#dashboardJson
+   */
+  readonly dashboardJson?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema DashboardSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'DashboardSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DashboardSpecInitProvider(obj: DashboardSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dashboardJson': obj.dashboardJson,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DashboardSpecManagementPolicies
+ */
+export enum DashboardSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2380,43 +3290,6 @@ export function toJson_DashboardSpecProviderConfigRef(obj: DashboardSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_DashboardSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DashboardSpecProviderRef
- */
-export interface DashboardSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DashboardSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DashboardSpecProviderRef#policy
-   */
-  readonly policy?: DashboardSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DashboardSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DashboardSpecProviderRef(obj: DashboardSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DashboardSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2543,43 +3416,6 @@ export function toJson_DashboardSpecProviderConfigRefPolicy(obj: DashboardSpecPr
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DashboardSpecProviderRefPolicy
- */
-export interface DashboardSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DashboardSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DashboardSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DashboardSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DashboardSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DashboardSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DashboardSpecProviderRefPolicy(obj: DashboardSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DashboardSpecPublishConnectionDetailsToConfigRef
@@ -2679,30 +3515,6 @@ export enum DashboardSpecProviderConfigRefPolicyResolution {
  * @schema DashboardSpecProviderConfigRefPolicyResolve
  */
 export enum DashboardSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DashboardSpecProviderRefPolicyResolution
- */
-export enum DashboardSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DashboardSpecProviderRefPolicyResolve
- */
-export enum DashboardSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2867,7 +3679,7 @@ export function toJson_GroupProps(obj: GroupProps | undefined): Record<string, a
  */
 export interface GroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema GroupSpec#deletionPolicy
    */
@@ -2879,11 +3691,18 @@ export interface GroupSpec {
   readonly forProvider: GroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema GroupSpec#managementPolicy
+   * @schema GroupSpec#initProvider
    */
-  readonly managementPolicy?: GroupSpecManagementPolicy;
+  readonly initProvider?: GroupSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema GroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: GroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2891,13 +3710,6 @@ export interface GroupSpec {
    * @schema GroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: GroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema GroupSpec#providerRef
-   */
-  readonly providerRef?: GroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2924,9 +3736,9 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_GroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_GroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_GroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_GroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_GroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_GroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2936,7 +3748,7 @@ export function toJson_GroupSpec(obj: GroupSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema GroupSpecDeletionPolicy
  */
@@ -3023,17 +3835,76 @@ export function toJson_GroupSpecForProvider(obj: GroupSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema GroupSpecManagementPolicy
+ * @schema GroupSpecInitProvider
  */
-export enum GroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface GroupSpecInitProvider {
+  /**
+   * A user-assigned name for this group, used only for display purposes.
+   *
+   * @schema GroupSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The filter used to determine which monitored resources belong to this group.
+   *
+   * @schema GroupSpecInitProvider#filter
+   */
+  readonly filter?: string;
+
+  /**
+   * If true, the members of this group are considered to be a cluster. The system can perform additional analysis on groups that are clusters.
+   *
+   * @schema GroupSpecInitProvider#isCluster
+   */
+  readonly isCluster?: boolean;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema GroupSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'GroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_GroupSpecInitProvider(obj: GroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'filter': obj.filter,
+    'isCluster': obj.isCluster,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema GroupSpecManagementPolicies
+ */
+export enum GroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3067,43 +3938,6 @@ export function toJson_GroupSpecProviderConfigRef(obj: GroupSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_GroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema GroupSpecProviderRef
- */
-export interface GroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema GroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema GroupSpecProviderRef#policy
-   */
-  readonly policy?: GroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'GroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GroupSpecProviderRef(obj: GroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_GroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3312,43 +4146,6 @@ export function toJson_GroupSpecProviderConfigRefPolicy(obj: GroupSpecProviderCo
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema GroupSpecProviderRefPolicy
- */
-export interface GroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema GroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: GroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema GroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: GroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'GroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_GroupSpecProviderRefPolicy(obj: GroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema GroupSpecPublishConnectionDetailsToConfigRef
@@ -3522,30 +4319,6 @@ export enum GroupSpecProviderConfigRefPolicyResolution {
  * @schema GroupSpecProviderConfigRefPolicyResolve
  */
 export enum GroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema GroupSpecProviderRefPolicyResolution
- */
-export enum GroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema GroupSpecProviderRefPolicyResolve
- */
-export enum GroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3758,7 +4531,7 @@ export function toJson_MetricDescriptorProps(obj: MetricDescriptorProps | undefi
  */
 export interface MetricDescriptorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MetricDescriptorSpec#deletionPolicy
    */
@@ -3770,11 +4543,18 @@ export interface MetricDescriptorSpec {
   readonly forProvider: MetricDescriptorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MetricDescriptorSpec#managementPolicy
+   * @schema MetricDescriptorSpec#initProvider
    */
-  readonly managementPolicy?: MetricDescriptorSpecManagementPolicy;
+  readonly initProvider?: MetricDescriptorSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MetricDescriptorSpec#managementPolicies
+   */
+  readonly managementPolicies?: MetricDescriptorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3782,13 +4562,6 @@ export interface MetricDescriptorSpec {
    * @schema MetricDescriptorSpec#providerConfigRef
    */
   readonly providerConfigRef?: MetricDescriptorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MetricDescriptorSpec#providerRef
-   */
-  readonly providerRef?: MetricDescriptorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3815,9 +4588,9 @@ export function toJson_MetricDescriptorSpec(obj: MetricDescriptorSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MetricDescriptorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MetricDescriptorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MetricDescriptorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MetricDescriptorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MetricDescriptorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MetricDescriptorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3827,7 +4600,7 @@ export function toJson_MetricDescriptorSpec(obj: MetricDescriptorSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MetricDescriptorSpecDeletionPolicy
  */
@@ -3938,17 +4711,124 @@ export function toJson_MetricDescriptorSpecForProvider(obj: MetricDescriptorSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MetricDescriptorSpecManagementPolicy
+ * @schema MetricDescriptorSpecInitProvider
  */
-export enum MetricDescriptorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MetricDescriptorSpecInitProvider {
+  /**
+   * A detailed description of the metric, which can be used in documentation.
+   *
+   * @schema MetricDescriptorSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A concise name for the metric, which can be displayed in user interfaces. Use sentence case without an ending period, for example "Request count".
+   *
+   * @schema MetricDescriptorSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The set of labels that can be used to describe a specific instance of this metric type. In order to delete a label, the entire resource must be deleted, then created with the desired labels. Structure is documented below.
+   *
+   * @schema MetricDescriptorSpecInitProvider#labels
+   */
+  readonly labels?: MetricDescriptorSpecInitProviderLabels[];
+
+  /**
+   * The launch stage of the metric definition. Possible values are: LAUNCH_STAGE_UNSPECIFIED, UNIMPLEMENTED, PRELAUNCH, EARLY_ACCESS, ALPHA, BETA, GA, DEPRECATED.
+   *
+   * @schema MetricDescriptorSpecInitProvider#launchStage
+   */
+  readonly launchStage?: string;
+
+  /**
+   * Metadata which can be used to guide usage of the metric. Structure is documented below.
+   *
+   * @schema MetricDescriptorSpecInitProvider#metadata
+   */
+  readonly metadata?: MetricDescriptorSpecInitProviderMetadata[];
+
+  /**
+   * Whether the metric records instantaneous values, changes to a value, etc. Some combinations of metricKind and valueType might not be supported. Possible values are: METRIC_KIND_UNSPECIFIED, GAUGE, DELTA, CUMULATIVE.
+   *
+   * @schema MetricDescriptorSpecInitProvider#metricKind
+   */
+  readonly metricKind?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema MetricDescriptorSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The metric type, including its DNS name prefix. The type is not URL-encoded. All service defined metrics must be prefixed with the service name, in the format of {service name}/{relative metric name}, such as cloudsql.googleapis.com/database/cpu/utilization. The relative metric name must have only upper and lower-case letters, digits, '/' and underscores '_' are allowed. Additionally, the maximum number of characters allowed for the relative_metric_name is 100. All user-defined metric types have the DNS name custom.googleapis.com, external.googleapis.com, or logging.googleapis.com/user/.
+   *
+   * @schema MetricDescriptorSpecInitProvider#type
+   */
+  readonly type?: string;
+
+  /**
+   * The units in which the metric value is reported. It is only applicable if the valueType is INT64, DOUBLE, or DISTRIBUTION. The unit defines the representation of the stored metric values. Different systems may scale the values to be more easily displayed (so a value of 0.02KBy might be displayed as 20By, and a value of 3523KBy might be displayed as 3.5MBy). However, if the unit is KBy, then the value of the metric is always in thousands of bytes, no matter how it may be displayed. If you want a custom metric to record the exact number of CPU-seconds used by a job, you can create an INT64 CUMULATIVE metric whose unit is s{CPU} (or equivalently 1s{CPU} or just s). If the job uses 12,005 CPU-seconds, then the value is written as 12005. Alternatively, if you want a custom metric to record data in a more granular way, you can create a DOUBLE CUMULATIVE metric whose unit is ks{CPU}, and then write the value 12.005 (which is 12005/1000), or use Kis{CPU} and write 11.723 (which is 12005/1024). The supported units are a subset of The Unified Code for Units of Measure standard. More info can be found in the API documentation (https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors).
+   *
+   * @schema MetricDescriptorSpecInitProvider#unit
+   */
+  readonly unit?: string;
+
+  /**
+   * Whether the measurement is an integer, a floating-point number, etc. Some combinations of metricKind and valueType might not be supported. Possible values are: BOOL, INT64, DOUBLE, STRING, DISTRIBUTION.
+   *
+   * @schema MetricDescriptorSpecInitProvider#valueType
+   */
+  readonly valueType?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricDescriptorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricDescriptorSpecInitProvider(obj: MetricDescriptorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'displayName': obj.displayName,
+    'labels': obj.labels?.map(y => toJson_MetricDescriptorSpecInitProviderLabels(y)),
+    'launchStage': obj.launchStage,
+    'metadata': obj.metadata?.map(y => toJson_MetricDescriptorSpecInitProviderMetadata(y)),
+    'metricKind': obj.metricKind,
+    'project': obj.project,
+    'type': obj.type,
+    'unit': obj.unit,
+    'valueType': obj.valueType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MetricDescriptorSpecManagementPolicies
+ */
+export enum MetricDescriptorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3982,43 +4862,6 @@ export function toJson_MetricDescriptorSpecProviderConfigRef(obj: MetricDescript
   const result = {
     'name': obj.name,
     'policy': toJson_MetricDescriptorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MetricDescriptorSpecProviderRef
- */
-export interface MetricDescriptorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MetricDescriptorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MetricDescriptorSpecProviderRef#policy
-   */
-  readonly policy?: MetricDescriptorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MetricDescriptorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricDescriptorSpecProviderRef(obj: MetricDescriptorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MetricDescriptorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4123,7 +4966,7 @@ export interface MetricDescriptorSpecForProviderLabels {
    *
    * @schema MetricDescriptorSpecForProviderLabels#key
    */
-  readonly key: string;
+  readonly key?: string;
 
   /**
    * The type of data that can be assigned to the label. Default value is STRING. Possible values are: STRING, BOOL, INT64.
@@ -4186,6 +5029,84 @@ export function toJson_MetricDescriptorSpecForProviderMetadata(obj: MetricDescri
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MetricDescriptorSpecInitProviderLabels
+ */
+export interface MetricDescriptorSpecInitProviderLabels {
+  /**
+   * A human-readable description for the label.
+   *
+   * @schema MetricDescriptorSpecInitProviderLabels#description
+   */
+  readonly description?: string;
+
+  /**
+   * The key for this label. The key must not exceed 100 characters. The first character of the key must be an upper- or lower-case letter, the remaining characters must be letters, digits or underscores, and the key must match the regular expression [a-zA-Z][a-zA-Z0-9_]*
+   *
+   * @schema MetricDescriptorSpecInitProviderLabels#key
+   */
+  readonly key?: string;
+
+  /**
+   * The type of data that can be assigned to the label. Default value is STRING. Possible values are: STRING, BOOL, INT64.
+   *
+   * @schema MetricDescriptorSpecInitProviderLabels#valueType
+   */
+  readonly valueType?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricDescriptorSpecInitProviderLabels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricDescriptorSpecInitProviderLabels(obj: MetricDescriptorSpecInitProviderLabels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'key': obj.key,
+    'valueType': obj.valueType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricDescriptorSpecInitProviderMetadata
+ */
+export interface MetricDescriptorSpecInitProviderMetadata {
+  /**
+   * The delay of data points caused by ingestion. Data points older than this age are guaranteed to be ingested and available to be read, excluding data loss due to errors. In [duration format](https://developers.google.com/protocol-buffers/docs/reference/google.protobuf?&_ga=2.264881487.1507873253.1593446723-935052455.1591817775#google.protobuf.Duration).
+   *
+   * @schema MetricDescriptorSpecInitProviderMetadata#ingestDelay
+   */
+  readonly ingestDelay?: string;
+
+  /**
+   * The sampling period of metric data points. For metrics which are written periodically, consecutive data points are stored at this time interval, excluding data loss due to errors. Metrics with a higher granularity have a smaller sampling period. In [duration format](https://developers.google.com/protocol-buffers/docs/reference/google.protobuf?&_ga=2.264881487.1507873253.1593446723-935052455.1591817775#google.protobuf.Duration).
+   *
+   * @schema MetricDescriptorSpecInitProviderMetadata#samplePeriod
+   */
+  readonly samplePeriod?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricDescriptorSpecInitProviderMetadata' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricDescriptorSpecInitProviderMetadata(obj: MetricDescriptorSpecInitProviderMetadata | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ingestDelay': obj.ingestDelay,
+    'samplePeriod': obj.samplePeriod,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MetricDescriptorSpecProviderConfigRefPolicy
@@ -4212,43 +5133,6 @@ export interface MetricDescriptorSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetricDescriptorSpecProviderConfigRefPolicy(obj: MetricDescriptorSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MetricDescriptorSpecProviderRefPolicy
- */
-export interface MetricDescriptorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MetricDescriptorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MetricDescriptorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MetricDescriptorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MetricDescriptorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MetricDescriptorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricDescriptorSpecProviderRefPolicy(obj: MetricDescriptorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4359,30 +5243,6 @@ export enum MetricDescriptorSpecProviderConfigRefPolicyResolution {
  * @schema MetricDescriptorSpecProviderConfigRefPolicyResolve
  */
 export enum MetricDescriptorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MetricDescriptorSpecProviderRefPolicyResolution
- */
-export enum MetricDescriptorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MetricDescriptorSpecProviderRefPolicyResolve
- */
-export enum MetricDescriptorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4547,7 +5407,7 @@ export function toJson_NotificationChannelProps(obj: NotificationChannelProps | 
  */
 export interface NotificationChannelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NotificationChannelSpec#deletionPolicy
    */
@@ -4559,11 +5419,18 @@ export interface NotificationChannelSpec {
   readonly forProvider: NotificationChannelSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NotificationChannelSpec#managementPolicy
+   * @schema NotificationChannelSpec#initProvider
    */
-  readonly managementPolicy?: NotificationChannelSpecManagementPolicy;
+  readonly initProvider?: NotificationChannelSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NotificationChannelSpec#managementPolicies
+   */
+  readonly managementPolicies?: NotificationChannelSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4571,13 +5438,6 @@ export interface NotificationChannelSpec {
    * @schema NotificationChannelSpec#providerConfigRef
    */
   readonly providerConfigRef?: NotificationChannelSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NotificationChannelSpec#providerRef
-   */
-  readonly providerRef?: NotificationChannelSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4604,9 +5464,9 @@ export function toJson_NotificationChannelSpec(obj: NotificationChannelSpec | un
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NotificationChannelSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NotificationChannelSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NotificationChannelSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NotificationChannelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NotificationChannelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NotificationChannelSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4616,7 +5476,7 @@ export function toJson_NotificationChannelSpec(obj: NotificationChannelSpec | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NotificationChannelSpecDeletionPolicy
  */
@@ -4719,17 +5579,116 @@ export function toJson_NotificationChannelSpecForProvider(obj: NotificationChann
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NotificationChannelSpecManagementPolicy
+ * @schema NotificationChannelSpecInitProvider
  */
-export enum NotificationChannelSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NotificationChannelSpecInitProvider {
+  /**
+   * An optional human-readable description of this notification channel. This description may provide additional details, beyond the display name, for the channel. This may not exceed 1024 Unicode characters.
+   *
+   * @schema NotificationChannelSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * An optional human-readable name for this notification channel. It is recommended that you specify a non-empty and unique name in order to make it easier to identify the channels in your project, though this is not enforced. The display name is limited to 512 Unicode characters.
+   *
+   * @schema NotificationChannelSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Whether notifications are forwarded to the described channel. This makes it possible to disable delivery of notifications to a particular channel without removing the channel from all alerting policies that reference the channel. This is a more convenient approach when the change is temporary and you want to receive notifications from the same set of alerting policies on the channel at some point in the future.
+   *
+   * @schema NotificationChannelSpecInitProvider#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * If true, the notification channel will be deleted regardless of its use in alert policies (the policies will be updated to remove the channel). If false, channels that are still referenced by an existing alerting policy will fail to be deleted in a delete operation.
+   *
+   * @schema NotificationChannelSpecInitProvider#forceDelete
+   */
+  readonly forceDelete?: boolean;
+
+  /**
+   * Configuration fields that define the channel and its behavior. The permissible and required labels are specified in the NotificationChannelDescriptor corresponding to the type field. They can also be configured via the sensitive_labels block, but cannot be configured in both places.
+   *
+   * @schema NotificationChannelSpecInitProvider#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema NotificationChannelSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Different notification type behaviors are configured primarily using the the labels field on this resource. This block contains the labels which contain secrets or passwords so that they can be marked sensitive and hidden from plan output. The name of the field, eg: password, will be the key in the labels map in the api request. Credentials may not be specified in both locations and will cause an error. Changing from one location to a different credential configuration in the config will require an apply to update state. Structure is documented below.
+   *
+   * @schema NotificationChannelSpecInitProvider#sensitiveLabels
+   */
+  readonly sensitiveLabels?: any[];
+
+  /**
+   * The type of the notification channel. This field matches the value of the NotificationChannelDescriptor.type field. See https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.notificationChannelDescriptors/list to get the list of valid values such as "email", "slack", etc...
+   *
+   * @schema NotificationChannelSpecInitProvider#type
+   */
+  readonly type?: string;
+
+  /**
+   * User-supplied key/value data that does not need to conform to the corresponding NotificationChannelDescriptor's schema, unlike the labels field. This field is intended to be used for organizing and identifying the NotificationChannel objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter.
+   *
+   * @schema NotificationChannelSpecInitProvider#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'NotificationChannelSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotificationChannelSpecInitProvider(obj: NotificationChannelSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'displayName': obj.displayName,
+    'enabled': obj.enabled,
+    'forceDelete': obj.forceDelete,
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'project': obj.project,
+    'sensitiveLabels': obj.sensitiveLabels?.map(y => y),
+    'type': obj.type,
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NotificationChannelSpecManagementPolicies
+ */
+export enum NotificationChannelSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4763,43 +5722,6 @@ export function toJson_NotificationChannelSpecProviderConfigRef(obj: Notificatio
   const result = {
     'name': obj.name,
     'policy': toJson_NotificationChannelSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NotificationChannelSpecProviderRef
- */
-export interface NotificationChannelSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NotificationChannelSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NotificationChannelSpecProviderRef#policy
-   */
-  readonly policy?: NotificationChannelSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NotificationChannelSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotificationChannelSpecProviderRef(obj: NotificationChannelSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NotificationChannelSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4958,43 +5880,6 @@ export interface NotificationChannelSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NotificationChannelSpecProviderConfigRefPolicy(obj: NotificationChannelSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NotificationChannelSpecProviderRefPolicy
- */
-export interface NotificationChannelSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NotificationChannelSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NotificationChannelSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NotificationChannelSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NotificationChannelSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NotificationChannelSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotificationChannelSpecProviderRefPolicy(obj: NotificationChannelSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5247,30 +6132,6 @@ export enum NotificationChannelSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NotificationChannelSpecProviderRefPolicyResolution
- */
-export enum NotificationChannelSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NotificationChannelSpecProviderRefPolicyResolve
- */
-export enum NotificationChannelSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema NotificationChannelSpecPublishConnectionDetailsToConfigRefPolicy
@@ -5428,7 +6289,7 @@ export function toJson_ServiceProps(obj: ServiceProps | undefined): Record<strin
  */
 export interface ServiceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServiceSpec#deletionPolicy
    */
@@ -5440,11 +6301,18 @@ export interface ServiceSpec {
   readonly forProvider: ServiceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServiceSpec#managementPolicy
+   * @schema ServiceSpec#initProvider
    */
-  readonly managementPolicy?: ServiceSpecManagementPolicy;
+  readonly initProvider?: ServiceSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServiceSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServiceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5452,13 +6320,6 @@ export interface ServiceSpec {
    * @schema ServiceSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServiceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServiceSpec#providerRef
-   */
-  readonly providerRef?: ServiceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5485,9 +6346,9 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServiceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServiceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServiceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServiceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServiceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServiceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5497,7 +6358,7 @@ export function toJson_ServiceSpec(obj: ServiceSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServiceSpecDeletionPolicy
  */
@@ -5560,17 +6421,76 @@ export function toJson_ServiceSpecForProvider(obj: ServiceSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServiceSpecManagementPolicy
+ * @schema ServiceSpecInitProvider
  */
-export enum ServiceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServiceSpecInitProvider {
+  /**
+   * A well-known service type, defined by its service type and service labels. Valid values of service types and services labels are described at https://cloud.google.com/stackdriver/docs/solutions/slo-monitoring/api/api-structures#basic-svc-w-basic-sli Structure is documented below.
+   *
+   * @schema ServiceSpecInitProvider#basicService
+   */
+  readonly basicService?: ServiceSpecInitProviderBasicService[];
+
+  /**
+   * Name used for UI elements listing this Service.
+   *
+   * @schema ServiceSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema ServiceSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * Labels which have been used to annotate the service. Label keys must start with a letter. Label keys and values may contain lowercase letters, numbers, underscores, and dashes. Label keys and values have a maximum length of 63 characters, and must be less than 128 bytes in size. Up to 64 label entries may be stored. For labels which do not have a semantic value, the empty string may be supplied for the label value.
+   *
+   * @schema ServiceSpecInitProvider#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProvider(obj: ServiceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'basicService': obj.basicService?.map(y => toJson_ServiceSpecInitProviderBasicService(y)),
+    'displayName': obj.displayName,
+    'project': obj.project,
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServiceSpecManagementPolicies
+ */
+export enum ServiceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5604,43 +6524,6 @@ export function toJson_ServiceSpecProviderConfigRef(obj: ServiceSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ServiceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServiceSpecProviderRef
- */
-export interface ServiceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServiceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServiceSpecProviderRef#policy
-   */
-  readonly policy?: ServiceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRef(obj: ServiceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServiceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5765,6 +6648,41 @@ export function toJson_ServiceSpecForProviderBasicService(obj: ServiceSpecForPro
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ServiceSpecInitProviderBasicService
+ */
+export interface ServiceSpecInitProviderBasicService {
+  /**
+   * Labels that specify the resource that emits the monitoring data which is used for SLO reporting of this Service.
+   *
+   * @schema ServiceSpecInitProviderBasicService#serviceLabels
+   */
+  readonly serviceLabels?: { [key: string]: string };
+
+  /**
+   * The type of service that this basic service defines, e.g. APP_ENGINE service type
+   *
+   * @schema ServiceSpecInitProviderBasicService#serviceType
+   */
+  readonly serviceType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServiceSpecInitProviderBasicService' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServiceSpecInitProviderBasicService(obj: ServiceSpecInitProviderBasicService | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'serviceLabels': ((obj.serviceLabels) === undefined) ? undefined : (Object.entries(obj.serviceLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'serviceType': obj.serviceType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ServiceSpecProviderConfigRefPolicy
@@ -5791,43 +6709,6 @@ export interface ServiceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ServiceSpecProviderConfigRefPolicy(obj: ServiceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ServiceSpecProviderRefPolicy
- */
-export interface ServiceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServiceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServiceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServiceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServiceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServiceSpecProviderRefPolicy(obj: ServiceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5938,30 +6819,6 @@ export enum ServiceSpecProviderConfigRefPolicyResolution {
  * @schema ServiceSpecProviderConfigRefPolicyResolve
  */
 export enum ServiceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServiceSpecProviderRefPolicyResolution
- */
-export enum ServiceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServiceSpecProviderRefPolicyResolve
- */
-export enum ServiceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6126,7 +6983,7 @@ export function toJson_SloProps(obj: SloProps | undefined): Record<string, any> 
  */
 export interface SloSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SloSpec#deletionPolicy
    */
@@ -6138,11 +6995,18 @@ export interface SloSpec {
   readonly forProvider: SloSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SloSpec#managementPolicy
+   * @schema SloSpec#initProvider
    */
-  readonly managementPolicy?: SloSpecManagementPolicy;
+  readonly initProvider?: SloSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SloSpec#managementPolicies
+   */
+  readonly managementPolicies?: SloSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6150,13 +7014,6 @@ export interface SloSpec {
    * @schema SloSpec#providerConfigRef
    */
   readonly providerConfigRef?: SloSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SloSpec#providerRef
-   */
-  readonly providerRef?: SloSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6183,9 +7040,9 @@ export function toJson_SloSpec(obj: SloSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SloSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SloSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SloSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SloSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SloSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SloSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6195,7 +7052,7 @@ export function toJson_SloSpec(obj: SloSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SloSpecDeletionPolicy
  */
@@ -6330,17 +7187,124 @@ export function toJson_SloSpecForProvider(obj: SloSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SloSpecManagementPolicy
+ * @schema SloSpecInitProvider
  */
-export enum SloSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SloSpecInitProvider {
+  /**
+   * Basic Service-Level Indicator (SLI) on a well-known service type. Performance will be computed on the basis of pre-defined metrics. SLIs are used to measure and calculate the quality of the Service's performance with respect to a single aspect of service quality. Exactly one of the following must be set: basic_sli, request_based_sli, windows_based_sli Structure is documented below.
+   *
+   * @schema SloSpecInitProvider#basicSli
+   */
+  readonly basicSli?: SloSpecInitProviderBasicSli[];
+
+  /**
+   * A calendar period, semantically "since the start of the current ". Possible values are: DAY, WEEK, FORTNIGHT, MONTH.
+   *
+   * @schema SloSpecInitProvider#calendarPeriod
+   */
+  readonly calendarPeriod?: string;
+
+  /**
+   * Name used for UI elements listing this SLO.
+   *
+   * @schema SloSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The fraction of service that must be good in order for this objective to be met. 0 < goal <= 0.999
+   *
+   * @schema SloSpecInitProvider#goal
+   */
+  readonly goal?: number;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema SloSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * A request-based SLI defines a SLI for which atomic units of service are counted directly. A SLI describes a good service. It is used to measure and calculate the quality of the Service's performance with respect to a single aspect of service quality. Exactly one of the following must be set: basic_sli, request_based_sli, windows_based_sli Structure is documented below.
+   *
+   * @schema SloSpecInitProvider#requestBasedSli
+   */
+  readonly requestBasedSli?: SloSpecInitProviderRequestBasedSli[];
+
+  /**
+   * A rolling time period, semantically "in the past X days". Must be between 1 to 30 days, inclusive.
+   *
+   * @schema SloSpecInitProvider#rollingPeriodDays
+   */
+  readonly rollingPeriodDays?: number;
+
+  /**
+   * The id to use for this ServiceLevelObjective. If omitted, an id will be generated instead.
+   *
+   * @schema SloSpecInitProvider#sloId
+   */
+  readonly sloId?: string;
+
+  /**
+   * This field is intended to be used for organizing and identifying the AlertPolicy objects.The field can contain up to 64 entries. Each key and value is limited to 63 Unicode characters or 128 bytes, whichever is smaller. Labels and values can contain only lowercase letters, numerals, underscores, and dashes. Keys must begin with a letter.
+   *
+   * @schema SloSpecInitProvider#userLabels
+   */
+  readonly userLabels?: { [key: string]: string };
+
+  /**
+   * A windows-based SLI defines the criteria for time windows. good_service is defined based off the count of these time windows for which the provided service was of good quality. A SLI describes a good service. It is used to measure and calculate the quality of the Service's performance with respect to a single aspect of service quality. Exactly one of the following must be set: basic_sli, request_based_sli, windows_based_sli Structure is documented below.
+   *
+   * @schema SloSpecInitProvider#windowsBasedSli
+   */
+  readonly windowsBasedSli?: SloSpecInitProviderWindowsBasedSli[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProvider(obj: SloSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'basicSli': obj.basicSli?.map(y => toJson_SloSpecInitProviderBasicSli(y)),
+    'calendarPeriod': obj.calendarPeriod,
+    'displayName': obj.displayName,
+    'goal': obj.goal,
+    'project': obj.project,
+    'requestBasedSli': obj.requestBasedSli?.map(y => toJson_SloSpecInitProviderRequestBasedSli(y)),
+    'rollingPeriodDays': obj.rollingPeriodDays,
+    'sloId': obj.sloId,
+    'userLabels': ((obj.userLabels) === undefined) ? undefined : (Object.entries(obj.userLabels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'windowsBasedSli': obj.windowsBasedSli?.map(y => toJson_SloSpecInitProviderWindowsBasedSli(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SloSpecManagementPolicies
+ */
+export enum SloSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6374,43 +7338,6 @@ export function toJson_SloSpecProviderConfigRef(obj: SloSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_SloSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SloSpecProviderRef
- */
-export interface SloSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SloSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SloSpecProviderRef#policy
-   */
-  readonly policy?: SloSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SloSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SloSpecProviderRef(obj: SloSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SloSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6735,6 +7662,159 @@ export function toJson_SloSpecForProviderWindowsBasedSli(obj: SloSpecForProvider
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SloSpecInitProviderBasicSli
+ */
+export interface SloSpecInitProviderBasicSli {
+  /**
+   * Availability based SLI, dervied from count of requests made to this service that return successfully. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderBasicSli#availability
+   */
+  readonly availability?: SloSpecInitProviderBasicSliAvailability[];
+
+  /**
+   * Parameters for a latency threshold SLI. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderBasicSli#latency
+   */
+  readonly latency?: SloSpecInitProviderBasicSliLatency[];
+
+  /**
+   * An optional set of locations to which this SLI is relevant. Telemetry from other locations will not be used to calculate performance for this SLI. If omitted, this SLI applies to all locations in which the Service has activity. For service types that don't support breaking down by location, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderBasicSli#location
+   */
+  readonly location?: string[];
+
+  /**
+   * An optional set of RPCs to which this SLI is relevant. Telemetry from other methods will not be used to calculate performance for this SLI. If omitted, this SLI applies to all the Service's methods. For service types that don't support breaking down by method, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderBasicSli#method
+   */
+  readonly method?: string[];
+
+  /**
+   * The set of API versions to which this SLI is relevant. Telemetry from other API versions will not be used to calculate performance for this SLI. If omitted, this SLI applies to all API versions. For service types that don't support breaking down by version, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderBasicSli#version
+   */
+  readonly version?: string[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderBasicSli' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderBasicSli(obj: SloSpecInitProviderBasicSli | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availability': obj.availability?.map(y => toJson_SloSpecInitProviderBasicSliAvailability(y)),
+    'latency': obj.latency?.map(y => toJson_SloSpecInitProviderBasicSliLatency(y)),
+    'location': obj.location?.map(y => y),
+    'method': obj.method?.map(y => y),
+    'version': obj.version?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderRequestBasedSli
+ */
+export interface SloSpecInitProviderRequestBasedSli {
+  /**
+   * Used when good_service is defined by a count of values aggregated in a Distribution that fall into a good range. The total_service is the total count of all values aggregated in the Distribution. Defines a distribution TimeSeries filter and thresholds used for measuring good service and total service. Exactly one of distribution_cut or good_total_ratio can be set. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderRequestBasedSli#distributionCut
+   */
+  readonly distributionCut?: SloSpecInitProviderRequestBasedSliDistributionCut[];
+
+  /**
+   * A means to compute a ratio of good_service to total_service. Defines computing this ratio with two TimeSeries monitoring filters Must specify exactly two of good, bad, and total service filters. The relationship good_service + bad_service = total_service will be assumed. Exactly one of distribution_cut or good_total_ratio can be set. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderRequestBasedSli#goodTotalRatio
+   */
+  readonly goodTotalRatio?: SloSpecInitProviderRequestBasedSliGoodTotalRatio[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderRequestBasedSli' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderRequestBasedSli(obj: SloSpecInitProviderRequestBasedSli | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'distributionCut': obj.distributionCut?.map(y => toJson_SloSpecInitProviderRequestBasedSliDistributionCut(y)),
+    'goodTotalRatio': obj.goodTotalRatio?.map(y => toJson_SloSpecInitProviderRequestBasedSliGoodTotalRatio(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSli
+ */
+export interface SloSpecInitProviderWindowsBasedSli {
+  /**
+   * A TimeSeries monitoring filter with ValueType = BOOL. The window is good if any true values appear in the window. One of good_bad_metric_filter, good_total_ratio_threshold, metric_mean_in_range, metric_sum_in_range must be set for windows_based_sli.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSli#goodBadMetricFilter
+   */
+  readonly goodBadMetricFilter?: string;
+
+  /**
+   * Criterion that describes a window as good if its performance is high enough. One of good_bad_metric_filter, good_total_ratio_threshold, metric_mean_in_range, metric_sum_in_range must be set for windows_based_sli. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSli#goodTotalRatioThreshold
+   */
+  readonly goodTotalRatioThreshold?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold[];
+
+  /**
+   * Criterion that describes a window as good if the metric's value is in a good range, averaged across returned streams. One of good_bad_metric_filter, good_total_ratio_threshold, metric_mean_in_range, metric_sum_in_range must be set for windows_based_sli. Average value X of time_series should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSli#metricMeanInRange
+   */
+  readonly metricMeanInRange?: SloSpecInitProviderWindowsBasedSliMetricMeanInRange[];
+
+  /**
+   * Criterion that describes a window as good if the metric's value is in a good range, summed across returned streams. Summed value X of time_series should satisfy range.min <= X <= range.max for a good window. One of good_bad_metric_filter, good_total_ratio_threshold, metric_mean_in_range, metric_sum_in_range must be set for windows_based_sli. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSli#metricSumInRange
+   */
+  readonly metricSumInRange?: SloSpecInitProviderWindowsBasedSliMetricSumInRange[];
+
+  /**
+   * Duration over which window quality is evaluated, given as a duration string "{X}s" representing X seconds. Must be an integer fraction of a day and at least 60s.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSli#windowPeriod
+   */
+  readonly windowPeriod?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSli' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSli(obj: SloSpecInitProviderWindowsBasedSli | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'goodBadMetricFilter': obj.goodBadMetricFilter,
+    'goodTotalRatioThreshold': obj.goodTotalRatioThreshold?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold(y)),
+    'metricMeanInRange': obj.metricMeanInRange?.map(y => toJson_SloSpecInitProviderWindowsBasedSliMetricMeanInRange(y)),
+    'metricSumInRange': obj.metricSumInRange?.map(y => toJson_SloSpecInitProviderWindowsBasedSliMetricSumInRange(y)),
+    'windowPeriod': obj.windowPeriod,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema SloSpecProviderConfigRefPolicy
@@ -6761,43 +7841,6 @@ export interface SloSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SloSpecProviderConfigRefPolicy(obj: SloSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SloSpecProviderRefPolicy
- */
-export interface SloSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SloSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SloSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SloSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SloSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SloSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SloSpecProviderRefPolicy(obj: SloSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6927,7 +7970,7 @@ export interface SloSpecForProviderBasicSliLatency {
    *
    * @schema SloSpecForProviderBasicSliLatency#threshold
    */
-  readonly threshold: string;
+  readonly threshold?: string;
 
 }
 
@@ -6954,14 +7997,14 @@ export interface SloSpecForProviderRequestBasedSliDistributionCut {
    *
    * @schema SloSpecForProviderRequestBasedSliDistributionCut#distributionFilter
    */
-  readonly distributionFilter: string;
+  readonly distributionFilter?: string;
 
   /**
    * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
    *
    * @schema SloSpecForProviderRequestBasedSliDistributionCut#range
    */
-  readonly range: SloSpecForProviderRequestBasedSliDistributionCutRange[];
+  readonly range?: SloSpecForProviderRequestBasedSliDistributionCutRange[];
 
 }
 
@@ -7149,14 +8192,14 @@ export interface SloSpecForProviderWindowsBasedSliMetricMeanInRange {
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricMeanInRange#range
    */
-  readonly range: SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange[];
+  readonly range?: SloSpecForProviderWindowsBasedSliMetricMeanInRangeRange[];
 
   /**
    * A monitoring filter specifying the TimeSeries to use for evaluating window quality. The provided TimeSeries must have ValueType = INT64 or ValueType = DOUBLE and MetricKind = GAUGE. Summed value X should satisfy range.min <= X <= range.max for a good window.
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricMeanInRange#timeSeries
    */
-  readonly timeSeries: string;
+  readonly timeSeries?: string;
 
 }
 
@@ -7184,14 +8227,14 @@ export interface SloSpecForProviderWindowsBasedSliMetricSumInRange {
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricSumInRange#range
    */
-  readonly range: SloSpecForProviderWindowsBasedSliMetricSumInRangeRange[];
+  readonly range?: SloSpecForProviderWindowsBasedSliMetricSumInRangeRange[];
 
   /**
    * A monitoring filter specifying the TimeSeries to use for evaluating window quality. The provided TimeSeries must have ValueType = INT64 or ValueType = DOUBLE and MetricKind = GAUGE. Summed value X should satisfy range.min <= X <= range.max for a good window.
    *
    * @schema SloSpecForProviderWindowsBasedSliMetricSumInRange#timeSeries
    */
-  readonly timeSeries: string;
+  readonly timeSeries?: string;
 
 }
 
@@ -7203,6 +8246,252 @@ export function toJson_SloSpecForProviderWindowsBasedSliMetricSumInRange(obj: Sl
   if (obj === undefined) { return undefined; }
   const result = {
     'range': obj.range?.map(y => toJson_SloSpecForProviderWindowsBasedSliMetricSumInRangeRange(y)),
+    'timeSeries': obj.timeSeries,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderBasicSliAvailability
+ */
+export interface SloSpecInitProviderBasicSliAvailability {
+  /**
+   * Whether an availability SLI is enabled or not. Must be set to true. Defaults to true.
+   *
+   * @default true.
+   * @schema SloSpecInitProviderBasicSliAvailability#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderBasicSliAvailability' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderBasicSliAvailability(obj: SloSpecInitProviderBasicSliAvailability | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderBasicSliLatency
+ */
+export interface SloSpecInitProviderBasicSliLatency {
+  /**
+   * A duration string, e.g. 10s. Good service is defined to be the count of requests made to this service that return in no more than threshold.
+   *
+   * @schema SloSpecInitProviderBasicSliLatency#threshold
+   */
+  readonly threshold?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderBasicSliLatency' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderBasicSliLatency(obj: SloSpecInitProviderBasicSliLatency | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threshold': obj.threshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderRequestBasedSliDistributionCut
+ */
+export interface SloSpecInitProviderRequestBasedSliDistributionCut {
+  /**
+   * A TimeSeries monitoring filter aggregating values to quantify the good service provided. Must have ValueType = DISTRIBUTION and MetricKind = DELTA or MetricKind = CUMULATIVE.
+   *
+   * @schema SloSpecInitProviderRequestBasedSliDistributionCut#distributionFilter
+   */
+  readonly distributionFilter?: string;
+
+  /**
+   * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderRequestBasedSliDistributionCut#range
+   */
+  readonly range?: SloSpecInitProviderRequestBasedSliDistributionCutRange[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderRequestBasedSliDistributionCut' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderRequestBasedSliDistributionCut(obj: SloSpecInitProviderRequestBasedSliDistributionCut | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'distributionFilter': obj.distributionFilter,
+    'range': obj.range?.map(y => toJson_SloSpecInitProviderRequestBasedSliDistributionCutRange(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderRequestBasedSliGoodTotalRatio
+ */
+export interface SloSpecInitProviderRequestBasedSliGoodTotalRatio {
+  /**
+   * A TimeSeries monitoring filter quantifying bad service provided, either demanded service that was not provided or demanded service that was of inadequate quality. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderRequestBasedSliGoodTotalRatio#badServiceFilter
+   */
+  readonly badServiceFilter?: string;
+
+  /**
+   * A TimeSeries monitoring filter quantifying good service provided. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderRequestBasedSliGoodTotalRatio#goodServiceFilter
+   */
+  readonly goodServiceFilter?: string;
+
+  /**
+   * A TimeSeries monitoring filter quantifying total demanded service. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderRequestBasedSliGoodTotalRatio#totalServiceFilter
+   */
+  readonly totalServiceFilter?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderRequestBasedSliGoodTotalRatio' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderRequestBasedSliGoodTotalRatio(obj: SloSpecInitProviderRequestBasedSliGoodTotalRatio | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'badServiceFilter': obj.badServiceFilter,
+    'goodServiceFilter': obj.goodServiceFilter,
+    'totalServiceFilter': obj.totalServiceFilter,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold {
+  /**
+   * Basic SLI to evaluate to judge window quality. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold#basicSliPerformance
+   */
+  readonly basicSliPerformance?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance[];
+
+  /**
+   * Request-based SLI to evaluate to judge window quality. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold#performance
+   */
+  readonly performance?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance[];
+
+  /**
+   * A duration string, e.g. 10s. Good service is defined to be the count of requests made to this service that return in no more than threshold.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold#threshold
+   */
+  readonly threshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThreshold | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'basicSliPerformance': obj.basicSliPerformance?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance(y)),
+    'performance': obj.performance?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance(y)),
+    'threshold': obj.threshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRange
+ */
+export interface SloSpecInitProviderWindowsBasedSliMetricMeanInRange {
+  /**
+   * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRange#range
+   */
+  readonly range?: SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange[];
+
+  /**
+   * A monitoring filter specifying the TimeSeries to use for evaluating window quality. The provided TimeSeries must have ValueType = INT64 or ValueType = DOUBLE and MetricKind = GAUGE. Summed value X should satisfy range.min <= X <= range.max for a good window.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRange#timeSeries
+   */
+  readonly timeSeries?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliMetricMeanInRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliMetricMeanInRange(obj: SloSpecInitProviderWindowsBasedSliMetricMeanInRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'range': obj.range?.map(y => toJson_SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange(y)),
+    'timeSeries': obj.timeSeries,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRange
+ */
+export interface SloSpecInitProviderWindowsBasedSliMetricSumInRange {
+  /**
+   * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRange#range
+   */
+  readonly range?: SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange[];
+
+  /**
+   * A monitoring filter specifying the TimeSeries to use for evaluating window quality. The provided TimeSeries must have ValueType = INT64 or ValueType = DOUBLE and MetricKind = GAUGE. Summed value X should satisfy range.min <= X <= range.max for a good window.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRange#timeSeries
+   */
+  readonly timeSeries?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliMetricSumInRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliMetricSumInRange(obj: SloSpecInitProviderWindowsBasedSliMetricSumInRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'range': obj.range?.map(y => toJson_SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange(y)),
     'timeSeries': obj.timeSeries,
   };
   // filter undefined values
@@ -7228,30 +8517,6 @@ export enum SloSpecProviderConfigRefPolicyResolution {
  * @schema SloSpecProviderConfigRefPolicyResolve
  */
 export enum SloSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SloSpecProviderRefPolicyResolution
- */
-export enum SloSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SloSpecProviderRefPolicyResolve
- */
-export enum SloSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7543,6 +8808,205 @@ export function toJson_SloSpecForProviderWindowsBasedSliMetricSumInRangeRange(ob
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SloSpecInitProviderRequestBasedSliDistributionCutRange
+ */
+export interface SloSpecInitProviderRequestBasedSliDistributionCutRange {
+  /**
+   * max value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderRequestBasedSliDistributionCutRange#max
+   */
+  readonly max?: number;
+
+  /**
+   * Min value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderRequestBasedSliDistributionCutRange#min
+   */
+  readonly min?: number;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderRequestBasedSliDistributionCutRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderRequestBasedSliDistributionCutRange(obj: SloSpecInitProviderRequestBasedSliDistributionCutRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'max': obj.max,
+    'min': obj.min,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance {
+  /**
+   * Availability based SLI, dervied from count of requests made to this service that return successfully. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance#availability
+   */
+  readonly availability?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability[];
+
+  /**
+   * Parameters for a latency threshold SLI. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance#latency
+   */
+  readonly latency?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency[];
+
+  /**
+   * An optional set of locations to which this SLI is relevant. Telemetry from other locations will not be used to calculate performance for this SLI. If omitted, this SLI applies to all locations in which the Service has activity. For service types that don't support breaking down by location, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance#location
+   */
+  readonly location?: string[];
+
+  /**
+   * An optional set of RPCs to which this SLI is relevant. Telemetry from other methods will not be used to calculate performance for this SLI. If omitted, this SLI applies to all the Service's methods. For service types that don't support breaking down by method, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance#method
+   */
+  readonly method?: string[];
+
+  /**
+   * The set of API versions to which this SLI is relevant. Telemetry from other API versions will not be used to calculate performance for this SLI. If omitted, this SLI applies to all API versions. For service types that don't support breaking down by version, setting this field will result in an error.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance#version
+   */
+  readonly version?: string[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availability': obj.availability?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability(y)),
+    'latency': obj.latency?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency(y)),
+    'location': obj.location?.map(y => y),
+    'method': obj.method?.map(y => y),
+    'version': obj.version?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance {
+  /**
+   * Used when good_service is defined by a count of values aggregated in a Distribution that fall into a good range. The total_service is the total count of all values aggregated in the Distribution. Defines a distribution TimeSeries filter and thresholds used for measuring good service and total service. Exactly one of distribution_cut or good_total_ratio can be set. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance#distributionCut
+   */
+  readonly distributionCut?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut[];
+
+  /**
+   * A means to compute a ratio of good_service to total_service. Defines computing this ratio with two TimeSeries monitoring filters Must specify exactly two of good, bad, and total service filters. The relationship good_service + bad_service = total_service will be assumed. Exactly one of distribution_cut or good_total_ratio can be set. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance#goodTotalRatio
+   */
+  readonly goodTotalRatio?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'distributionCut': obj.distributionCut?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut(y)),
+    'goodTotalRatio': obj.goodTotalRatio?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange
+ */
+export interface SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange {
+  /**
+   * max value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange#max
+   */
+  readonly max?: number;
+
+  /**
+   * Min value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange#min
+   */
+  readonly min?: number;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange(obj: SloSpecInitProviderWindowsBasedSliMetricMeanInRangeRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'max': obj.max,
+    'min': obj.min,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange
+ */
+export interface SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange {
+  /**
+   * max value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange#max
+   */
+  readonly max?: number;
+
+  /**
+   * Min value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange#min
+   */
+  readonly min?: number;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange(obj: SloSpecInitProviderWindowsBasedSliMetricSumInRangeRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'max': obj.max,
+    'min': obj.min,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema SloSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -7603,7 +9067,7 @@ export interface SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdBasicSl
    *
    * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency#threshold
    */
-  readonly threshold: string;
+  readonly threshold?: string;
 
 }
 
@@ -7630,14 +9094,14 @@ export interface SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerform
    *
    * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut#distributionFilter
    */
-  readonly distributionFilter: string;
+  readonly distributionFilter?: string;
 
   /**
    * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
    *
    * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut#range
    */
-  readonly range: SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange[];
+  readonly range?: SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange[];
 
 }
 
@@ -7700,6 +9164,139 @@ export function toJson_SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdP
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability {
+  /**
+   * Whether an availability SLI is enabled or not. Must be set to true. Defaults to true.
+   *
+   * @default true.
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceAvailability | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency {
+  /**
+   * A duration string, e.g. 10s. Good service is defined to be the count of requests made to this service that return in no more than threshold.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency#threshold
+   */
+  readonly threshold?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdBasicSliPerformanceLatency | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'threshold': obj.threshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut {
+  /**
+   * A TimeSeries monitoring filter aggregating values to quantify the good service provided. Must have ValueType = DISTRIBUTION and MetricKind = DELTA or MetricKind = CUMULATIVE.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut#distributionFilter
+   */
+  readonly distributionFilter?: string;
+
+  /**
+   * Range of numerical values. The computed good_service will be the count of values x in the Distribution such that range.min <= x <= range.max. inclusive of min and max. Open ranges can be defined by setting just one of min or max. Summed value X should satisfy range.min <= X <= range.max for a good window. Structure is documented below.
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut#range
+   */
+  readonly range?: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange[];
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCut | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'distributionFilter': obj.distributionFilter,
+    'range': obj.range?.map(y => toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio {
+  /**
+   * A TimeSeries monitoring filter quantifying bad service provided, either demanded service that was not provided or demanded service that was of inadequate quality. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio#badServiceFilter
+   */
+  readonly badServiceFilter?: string;
+
+  /**
+   * A TimeSeries monitoring filter quantifying good service provided. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio#goodServiceFilter
+   */
+  readonly goodServiceFilter?: string;
+
+  /**
+   * A TimeSeries monitoring filter quantifying total demanded service. Must have ValueType = DOUBLE or ValueType = INT64 and must have MetricKind = DELTA or MetricKind = CUMULATIVE. Exactly two of good_service_filter,bad_service_filter,total_service_filter must be set (good + bad = total is assumed).
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio#totalServiceFilter
+   */
+  readonly totalServiceFilter?: string;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceGoodTotalRatio | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'badServiceFilter': obj.badServiceFilter,
+    'goodServiceFilter': obj.goodServiceFilter,
+    'totalServiceFilter': obj.totalServiceFilter,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange
  */
 export interface SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange {
@@ -7724,6 +9321,41 @@ export interface SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerform
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange(obj: SloSpecForProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'max': obj.max,
+    'min': obj.min,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange
+ */
+export interface SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange {
+  /**
+   * max value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange#max
+   */
+  readonly max?: number;
+
+  /**
+   * Min value for the range (inclusive). If not given, will be set to 0
+   *
+   * @schema SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange#min
+   */
+  readonly min?: number;
+
+}
+
+/**
+ * Converts an object of type 'SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange(obj: SloSpecInitProviderWindowsBasedSliGoodTotalRatioThresholdPerformanceDistributionCutRange | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'max': obj.max,
@@ -7831,7 +9463,7 @@ export function toJson_UptimeCheckConfigProps(obj: UptimeCheckConfigProps | unde
  */
 export interface UptimeCheckConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UptimeCheckConfigSpec#deletionPolicy
    */
@@ -7843,11 +9475,18 @@ export interface UptimeCheckConfigSpec {
   readonly forProvider: UptimeCheckConfigSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UptimeCheckConfigSpec#managementPolicy
+   * @schema UptimeCheckConfigSpec#initProvider
    */
-  readonly managementPolicy?: UptimeCheckConfigSpecManagementPolicy;
+  readonly initProvider?: UptimeCheckConfigSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UptimeCheckConfigSpec#managementPolicies
+   */
+  readonly managementPolicies?: UptimeCheckConfigSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -7855,13 +9494,6 @@ export interface UptimeCheckConfigSpec {
    * @schema UptimeCheckConfigSpec#providerConfigRef
    */
   readonly providerConfigRef?: UptimeCheckConfigSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UptimeCheckConfigSpec#providerRef
-   */
-  readonly providerRef?: UptimeCheckConfigSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -7888,9 +9520,9 @@ export function toJson_UptimeCheckConfigSpec(obj: UptimeCheckConfigSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UptimeCheckConfigSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UptimeCheckConfigSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UptimeCheckConfigSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UptimeCheckConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UptimeCheckConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UptimeCheckConfigSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -7900,7 +9532,7 @@ export function toJson_UptimeCheckConfigSpec(obj: UptimeCheckConfigSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UptimeCheckConfigSpecDeletionPolicy
  */
@@ -8019,17 +9651,132 @@ export function toJson_UptimeCheckConfigSpecForProvider(obj: UptimeCheckConfigSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UptimeCheckConfigSpecManagementPolicy
+ * @schema UptimeCheckConfigSpecInitProvider
  */
-export enum UptimeCheckConfigSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UptimeCheckConfigSpecInitProvider {
+  /**
+   * The checker type to use for the check. If the monitored resource type is servicedirectory_service, checkerType must be set to VPC_CHECKERS. Possible values are: STATIC_IP_CHECKERS, VPC_CHECKERS.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#checkerType
+   */
+  readonly checkerType?: string;
+
+  /**
+   * The expected content on the page the check is run against. Currently, only the first entry in the list is supported, and other entries will be ignored. The server will look for an exact match of the string in the page response's content. This field is optional and should only be specified if a content match is required. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#contentMatchers
+   */
+  readonly contentMatchers?: UptimeCheckConfigSpecInitProviderContentMatchers[];
+
+  /**
+   * A human-friendly name for the uptime check configuration. The display name should be unique within a Stackdriver Workspace in order to make it easier to identify; however, uniqueness is not enforced.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Contains information needed to make an HTTP or HTTPS check. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#httpCheck
+   */
+  readonly httpCheck?: UptimeCheckConfigSpecInitProviderHttpCheck[];
+
+  /**
+   * The monitored resource (https://cloud.google.com/monitoring/api/resources) associated with the configuration. The following monitored resource types are supported for uptime checks:  uptime_url  gce_instance  gae_app  aws_ec2_instance aws_elb_load_balancer  k8s_service  servicedirectory_service Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#monitoredResource
+   */
+  readonly monitoredResource?: UptimeCheckConfigSpecInitProviderMonitoredResource[];
+
+  /**
+   * How often, in seconds, the uptime check is performed. Currently, the only supported values are 60s (1 minute), 300s (5 minutes), 600s (10 minutes), and 900s (15 minutes). Optional, defaults to 300s.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#period
+   */
+  readonly period?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#project
+   */
+  readonly project?: string;
+
+  /**
+   * The group resource associated with the configuration. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#resourceGroup
+   */
+  readonly resourceGroup?: UptimeCheckConfigSpecInitProviderResourceGroup[];
+
+  /**
+   * The list of regions from which the check will be run. Some regions contain one location, and others contain more than one. If this field is specified, enough regions to include a minimum of 3 locations must be provided, or an error message is returned. Not specifying this field will result in uptime checks running from all regions.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#selectedRegions
+   */
+  readonly selectedRegions?: string[];
+
+  /**
+   * Contains information needed to make a TCP check. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#tcpCheck
+   */
+  readonly tcpCheck?: UptimeCheckConfigSpecInitProviderTcpCheck[];
+
+  /**
+   * The maximum amount of time to wait for the request to complete (must be between 1 and 60 seconds). Accepted formats https://developers.google.com/protocol-buffers/docs/reference/google.protobuf#google.protobuf.Duration
+   *
+   * @schema UptimeCheckConfigSpecInitProvider#timeout
+   */
+  readonly timeout?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProvider(obj: UptimeCheckConfigSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'checkerType': obj.checkerType,
+    'contentMatchers': obj.contentMatchers?.map(y => toJson_UptimeCheckConfigSpecInitProviderContentMatchers(y)),
+    'displayName': obj.displayName,
+    'httpCheck': obj.httpCheck?.map(y => toJson_UptimeCheckConfigSpecInitProviderHttpCheck(y)),
+    'monitoredResource': obj.monitoredResource?.map(y => toJson_UptimeCheckConfigSpecInitProviderMonitoredResource(y)),
+    'period': obj.period,
+    'project': obj.project,
+    'resourceGroup': obj.resourceGroup?.map(y => toJson_UptimeCheckConfigSpecInitProviderResourceGroup(y)),
+    'selectedRegions': obj.selectedRegions?.map(y => y),
+    'tcpCheck': obj.tcpCheck?.map(y => toJson_UptimeCheckConfigSpecInitProviderTcpCheck(y)),
+    'timeout': obj.timeout,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UptimeCheckConfigSpecManagementPolicies
+ */
+export enum UptimeCheckConfigSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8063,43 +9810,6 @@ export function toJson_UptimeCheckConfigSpecProviderConfigRef(obj: UptimeCheckCo
   const result = {
     'name': obj.name,
     'policy': toJson_UptimeCheckConfigSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UptimeCheckConfigSpecProviderRef
- */
-export interface UptimeCheckConfigSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UptimeCheckConfigSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UptimeCheckConfigSpecProviderRef#policy
-   */
-  readonly policy?: UptimeCheckConfigSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UptimeCheckConfigSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UptimeCheckConfigSpecProviderRef(obj: UptimeCheckConfigSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UptimeCheckConfigSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8197,7 +9907,7 @@ export interface UptimeCheckConfigSpecForProviderContentMatchers {
    *
    * @schema UptimeCheckConfigSpecForProviderContentMatchers#content
    */
-  readonly content: string;
+  readonly content?: string;
 
   /**
    * Information needed to perform a JSONPath content match. Used for ContentMatcherOption::MATCHES_JSON_PATH and ContentMatcherOption::NOT_MATCHES_JSON_PATH. Structure is documented below.
@@ -8347,14 +10057,14 @@ export interface UptimeCheckConfigSpecForProviderMonitoredResource {
    *
    * @schema UptimeCheckConfigSpecForProviderMonitoredResource#labels
    */
-  readonly labels: { [key: string]: string };
+  readonly labels?: { [key: string]: string };
 
   /**
    * The monitored resource type. This field must match the type field of a MonitoredResourceDescriptor (https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.monitoredResourceDescriptors#MonitoredResourceDescriptor) object. For example, the type of a Compute Engine VM instance is gce_instance. For a list of types, see Monitoring resource types (https://cloud.google.com/monitoring/api/resources) and Logging resource types (https://cloud.google.com/logging/docs/api/v2/resource-list).
    *
    * @schema UptimeCheckConfigSpecForProviderMonitoredResource#type
    */
-  readonly type: string;
+  readonly type?: string;
 
 }
 
@@ -8433,7 +10143,7 @@ export interface UptimeCheckConfigSpecForProviderTcpCheck {
    *
    * @schema UptimeCheckConfigSpecForProviderTcpCheck#port
    */
-  readonly port: number;
+  readonly port?: number;
 
 }
 
@@ -8442,6 +10152,245 @@ export interface UptimeCheckConfigSpecForProviderTcpCheck {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UptimeCheckConfigSpecForProviderTcpCheck(obj: UptimeCheckConfigSpecForProviderTcpCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'port': obj.port,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderContentMatchers
+ */
+export interface UptimeCheckConfigSpecInitProviderContentMatchers {
+  /**
+   * String or regex content to match (max 1024 bytes)
+   *
+   * @schema UptimeCheckConfigSpecInitProviderContentMatchers#content
+   */
+  readonly content?: string;
+
+  /**
+   * Information needed to perform a JSONPath content match. Used for ContentMatcherOption::MATCHES_JSON_PATH and ContentMatcherOption::NOT_MATCHES_JSON_PATH. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderContentMatchers#jsonPathMatcher
+   */
+  readonly jsonPathMatcher?: UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher[];
+
+  /**
+   * The type of content matcher that will be applied to the server output, compared to the content string when the check is run. Default value is CONTAINS_STRING. Possible values are: CONTAINS_STRING, NOT_CONTAINS_STRING, MATCHES_REGEX, NOT_MATCHES_REGEX, MATCHES_JSON_PATH, NOT_MATCHES_JSON_PATH.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderContentMatchers#matcher
+   */
+  readonly matcher?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderContentMatchers' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderContentMatchers(obj: UptimeCheckConfigSpecInitProviderContentMatchers | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'content': obj.content,
+    'jsonPathMatcher': obj.jsonPathMatcher?.map(y => toJson_UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher(y)),
+    'matcher': obj.matcher,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderHttpCheck
+ */
+export interface UptimeCheckConfigSpecInitProviderHttpCheck {
+  /**
+   * If present, the check will only pass if the HTTP response status code is in this set of status codes. If empty, the HTTP status code will only pass if the HTTP status code is 200-299. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#acceptedResponseStatusCodes
+   */
+  readonly acceptedResponseStatusCodes?: UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes[];
+
+  /**
+   * The authentication information. Optional when creating an HTTP check; defaults to empty. Structure is documented below.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#authInfo
+   */
+  readonly authInfo?: UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo[];
+
+  /**
+   * The request body associated with the HTTP POST request. If contentType is URL_ENCODED, the body passed in must be URL-encoded. Users can provide a Content-Length header via the headers field or the API will do so. If the requestMethod is GET and body is not empty, the API will return an error. The maximum byte size is 1 megabyte. Note - As with all bytes fields JSON representations are base64 encoded. e.g. "foo=bar" in URL-encoded form is "foo%3Dbar" and in base64 encoding is "Zm9vJTI1M0RiYXI=".
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#body
+   */
+  readonly body?: string;
+
+  /**
+   * The content type to use for the check. Possible values are: TYPE_UNSPECIFIED, URL_ENCODED.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#contentType
+   */
+  readonly contentType?: string;
+
+  /**
+   * The list of headers to send as part of the uptime check request. If two headers have the same key and different values, they should be entered as a single header, with the value being a comma-separated list of all the desired values as described at https://www.w3.org/Protocols/rfc2616/rfc2616.txt (page 31). Entering two separate headers with the same key in a Create call will cause the first to be overwritten by the second. The maximum number of headers allowed is 100.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#headers
+   */
+  readonly headers?: { [key: string]: string };
+
+  /**
+   * Boolean specifying whether to encrypt the header information. Encryption should be specified for any headers related to authentication that you do not wish to be seen when retrieving the configuration. The server will be responsible for encrypting the headers. On Get/List calls, if mask_headers is set to True then the headers will be obscured with ******.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#maskHeaders
+   */
+  readonly maskHeaders?: boolean;
+
+  /**
+   * The path to the page to run the check against. Will be combined with the host (specified within the MonitoredResource) and port to construct the full URL. If the provided path does not begin with "/", a "/" will be prepended automatically. Optional (defaults to "/").
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#path
+   */
+  readonly path?: string;
+
+  /**
+   * The port to the page to run the check against. Will be combined with host (specified within the MonitoredResource) and path to construct the full URL. Optional (defaults to 80 without SSL, or 443 with SSL).
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#port
+   */
+  readonly port?: number;
+
+  /**
+   * The HTTP request method to use for the check. If set to METHOD_UNSPECIFIED then requestMethod defaults to GET. Default value is GET. Possible values are: METHOD_UNSPECIFIED, GET, POST.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#requestMethod
+   */
+  readonly requestMethod?: string;
+
+  /**
+   * If true, use HTTPS instead of HTTP to run the check.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#useSsl
+   */
+  readonly useSsl?: boolean;
+
+  /**
+   * Boolean specifying whether to include SSL certificate validation as a part of the Uptime check. Only applies to checks where monitoredResource is set to uptime_url. If useSsl is false, setting validateSsl to true has no effect.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheck#validateSsl
+   */
+  readonly validateSsl?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderHttpCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderHttpCheck(obj: UptimeCheckConfigSpecInitProviderHttpCheck | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceptedResponseStatusCodes': obj.acceptedResponseStatusCodes?.map(y => toJson_UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes(y)),
+    'authInfo': obj.authInfo?.map(y => toJson_UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo(y)),
+    'body': obj.body,
+    'contentType': obj.contentType,
+    'headers': ((obj.headers) === undefined) ? undefined : (Object.entries(obj.headers).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'maskHeaders': obj.maskHeaders,
+    'path': obj.path,
+    'port': obj.port,
+    'requestMethod': obj.requestMethod,
+    'useSsl': obj.useSsl,
+    'validateSsl': obj.validateSsl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderMonitoredResource
+ */
+export interface UptimeCheckConfigSpecInitProviderMonitoredResource {
+  /**
+   * Values for all of the labels listed in the associated monitored resource descriptor. For example, Compute Engine VM instances use the labels "project_id", "instance_id", and "zone".
+   *
+   * @schema UptimeCheckConfigSpecInitProviderMonitoredResource#labels
+   */
+  readonly labels?: { [key: string]: string };
+
+  /**
+   * The monitored resource type. This field must match the type field of a MonitoredResourceDescriptor (https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.monitoredResourceDescriptors#MonitoredResourceDescriptor) object. For example, the type of a Compute Engine VM instance is gce_instance. For a list of types, see Monitoring resource types (https://cloud.google.com/monitoring/api/resources) and Logging resource types (https://cloud.google.com/logging/docs/api/v2/resource-list).
+   *
+   * @schema UptimeCheckConfigSpecInitProviderMonitoredResource#type
+   */
+  readonly type?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderMonitoredResource' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderMonitoredResource(obj: UptimeCheckConfigSpecInitProviderMonitoredResource | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'labels': ((obj.labels) === undefined) ? undefined : (Object.entries(obj.labels).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderResourceGroup
+ */
+export interface UptimeCheckConfigSpecInitProviderResourceGroup {
+  /**
+   * The resource type of the group members. Possible values are: RESOURCE_TYPE_UNSPECIFIED, INSTANCE, AWS_ELB_LOAD_BALANCER.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderResourceGroup#resourceType
+   */
+  readonly resourceType?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderResourceGroup' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderResourceGroup(obj: UptimeCheckConfigSpecInitProviderResourceGroup | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourceType': obj.resourceType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderTcpCheck
+ */
+export interface UptimeCheckConfigSpecInitProviderTcpCheck {
+  /**
+   * The port to the page to run the check against. Will be combined with host (specified within the MonitoredResource) to construct the full URL.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderTcpCheck#port
+   */
+  readonly port?: number;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderTcpCheck' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderTcpCheck(obj: UptimeCheckConfigSpecInitProviderTcpCheck | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'port': obj.port,
@@ -8478,43 +10427,6 @@ export interface UptimeCheckConfigSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UptimeCheckConfigSpecProviderConfigRefPolicy(obj: UptimeCheckConfigSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UptimeCheckConfigSpecProviderRefPolicy
- */
-export interface UptimeCheckConfigSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UptimeCheckConfigSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UptimeCheckConfigSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UptimeCheckConfigSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UptimeCheckConfigSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UptimeCheckConfigSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UptimeCheckConfigSpecProviderRefPolicy(obj: UptimeCheckConfigSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -8623,7 +10535,7 @@ export interface UptimeCheckConfigSpecForProviderContentMatchersJsonPathMatcher 
    *
    * @schema UptimeCheckConfigSpecForProviderContentMatchersJsonPathMatcher#jsonPath
    */
-  readonly jsonPath: string;
+  readonly jsonPath?: string;
 
 }
 
@@ -8693,7 +10605,7 @@ export interface UptimeCheckConfigSpecForProviderHttpCheckAuthInfo {
    *
    * @schema UptimeCheckConfigSpecForProviderHttpCheckAuthInfo#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -8795,6 +10707,103 @@ export function toJson_UptimeCheckConfigSpecForProviderResourceGroupGroupIdSelec
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher
+ */
+export interface UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher {
+  /**
+   * Options to perform JSONPath content matching. Default value is EXACT_MATCH. Possible values are: EXACT_MATCH, REGEX_MATCH.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher#jsonMatcher
+   */
+  readonly jsonMatcher?: string;
+
+  /**
+   * JSONPath within the response output pointing to the expected ContentMatcher::content to match against.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher#jsonPath
+   */
+  readonly jsonPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher(obj: UptimeCheckConfigSpecInitProviderContentMatchersJsonPathMatcher | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jsonMatcher': obj.jsonMatcher,
+    'jsonPath': obj.jsonPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes
+ */
+export interface UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes {
+  /**
+   * A class of status codes to accept. Possible values are: STATUS_CLASS_1XX, STATUS_CLASS_2XX, STATUS_CLASS_3XX, STATUS_CLASS_4XX, STATUS_CLASS_5XX, STATUS_CLASS_ANY.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes#statusClass
+   */
+  readonly statusClass?: string;
+
+  /**
+   * A status code to accept.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes#statusValue
+   */
+  readonly statusValue?: number;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes(obj: UptimeCheckConfigSpecInitProviderHttpCheckAcceptedResponseStatusCodes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'statusClass': obj.statusClass,
+    'statusValue': obj.statusValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo
+ */
+export interface UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo {
+  /**
+   * The username to authenticate.
+   *
+   * @schema UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo(obj: UptimeCheckConfigSpecInitProviderHttpCheckAuthInfo | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema UptimeCheckConfigSpecProviderConfigRefPolicyResolution
@@ -8812,30 +10821,6 @@ export enum UptimeCheckConfigSpecProviderConfigRefPolicyResolution {
  * @schema UptimeCheckConfigSpecProviderConfigRefPolicyResolve
  */
 export enum UptimeCheckConfigSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UptimeCheckConfigSpecProviderRefPolicyResolution
- */
-export enum UptimeCheckConfigSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UptimeCheckConfigSpecProviderRefPolicyResolve
- */
-export enum UptimeCheckConfigSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

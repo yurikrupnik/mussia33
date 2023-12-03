@@ -99,7 +99,7 @@ export function toJson_BudgetProps(obj: BudgetProps | undefined): Record<string,
  */
 export interface BudgetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BudgetSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface BudgetSpec {
   readonly forProvider: BudgetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BudgetSpec#managementPolicy
+   * @schema BudgetSpec#initProvider
    */
-  readonly managementPolicy?: BudgetSpecManagementPolicy;
+  readonly initProvider?: BudgetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BudgetSpec#managementPolicies
+   */
+  readonly managementPolicies?: BudgetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface BudgetSpec {
    * @schema BudgetSpec#providerConfigRef
    */
   readonly providerConfigRef?: BudgetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BudgetSpec#providerRef
-   */
-  readonly providerRef?: BudgetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_BudgetSpec(obj: BudgetSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BudgetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BudgetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BudgetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BudgetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BudgetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BudgetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_BudgetSpec(obj: BudgetSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BudgetSpecDeletionPolicy
  */
@@ -311,17 +311,148 @@ export function toJson_BudgetSpecForProvider(obj: BudgetSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BudgetSpecManagementPolicy
+ * @schema BudgetSpecInitProvider
  */
-export enum BudgetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BudgetSpecInitProvider {
+  /**
+   * The ID of the target account for budget. Will use current user's account_id by default if omitted.
+   *
+   * @schema BudgetSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * Object containing [AutoAdjustData] which determines the budget amount for an auto-adjusting budget.
+   *
+   * @schema BudgetSpecInitProvider#autoAdjustData
+   */
+  readonly autoAdjustData?: BudgetSpecInitProviderAutoAdjustData[];
+
+  /**
+   * Whether this budget tracks monetary cost or usage.
+   *
+   * @schema BudgetSpecInitProvider#budgetType
+   */
+  readonly budgetType?: string;
+
+  /**
+   * A list of CostFilter name/values pair to apply to budget.
+   *
+   * @schema BudgetSpecInitProvider#costFilter
+   */
+  readonly costFilter?: BudgetSpecInitProviderCostFilter[];
+
+  /**
+   * Map of CostFilters key/value pairs to apply to the budget.
+   *
+   * @schema BudgetSpecInitProvider#costFilters
+   */
+  readonly costFilters?: { [key: string]: string };
+
+  /**
+   * Object containing CostTypes The types of cost included in a budget, such as tax and subscriptions.
+   *
+   * @schema BudgetSpecInitProvider#costTypes
+   */
+  readonly costTypes?: BudgetSpecInitProviderCostTypes[];
+
+  /**
+   * The amount of cost or usage being measured for a budget.
+   *
+   * @schema BudgetSpecInitProvider#limitAmount
+   */
+  readonly limitAmount?: string;
+
+  /**
+   * The unit of measurement used for the budget forecast, actual spend, or budget threshold, such as dollars or GB. See Spend documentation.
+   *
+   * @schema BudgetSpecInitProvider#limitUnit
+   */
+  readonly limitUnit?: string;
+
+  /**
+   * Object containing Budget Notifications. Can be used multiple times to define more than one budget notification.
+   *
+   * @schema BudgetSpecInitProvider#notification
+   */
+  readonly notification?: BudgetSpecInitProviderNotification[];
+
+  /**
+   * Object containing Planned Budget Limits. Can be used multiple times to plan more than one budget limit. See PlannedBudgetLimits documentation.
+   *
+   * @schema BudgetSpecInitProvider#plannedLimit
+   */
+  readonly plannedLimit?: BudgetSpecInitProviderPlannedLimit[];
+
+  /**
+   * The end of the time period covered by the budget. There are no restrictions on the end date. Format: 2017-01-01_12:00.
+   *
+   * @schema BudgetSpecInitProvider#timePeriodEnd
+   */
+  readonly timePeriodEnd?: string;
+
+  /**
+   * The start of the time period covered by the budget. If you don't specify a start date, AWS defaults to the start of your chosen time period. The start date must come before the end date. Format: 2017-01-01_12:00.
+   *
+   * @schema BudgetSpecInitProvider#timePeriodStart
+   */
+  readonly timePeriodStart?: string;
+
+  /**
+   * The length of time until a budget resets the actual and forecasted spend. Valid values: MONTHLY, QUARTERLY, ANNUALLY, and DAILY.
+   *
+   * @schema BudgetSpecInitProvider#timeUnit
+   */
+  readonly timeUnit?: string;
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProvider(obj: BudgetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'autoAdjustData': obj.autoAdjustData?.map(y => toJson_BudgetSpecInitProviderAutoAdjustData(y)),
+    'budgetType': obj.budgetType,
+    'costFilter': obj.costFilter?.map(y => toJson_BudgetSpecInitProviderCostFilter(y)),
+    'costFilters': ((obj.costFilters) === undefined) ? undefined : (Object.entries(obj.costFilters).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'costTypes': obj.costTypes?.map(y => toJson_BudgetSpecInitProviderCostTypes(y)),
+    'limitAmount': obj.limitAmount,
+    'limitUnit': obj.limitUnit,
+    'notification': obj.notification?.map(y => toJson_BudgetSpecInitProviderNotification(y)),
+    'plannedLimit': obj.plannedLimit?.map(y => toJson_BudgetSpecInitProviderPlannedLimit(y)),
+    'timePeriodEnd': obj.timePeriodEnd,
+    'timePeriodStart': obj.timePeriodStart,
+    'timeUnit': obj.timeUnit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BudgetSpecManagementPolicies
+ */
+export enum BudgetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -355,43 +486,6 @@ export function toJson_BudgetSpecProviderConfigRef(obj: BudgetSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_BudgetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BudgetSpecProviderRef
- */
-export interface BudgetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BudgetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BudgetSpecProviderRef#policy
-   */
-  readonly policy?: BudgetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BudgetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BudgetSpecProviderRef(obj: BudgetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BudgetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -487,7 +581,7 @@ export interface BudgetSpecForProviderAutoAdjustData {
   /**
    * @schema BudgetSpecForProviderAutoAdjustData#autoAdjustType
    */
-  readonly autoAdjustType: string;
+  readonly autoAdjustType?: string;
 
   /**
    * @schema BudgetSpecForProviderAutoAdjustData#historicalOptions
@@ -520,12 +614,12 @@ export interface BudgetSpecForProviderCostFilter {
    *
    * @schema BudgetSpecForProviderCostFilter#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * @schema BudgetSpecForProviderCostFilter#values
    */
-  readonly values: string[];
+  readonly values?: string[];
 
 }
 
@@ -671,14 +765,14 @@ export interface BudgetSpecForProviderNotification {
    *
    * @schema BudgetSpecForProviderNotification#comparisonOperator
    */
-  readonly comparisonOperator: string;
+  readonly comparisonOperator?: string;
 
   /**
    * What kind of budget value to notify on. Can be ACTUAL or FORECASTED
    *
    * @schema BudgetSpecForProviderNotification#notificationType
    */
-  readonly notificationType: string;
+  readonly notificationType?: string;
 
   /**
    * E-Mail addresses to notify. Either this or subscriber_sns_topic_arns is required.
@@ -699,14 +793,14 @@ export interface BudgetSpecForProviderNotification {
    *
    * @schema BudgetSpecForProviderNotification#threshold
    */
-  readonly threshold: number;
+  readonly threshold?: number;
 
   /**
    * What kind of threshold is defined. Can be PERCENTAGE OR ABSOLUTE_VALUE.
    *
    * @schema BudgetSpecForProviderNotification#thresholdType
    */
-  readonly thresholdType: string;
+  readonly thresholdType?: string;
 
 }
 
@@ -738,21 +832,21 @@ export interface BudgetSpecForProviderPlannedLimit {
    *
    * @schema BudgetSpecForProviderPlannedLimit#amount
    */
-  readonly amount: string;
+  readonly amount?: string;
 
   /**
    * The start time of the budget limit. Format: 2017-01-01_12:00. See PlannedBudgetLimits documentation.
    *
    * @schema BudgetSpecForProviderPlannedLimit#startTime
    */
-  readonly startTime: string;
+  readonly startTime?: string;
 
   /**
    * The unit of measurement used for the budget forecast, actual spend, or budget threshold, such as dollars or GB. See Spend documentation.
    *
    * @schema BudgetSpecForProviderPlannedLimit#unit
    */
-  readonly unit: string;
+  readonly unit?: string;
 
 }
 
@@ -761,6 +855,298 @@ export interface BudgetSpecForProviderPlannedLimit {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BudgetSpecForProviderPlannedLimit(obj: BudgetSpecForProviderPlannedLimit | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'amount': obj.amount,
+    'startTime': obj.startTime,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderAutoAdjustData
+ */
+export interface BudgetSpecInitProviderAutoAdjustData {
+  /**
+   * @schema BudgetSpecInitProviderAutoAdjustData#autoAdjustType
+   */
+  readonly autoAdjustType?: string;
+
+  /**
+   * @schema BudgetSpecInitProviderAutoAdjustData#historicalOptions
+   */
+  readonly historicalOptions?: BudgetSpecInitProviderAutoAdjustDataHistoricalOptions[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderAutoAdjustData' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderAutoAdjustData(obj: BudgetSpecInitProviderAutoAdjustData | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'autoAdjustType': obj.autoAdjustType,
+    'historicalOptions': obj.historicalOptions?.map(y => toJson_BudgetSpecInitProviderAutoAdjustDataHistoricalOptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderCostFilter
+ */
+export interface BudgetSpecInitProviderCostFilter {
+  /**
+   * The name of a budget. Unique within accounts.
+   *
+   * @schema BudgetSpecInitProviderCostFilter#name
+   */
+  readonly name?: string;
+
+  /**
+   * @schema BudgetSpecInitProviderCostFilter#values
+   */
+  readonly values?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderCostFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderCostFilter(obj: BudgetSpecInitProviderCostFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'values': obj.values?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderCostTypes
+ */
+export interface BudgetSpecInitProviderCostTypes {
+  /**
+   * A boolean value whether to include credits in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeCredit
+   */
+  readonly includeCredit?: boolean;
+
+  /**
+   * Whether a budget includes discounts. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeDiscount
+   */
+  readonly includeDiscount?: boolean;
+
+  /**
+   * A boolean value whether to include other subscription costs in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeOtherSubscription
+   */
+  readonly includeOtherSubscription?: boolean;
+
+  /**
+   * A boolean value whether to include recurring costs in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeRecurring
+   */
+  readonly includeRecurring?: boolean;
+
+  /**
+   * A boolean value whether to include refunds in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeRefund
+   */
+  readonly includeRefund?: boolean;
+
+  /**
+   * A boolean value whether to include subscriptions in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeSubscription
+   */
+  readonly includeSubscription?: boolean;
+
+  /**
+   * A boolean value whether to include support costs in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeSupport
+   */
+  readonly includeSupport?: boolean;
+
+  /**
+   * A boolean value whether to include tax in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeTax
+   */
+  readonly includeTax?: boolean;
+
+  /**
+   * A boolean value whether to include upfront costs in the cost budget. Defaults to true
+   *
+   * @default true
+   * @schema BudgetSpecInitProviderCostTypes#includeUpfront
+   */
+  readonly includeUpfront?: boolean;
+
+  /**
+   * Whether a budget uses the amortized rate. Defaults to false
+   *
+   * @default false
+   * @schema BudgetSpecInitProviderCostTypes#useAmortized
+   */
+  readonly useAmortized?: boolean;
+
+  /**
+   * A boolean value whether to use blended costs in the cost budget. Defaults to false
+   *
+   * @default false
+   * @schema BudgetSpecInitProviderCostTypes#useBlended
+   */
+  readonly useBlended?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderCostTypes' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderCostTypes(obj: BudgetSpecInitProviderCostTypes | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'includeCredit': obj.includeCredit,
+    'includeDiscount': obj.includeDiscount,
+    'includeOtherSubscription': obj.includeOtherSubscription,
+    'includeRecurring': obj.includeRecurring,
+    'includeRefund': obj.includeRefund,
+    'includeSubscription': obj.includeSubscription,
+    'includeSupport': obj.includeSupport,
+    'includeTax': obj.includeTax,
+    'includeUpfront': obj.includeUpfront,
+    'useAmortized': obj.useAmortized,
+    'useBlended': obj.useBlended,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderNotification
+ */
+export interface BudgetSpecInitProviderNotification {
+  /**
+   * Comparison operator to use to evaluate the condition. Can be LESS_THAN, EQUAL_TO or GREATER_THAN.
+   *
+   * @schema BudgetSpecInitProviderNotification#comparisonOperator
+   */
+  readonly comparisonOperator?: string;
+
+  /**
+   * What kind of budget value to notify on. Can be ACTUAL or FORECASTED
+   *
+   * @schema BudgetSpecInitProviderNotification#notificationType
+   */
+  readonly notificationType?: string;
+
+  /**
+   * E-Mail addresses to notify. Either this or subscriber_sns_topic_arns is required.
+   *
+   * @schema BudgetSpecInitProviderNotification#subscriberEmailAddresses
+   */
+  readonly subscriberEmailAddresses?: string[];
+
+  /**
+   * SNS topics to notify. Either this or subscriber_email_addresses is required.
+   *
+   * @schema BudgetSpecInitProviderNotification#subscriberSnsTopicArns
+   */
+  readonly subscriberSnsTopicArns?: string[];
+
+  /**
+   * Threshold when the notification should be sent.
+   *
+   * @schema BudgetSpecInitProviderNotification#threshold
+   */
+  readonly threshold?: number;
+
+  /**
+   * What kind of threshold is defined. Can be PERCENTAGE OR ABSOLUTE_VALUE.
+   *
+   * @schema BudgetSpecInitProviderNotification#thresholdType
+   */
+  readonly thresholdType?: string;
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderNotification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderNotification(obj: BudgetSpecInitProviderNotification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'comparisonOperator': obj.comparisonOperator,
+    'notificationType': obj.notificationType,
+    'subscriberEmailAddresses': obj.subscriberEmailAddresses?.map(y => y),
+    'subscriberSnsTopicArns': obj.subscriberSnsTopicArns?.map(y => y),
+    'threshold': obj.threshold,
+    'thresholdType': obj.thresholdType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderPlannedLimit
+ */
+export interface BudgetSpecInitProviderPlannedLimit {
+  /**
+   * The amount of cost or usage being measured for a budget.
+   *
+   * @schema BudgetSpecInitProviderPlannedLimit#amount
+   */
+  readonly amount?: string;
+
+  /**
+   * The start time of the budget limit. Format: 2017-01-01_12:00. See PlannedBudgetLimits documentation.
+   *
+   * @schema BudgetSpecInitProviderPlannedLimit#startTime
+   */
+  readonly startTime?: string;
+
+  /**
+   * The unit of measurement used for the budget forecast, actual spend, or budget threshold, such as dollars or GB. See Spend documentation.
+   *
+   * @schema BudgetSpecInitProviderPlannedLimit#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderPlannedLimit' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderPlannedLimit(obj: BudgetSpecInitProviderPlannedLimit | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'amount': obj.amount,
@@ -799,43 +1185,6 @@ export interface BudgetSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BudgetSpecProviderConfigRefPolicy(obj: BudgetSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BudgetSpecProviderRefPolicy
- */
-export interface BudgetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BudgetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BudgetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BudgetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BudgetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BudgetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BudgetSpecProviderRefPolicy(obj: BudgetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -935,7 +1284,7 @@ export interface BudgetSpecForProviderAutoAdjustDataHistoricalOptions {
   /**
    * @schema BudgetSpecForProviderAutoAdjustDataHistoricalOptions#budgetAdjustmentPeriod
    */
-  readonly budgetAdjustmentPeriod: number;
+  readonly budgetAdjustmentPeriod?: number;
 
 }
 
@@ -944,6 +1293,31 @@ export interface BudgetSpecForProviderAutoAdjustDataHistoricalOptions {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BudgetSpecForProviderAutoAdjustDataHistoricalOptions(obj: BudgetSpecForProviderAutoAdjustDataHistoricalOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'budgetAdjustmentPeriod': obj.budgetAdjustmentPeriod,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetSpecInitProviderAutoAdjustDataHistoricalOptions
+ */
+export interface BudgetSpecInitProviderAutoAdjustDataHistoricalOptions {
+  /**
+   * @schema BudgetSpecInitProviderAutoAdjustDataHistoricalOptions#budgetAdjustmentPeriod
+   */
+  readonly budgetAdjustmentPeriod?: number;
+
+}
+
+/**
+ * Converts an object of type 'BudgetSpecInitProviderAutoAdjustDataHistoricalOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetSpecInitProviderAutoAdjustDataHistoricalOptions(obj: BudgetSpecInitProviderAutoAdjustDataHistoricalOptions | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'budgetAdjustmentPeriod': obj.budgetAdjustmentPeriod,
@@ -971,30 +1345,6 @@ export enum BudgetSpecProviderConfigRefPolicyResolution {
  * @schema BudgetSpecProviderConfigRefPolicyResolve
  */
 export enum BudgetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BudgetSpecProviderRefPolicyResolution
- */
-export enum BudgetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BudgetSpecProviderRefPolicyResolve
- */
-export enum BudgetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1159,7 +1509,7 @@ export function toJson_BudgetActionProps(obj: BudgetActionProps | undefined): Re
  */
 export interface BudgetActionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema BudgetActionSpec#deletionPolicy
    */
@@ -1171,11 +1521,18 @@ export interface BudgetActionSpec {
   readonly forProvider: BudgetActionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema BudgetActionSpec#managementPolicy
+   * @schema BudgetActionSpec#initProvider
    */
-  readonly managementPolicy?: BudgetActionSpecManagementPolicy;
+  readonly initProvider?: BudgetActionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema BudgetActionSpec#managementPolicies
+   */
+  readonly managementPolicies?: BudgetActionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1183,13 +1540,6 @@ export interface BudgetActionSpec {
    * @schema BudgetActionSpec#providerConfigRef
    */
   readonly providerConfigRef?: BudgetActionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema BudgetActionSpec#providerRef
-   */
-  readonly providerRef?: BudgetActionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1216,9 +1566,9 @@ export function toJson_BudgetActionSpec(obj: BudgetActionSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_BudgetActionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_BudgetActionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_BudgetActionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_BudgetActionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_BudgetActionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_BudgetActionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1228,7 +1578,7 @@ export function toJson_BudgetActionSpec(obj: BudgetActionSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema BudgetActionSpecDeletionPolicy
  */
@@ -1371,17 +1721,100 @@ export function toJson_BudgetActionSpecForProvider(obj: BudgetActionSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema BudgetActionSpecManagementPolicy
+ * @schema BudgetActionSpecInitProvider
  */
-export enum BudgetActionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface BudgetActionSpecInitProvider {
+  /**
+   * The ID of the target account for budget. Will use current user's account_id by default if omitted.
+   *
+   * @schema BudgetActionSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The trigger threshold of the action. See Action Threshold.
+   *
+   * @schema BudgetActionSpecInitProvider#actionThreshold
+   */
+  readonly actionThreshold?: BudgetActionSpecInitProviderActionThreshold[];
+
+  /**
+   * The type of action. This defines the type of tasks that can be carried out by this action. This field also determines the format for definition. Valid values are APPLY_IAM_POLICY, APPLY_SCP_POLICY, and RUN_SSM_DOCUMENTS.
+   *
+   * @schema BudgetActionSpecInitProvider#actionType
+   */
+  readonly actionType?: string;
+
+  /**
+   * This specifies if the action needs manual or automatic approval. Valid values are AUTOMATIC and MANUAL.
+   *
+   * @schema BudgetActionSpecInitProvider#approvalModel
+   */
+  readonly approvalModel?: string;
+
+  /**
+   * Specifies all of the type-specific parameters. See Definition.
+   *
+   * @schema BudgetActionSpecInitProvider#definition
+   */
+  readonly definition?: BudgetActionSpecInitProviderDefinition[];
+
+  /**
+   * The type of a notification. Valid values are ACTUAL or FORECASTED.
+   *
+   * @schema BudgetActionSpecInitProvider#notificationType
+   */
+  readonly notificationType?: string;
+
+  /**
+   * A list of subscribers. See Subscriber.
+   *
+   * @schema BudgetActionSpecInitProvider#subscriber
+   */
+  readonly subscriber?: BudgetActionSpecInitProviderSubscriber[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProvider(obj: BudgetActionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'actionThreshold': obj.actionThreshold?.map(y => toJson_BudgetActionSpecInitProviderActionThreshold(y)),
+    'actionType': obj.actionType,
+    'approvalModel': obj.approvalModel,
+    'definition': obj.definition?.map(y => toJson_BudgetActionSpecInitProviderDefinition(y)),
+    'notificationType': obj.notificationType,
+    'subscriber': obj.subscriber?.map(y => toJson_BudgetActionSpecInitProviderSubscriber(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema BudgetActionSpecManagementPolicies
+ */
+export enum BudgetActionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1415,43 +1848,6 @@ export function toJson_BudgetActionSpecProviderConfigRef(obj: BudgetActionSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_BudgetActionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema BudgetActionSpecProviderRef
- */
-export interface BudgetActionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema BudgetActionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema BudgetActionSpecProviderRef#policy
-   */
-  readonly policy?: BudgetActionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'BudgetActionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BudgetActionSpecProviderRef(obj: BudgetActionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_BudgetActionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1549,14 +1945,14 @@ export interface BudgetActionSpecForProviderActionThreshold {
    *
    * @schema BudgetActionSpecForProviderActionThreshold#actionThresholdType
    */
-  readonly actionThresholdType: string;
+  readonly actionThresholdType?: string;
 
   /**
    * The threshold of a notification.
    *
    * @schema BudgetActionSpecForProviderActionThreshold#actionThresholdValue
    */
-  readonly actionThresholdValue: number;
+  readonly actionThresholdValue?: number;
 
 }
 
@@ -1791,14 +2187,14 @@ export interface BudgetActionSpecForProviderSubscriber {
    *
    * @schema BudgetActionSpecForProviderSubscriber#address
    */
-  readonly address: string;
+  readonly address?: string;
 
   /**
    * The type of notification that AWS sends to a subscriber. Valid values are SNS or EMAIL.
    *
    * @schema BudgetActionSpecForProviderSubscriber#subscriptionType
    */
-  readonly subscriptionType: string;
+  readonly subscriptionType?: string;
 
 }
 
@@ -1807,6 +2203,119 @@ export interface BudgetActionSpecForProviderSubscriber {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BudgetActionSpecForProviderSubscriber(obj: BudgetActionSpecForProviderSubscriber | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'address': obj.address,
+    'subscriptionType': obj.subscriptionType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetActionSpecInitProviderActionThreshold
+ */
+export interface BudgetActionSpecInitProviderActionThreshold {
+  /**
+   * The type of threshold for a notification. Valid values are PERCENTAGE or ABSOLUTE_VALUE.
+   *
+   * @schema BudgetActionSpecInitProviderActionThreshold#actionThresholdType
+   */
+  readonly actionThresholdType?: string;
+
+  /**
+   * The threshold of a notification.
+   *
+   * @schema BudgetActionSpecInitProviderActionThreshold#actionThresholdValue
+   */
+  readonly actionThresholdValue?: number;
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderActionThreshold' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderActionThreshold(obj: BudgetActionSpecInitProviderActionThreshold | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionThresholdType': obj.actionThresholdType,
+    'actionThresholdValue': obj.actionThresholdValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetActionSpecInitProviderDefinition
+ */
+export interface BudgetActionSpecInitProviderDefinition {
+  /**
+   * The AWS Identity and Access Management (IAM) action definition details. See IAM Action Definition.
+   *
+   * @schema BudgetActionSpecInitProviderDefinition#iamActionDefinition
+   */
+  readonly iamActionDefinition?: BudgetActionSpecInitProviderDefinitionIamActionDefinition[];
+
+  /**
+   * The service control policies (SCPs) action definition details. See SCP Action Definition.
+   *
+   * @schema BudgetActionSpecInitProviderDefinition#scpActionDefinition
+   */
+  readonly scpActionDefinition?: BudgetActionSpecInitProviderDefinitionScpActionDefinition[];
+
+  /**
+   * The AWS Systems Manager (SSM) action definition details. See SSM Action Definition.
+   *
+   * @schema BudgetActionSpecInitProviderDefinition#ssmActionDefinition
+   */
+  readonly ssmActionDefinition?: BudgetActionSpecInitProviderDefinitionSsmActionDefinition[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderDefinition(obj: BudgetActionSpecInitProviderDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'iamActionDefinition': obj.iamActionDefinition?.map(y => toJson_BudgetActionSpecInitProviderDefinitionIamActionDefinition(y)),
+    'scpActionDefinition': obj.scpActionDefinition?.map(y => toJson_BudgetActionSpecInitProviderDefinitionScpActionDefinition(y)),
+    'ssmActionDefinition': obj.ssmActionDefinition?.map(y => toJson_BudgetActionSpecInitProviderDefinitionSsmActionDefinition(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetActionSpecInitProviderSubscriber
+ */
+export interface BudgetActionSpecInitProviderSubscriber {
+  /**
+   * The address that AWS sends budget notifications to, either an SNS topic or an email.
+   *
+   * @schema BudgetActionSpecInitProviderSubscriber#address
+   */
+  readonly address?: string;
+
+  /**
+   * The type of notification that AWS sends to a subscriber. Valid values are SNS or EMAIL.
+   *
+   * @schema BudgetActionSpecInitProviderSubscriber#subscriptionType
+   */
+  readonly subscriptionType?: string;
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderSubscriber' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderSubscriber(obj: BudgetActionSpecInitProviderSubscriber | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'address': obj.address,
@@ -1844,43 +2353,6 @@ export interface BudgetActionSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_BudgetActionSpecProviderConfigRefPolicy(obj: BudgetActionSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema BudgetActionSpecProviderRefPolicy
- */
-export interface BudgetActionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema BudgetActionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: BudgetActionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema BudgetActionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: BudgetActionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'BudgetActionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_BudgetActionSpecProviderRefPolicy(obj: BudgetActionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2123,14 +2595,14 @@ export interface BudgetActionSpecForProviderDefinitionScpActionDefinition {
    *
    * @schema BudgetActionSpecForProviderDefinitionScpActionDefinition#policyId
    */
-  readonly policyId: string;
+  readonly policyId?: string;
 
   /**
    * A list of target IDs.
    *
    * @schema BudgetActionSpecForProviderDefinitionScpActionDefinition#targetIds
    */
-  readonly targetIds: string[];
+  readonly targetIds?: string[];
 
 }
 
@@ -2158,14 +2630,14 @@ export interface BudgetActionSpecForProviderDefinitionSsmActionDefinition {
    *
    * @schema BudgetActionSpecForProviderDefinitionSsmActionDefinition#actionSubType
    */
-  readonly actionSubType: string;
+  readonly actionSubType?: string;
 
   /**
    * The EC2 and RDS instance IDs.
    *
    * @schema BudgetActionSpecForProviderDefinitionSsmActionDefinition#instanceIds
    */
-  readonly instanceIds: string[];
+  readonly instanceIds?: string[];
 
   /**
    * The Region to run the SSM document.
@@ -2267,6 +2739,119 @@ export function toJson_BudgetActionSpecForProviderExecutionRoleArnSelectorPolicy
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema BudgetActionSpecInitProviderDefinitionIamActionDefinition
+ */
+export interface BudgetActionSpecInitProviderDefinitionIamActionDefinition {
+  /**
+   * A list of groups to be attached. There must be at least one group.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionIamActionDefinition#groups
+   */
+  readonly groups?: string[];
+
+  /**
+   * A list of roles to be attached. There must be at least one role.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionIamActionDefinition#roles
+   */
+  readonly roles?: string[];
+
+  /**
+   * A list of users to be attached. There must be at least one user.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionIamActionDefinition#users
+   */
+  readonly users?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderDefinitionIamActionDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderDefinitionIamActionDefinition(obj: BudgetActionSpecInitProviderDefinitionIamActionDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groups': obj.groups?.map(y => y),
+    'roles': obj.roles?.map(y => y),
+    'users': obj.users?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetActionSpecInitProviderDefinitionScpActionDefinition
+ */
+export interface BudgetActionSpecInitProviderDefinitionScpActionDefinition {
+  /**
+   * The policy ID attached.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionScpActionDefinition#policyId
+   */
+  readonly policyId?: string;
+
+  /**
+   * A list of target IDs.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionScpActionDefinition#targetIds
+   */
+  readonly targetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderDefinitionScpActionDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderDefinitionScpActionDefinition(obj: BudgetActionSpecInitProviderDefinitionScpActionDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policyId': obj.policyId,
+    'targetIds': obj.targetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema BudgetActionSpecInitProviderDefinitionSsmActionDefinition
+ */
+export interface BudgetActionSpecInitProviderDefinitionSsmActionDefinition {
+  /**
+   * The action subType. Valid values are STOP_EC2_INSTANCES or STOP_RDS_INSTANCES.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionSsmActionDefinition#actionSubType
+   */
+  readonly actionSubType?: string;
+
+  /**
+   * The EC2 and RDS instance IDs.
+   *
+   * @schema BudgetActionSpecInitProviderDefinitionSsmActionDefinition#instanceIds
+   */
+  readonly instanceIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'BudgetActionSpecInitProviderDefinitionSsmActionDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_BudgetActionSpecInitProviderDefinitionSsmActionDefinition(obj: BudgetActionSpecInitProviderDefinitionSsmActionDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionSubType': obj.actionSubType,
+    'instanceIds': obj.instanceIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema BudgetActionSpecProviderConfigRefPolicyResolution
@@ -2284,30 +2869,6 @@ export enum BudgetActionSpecProviderConfigRefPolicyResolution {
  * @schema BudgetActionSpecProviderConfigRefPolicyResolve
  */
 export enum BudgetActionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema BudgetActionSpecProviderRefPolicyResolution
- */
-export enum BudgetActionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema BudgetActionSpecProviderRefPolicyResolve
- */
-export enum BudgetActionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

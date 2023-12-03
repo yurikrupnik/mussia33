@@ -99,7 +99,7 @@ export function toJson_AppProps(obj: AppProps | undefined): Record<string, any> 
  */
 export interface AppSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AppSpec {
   readonly forProvider: AppSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppSpec#managementPolicy
+   * @schema AppSpec#initProvider
    */
-  readonly managementPolicy?: AppSpecManagementPolicy;
+  readonly initProvider?: AppSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppSpec#managementPolicies
+   */
+  readonly managementPolicies?: AppSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AppSpec {
    * @schema AppSpec#providerConfigRef
    */
   readonly providerConfigRef?: AppSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppSpec#providerRef
-   */
-  readonly providerRef?: AppSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AppSpec(obj: AppSpec | undefined): Record<string, any> | 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AppSpec(obj: AppSpec | undefined): Record<string, any> | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppSpecDeletionPolicy
  */
@@ -295,17 +295,84 @@ export function toJson_AppSpecForProvider(obj: AppSpecForProvider | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppSpecManagementPolicy
+ * @schema AppSpecInitProvider
  */
-export enum AppSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppSpecInitProvider {
+  /**
+   * The name of the app.
+   *
+   * @schema AppSpecInitProvider#appName
+   */
+  readonly appName?: string;
+
+  /**
+   * The type of app. Valid values are JupyterServer, KernelGateway, RStudioServerPro, RSessionGateway and TensorBoard.
+   *
+   * @schema AppSpecInitProvider#appType
+   */
+  readonly appType?: string;
+
+  /**
+   * The instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance.See Resource Spec below.
+   *
+   * @schema AppSpecInitProvider#resourceSpec
+   */
+  readonly resourceSpec?: AppSpecInitProviderResourceSpec[];
+
+  /**
+   * The name of the space. At least one of user_profile_name or space_name required.
+   *
+   * @schema AppSpecInitProvider#spaceName
+   */
+  readonly spaceName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema AppSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'AppSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppSpecInitProvider(obj: AppSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appName': obj.appName,
+    'appType': obj.appType,
+    'resourceSpec': obj.resourceSpec?.map(y => toJson_AppSpecInitProviderResourceSpec(y)),
+    'spaceName': obj.spaceName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppSpecManagementPolicies
+ */
+export enum AppSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -339,43 +406,6 @@ export function toJson_AppSpecProviderConfigRef(obj: AppSpecProviderConfigRef | 
   const result = {
     'name': obj.name,
     'policy': toJson_AppSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppSpecProviderRef
- */
-export interface AppSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppSpecProviderRef#policy
-   */
-  readonly policy?: AppSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppSpecProviderRef(obj: AppSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -680,6 +710,57 @@ export function toJson_AppSpecForProviderUserProfileNameSelector(obj: AppSpecFor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AppSpecInitProviderResourceSpec
+ */
+export interface AppSpecInitProviderResourceSpec {
+  /**
+   * The instance type that the image version runs on. For valid values see SageMaker Instance Types.
+   *
+   * @schema AppSpecInitProviderResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema AppSpecInitProviderResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema AppSpecInitProviderResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema AppSpecInitProviderResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppSpecInitProviderResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppSpecInitProviderResourceSpec(obj: AppSpecInitProviderResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema AppSpecProviderConfigRefPolicy
@@ -706,43 +787,6 @@ export interface AppSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AppSpecProviderConfigRefPolicy(obj: AppSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AppSpecProviderRefPolicy
- */
-export interface AppSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppSpecProviderRefPolicy(obj: AppSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1008,30 +1052,6 @@ export enum AppSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppSpecProviderRefPolicyResolution
- */
-export enum AppSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppSpecProviderRefPolicyResolve
- */
-export enum AppSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema AppSpecPublishConnectionDetailsToConfigRefPolicy
@@ -1285,7 +1305,7 @@ export function toJson_AppImageConfigProps(obj: AppImageConfigProps | undefined)
  */
 export interface AppImageConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AppImageConfigSpec#deletionPolicy
    */
@@ -1297,11 +1317,18 @@ export interface AppImageConfigSpec {
   readonly forProvider: AppImageConfigSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AppImageConfigSpec#managementPolicy
+   * @schema AppImageConfigSpec#initProvider
    */
-  readonly managementPolicy?: AppImageConfigSpecManagementPolicy;
+  readonly initProvider?: AppImageConfigSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AppImageConfigSpec#managementPolicies
+   */
+  readonly managementPolicies?: AppImageConfigSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1309,13 +1336,6 @@ export interface AppImageConfigSpec {
    * @schema AppImageConfigSpec#providerConfigRef
    */
   readonly providerConfigRef?: AppImageConfigSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AppImageConfigSpec#providerRef
-   */
-  readonly providerRef?: AppImageConfigSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1342,9 +1362,9 @@ export function toJson_AppImageConfigSpec(obj: AppImageConfigSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AppImageConfigSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AppImageConfigSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AppImageConfigSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AppImageConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AppImageConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AppImageConfigSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1354,7 +1374,7 @@ export function toJson_AppImageConfigSpec(obj: AppImageConfigSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AppImageConfigSpecDeletionPolicy
  */
@@ -1409,17 +1429,60 @@ export function toJson_AppImageConfigSpecForProvider(obj: AppImageConfigSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AppImageConfigSpecManagementPolicy
+ * @schema AppImageConfigSpecInitProvider
  */
-export enum AppImageConfigSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AppImageConfigSpecInitProvider {
+  /**
+   * The configuration for the file system and kernels in a SageMaker image running as a KernelGateway app. See Kernel Gateway Image Config details below.
+   *
+   * @schema AppImageConfigSpecInitProvider#kernelGatewayImageConfig
+   */
+  readonly kernelGatewayImageConfig?: AppImageConfigSpecInitProviderKernelGatewayImageConfig[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema AppImageConfigSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'AppImageConfigSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppImageConfigSpecInitProvider(obj: AppImageConfigSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kernelGatewayImageConfig': obj.kernelGatewayImageConfig?.map(y => toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfig(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AppImageConfigSpecManagementPolicies
+ */
+export enum AppImageConfigSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1453,43 +1516,6 @@ export function toJson_AppImageConfigSpecProviderConfigRef(obj: AppImageConfigSp
   const result = {
     'name': obj.name,
     'policy': toJson_AppImageConfigSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AppImageConfigSpecProviderRef
- */
-export interface AppImageConfigSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AppImageConfigSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AppImageConfigSpecProviderRef#policy
-   */
-  readonly policy?: AppImageConfigSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AppImageConfigSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppImageConfigSpecProviderRef(obj: AppImageConfigSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AppImageConfigSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1594,7 +1620,7 @@ export interface AppImageConfigSpecForProviderKernelGatewayImageConfig {
    *
    * @schema AppImageConfigSpecForProviderKernelGatewayImageConfig#kernelSpec
    */
-  readonly kernelSpec: AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec[];
+  readonly kernelSpec?: AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec[];
 
 }
 
@@ -1607,6 +1633,41 @@ export function toJson_AppImageConfigSpecForProviderKernelGatewayImageConfig(obj
   const result = {
     'fileSystemConfig': obj.fileSystemConfig?.map(y => toJson_AppImageConfigSpecForProviderKernelGatewayImageConfigFileSystemConfig(y)),
     'kernelSpec': obj.kernelSpec?.map(y => toJson_AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfig
+ */
+export interface AppImageConfigSpecInitProviderKernelGatewayImageConfig {
+  /**
+   * The URL where the Git repository is located. See File System Config details below.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfig#fileSystemConfig
+   */
+  readonly fileSystemConfig?: AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig[];
+
+  /**
+   * The default branch for the Git repository. See Kernel Spec details below.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfig#kernelSpec
+   */
+  readonly kernelSpec?: AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec[];
+
+}
+
+/**
+ * Converts an object of type 'AppImageConfigSpecInitProviderKernelGatewayImageConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfig(obj: AppImageConfigSpecInitProviderKernelGatewayImageConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'fileSystemConfig': obj.fileSystemConfig?.map(y => toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig(y)),
+    'kernelSpec': obj.kernelSpec?.map(y => toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1640,43 +1701,6 @@ export interface AppImageConfigSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AppImageConfigSpecProviderConfigRefPolicy(obj: AppImageConfigSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AppImageConfigSpecProviderRefPolicy
- */
-export interface AppImageConfigSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AppImageConfigSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AppImageConfigSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AppImageConfigSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AppImageConfigSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AppImageConfigSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AppImageConfigSpecProviderRefPolicy(obj: AppImageConfigSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1828,7 +1852,7 @@ export interface AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec
    *
    * @schema AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -1837,6 +1861,84 @@ export interface AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec(obj: AppImageConfigSpecForProviderKernelGatewayImageConfigKernelSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'displayName': obj.displayName,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig
+ */
+export interface AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig {
+  /**
+   * The default POSIX group ID (GID). If not specified, defaults to 100. Valid values are 0 and 100.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig#defaultGid
+   */
+  readonly defaultGid?: number;
+
+  /**
+   * The default POSIX user ID (UID). If not specified, defaults to 1000. Valid values are 0 and 1000.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig#defaultUid
+   */
+  readonly defaultUid?: number;
+
+  /**
+   * The path within the image to mount the user's EFS home directory. The directory should be empty. If not specified, defaults to /home/sagemaker-user.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig#mountPath
+   */
+  readonly mountPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig(obj: AppImageConfigSpecInitProviderKernelGatewayImageConfigFileSystemConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultGid': obj.defaultGid,
+    'defaultUid': obj.defaultUid,
+    'mountPath': obj.mountPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec
+ */
+export interface AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec {
+  /**
+   * The display name of the kernel.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * The name of the kernel.
+   *
+   * @schema AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec(obj: AppImageConfigSpecInitProviderKernelGatewayImageConfigKernelSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'displayName': obj.displayName,
@@ -1865,30 +1967,6 @@ export enum AppImageConfigSpecProviderConfigRefPolicyResolution {
  * @schema AppImageConfigSpecProviderConfigRefPolicyResolve
  */
 export enum AppImageConfigSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AppImageConfigSpecProviderRefPolicyResolution
- */
-export enum AppImageConfigSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AppImageConfigSpecProviderRefPolicyResolve
- */
-export enum AppImageConfigSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2053,7 +2131,7 @@ export function toJson_CodeRepositoryProps(obj: CodeRepositoryProps | undefined)
  */
 export interface CodeRepositorySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CodeRepositorySpec#deletionPolicy
    */
@@ -2065,11 +2143,18 @@ export interface CodeRepositorySpec {
   readonly forProvider: CodeRepositorySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CodeRepositorySpec#managementPolicy
+   * @schema CodeRepositorySpec#initProvider
    */
-  readonly managementPolicy?: CodeRepositorySpecManagementPolicy;
+  readonly initProvider?: CodeRepositorySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CodeRepositorySpec#managementPolicies
+   */
+  readonly managementPolicies?: CodeRepositorySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2077,13 +2162,6 @@ export interface CodeRepositorySpec {
    * @schema CodeRepositorySpec#providerConfigRef
    */
   readonly providerConfigRef?: CodeRepositorySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CodeRepositorySpec#providerRef
-   */
-  readonly providerRef?: CodeRepositorySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2110,9 +2188,9 @@ export function toJson_CodeRepositorySpec(obj: CodeRepositorySpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CodeRepositorySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CodeRepositorySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CodeRepositorySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CodeRepositorySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CodeRepositorySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CodeRepositorySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2122,7 +2200,7 @@ export function toJson_CodeRepositorySpec(obj: CodeRepositorySpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CodeRepositorySpecDeletionPolicy
  */
@@ -2177,17 +2255,60 @@ export function toJson_CodeRepositorySpecForProvider(obj: CodeRepositorySpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CodeRepositorySpecManagementPolicy
+ * @schema CodeRepositorySpecInitProvider
  */
-export enum CodeRepositorySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CodeRepositorySpecInitProvider {
+  /**
+   * Specifies details about the repository. see Git Config details below.
+   *
+   * @schema CodeRepositorySpecInitProvider#gitConfig
+   */
+  readonly gitConfig?: CodeRepositorySpecInitProviderGitConfig[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CodeRepositorySpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CodeRepositorySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodeRepositorySpecInitProvider(obj: CodeRepositorySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gitConfig': obj.gitConfig?.map(y => toJson_CodeRepositorySpecInitProviderGitConfig(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CodeRepositorySpecManagementPolicies
+ */
+export enum CodeRepositorySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2221,43 +2342,6 @@ export function toJson_CodeRepositorySpecProviderConfigRef(obj: CodeRepositorySp
   const result = {
     'name': obj.name,
     'policy': toJson_CodeRepositorySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CodeRepositorySpecProviderRef
- */
-export interface CodeRepositorySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CodeRepositorySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CodeRepositorySpecProviderRef#policy
-   */
-  readonly policy?: CodeRepositorySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CodeRepositorySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CodeRepositorySpecProviderRef(obj: CodeRepositorySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CodeRepositorySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2362,7 +2446,7 @@ export interface CodeRepositorySpecForProviderGitConfig {
    *
    * @schema CodeRepositorySpecForProviderGitConfig#repositoryUrl
    */
-  readonly repositoryUrl: string;
+  readonly repositoryUrl?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the AWS Secrets Manager secret that contains the credentials used to access the git repository. The secret must have a staging label of AWSCURRENT and must be in the following format: {"username": UserName, "password": Password}
@@ -2406,6 +2490,41 @@ export function toJson_CodeRepositorySpecForProviderGitConfig(obj: CodeRepositor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema CodeRepositorySpecInitProviderGitConfig
+ */
+export interface CodeRepositorySpecInitProviderGitConfig {
+  /**
+   * The default branch for the Git repository.
+   *
+   * @schema CodeRepositorySpecInitProviderGitConfig#branch
+   */
+  readonly branch?: string;
+
+  /**
+   * The URL where the Git repository is located.
+   *
+   * @schema CodeRepositorySpecInitProviderGitConfig#repositoryUrl
+   */
+  readonly repositoryUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'CodeRepositorySpecInitProviderGitConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CodeRepositorySpecInitProviderGitConfig(obj: CodeRepositorySpecInitProviderGitConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'branch': obj.branch,
+    'repositoryUrl': obj.repositoryUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema CodeRepositorySpecProviderConfigRefPolicy
@@ -2432,43 +2551,6 @@ export interface CodeRepositorySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_CodeRepositorySpecProviderConfigRefPolicy(obj: CodeRepositorySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema CodeRepositorySpecProviderRefPolicy
- */
-export interface CodeRepositorySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CodeRepositorySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CodeRepositorySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CodeRepositorySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CodeRepositorySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CodeRepositorySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CodeRepositorySpecProviderRefPolicy(obj: CodeRepositorySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2661,30 +2743,6 @@ export enum CodeRepositorySpecProviderConfigRefPolicyResolution {
  * @schema CodeRepositorySpecProviderConfigRefPolicyResolve
  */
 export enum CodeRepositorySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CodeRepositorySpecProviderRefPolicyResolution
- */
-export enum CodeRepositorySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CodeRepositorySpecProviderRefPolicyResolve
- */
-export enum CodeRepositorySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2971,7 +3029,7 @@ export function toJson_DeviceProps(obj: DeviceProps | undefined): Record<string,
  */
 export interface DeviceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeviceSpec#deletionPolicy
    */
@@ -2983,11 +3041,18 @@ export interface DeviceSpec {
   readonly forProvider: DeviceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DeviceSpec#managementPolicy
+   * @schema DeviceSpec#initProvider
    */
-  readonly managementPolicy?: DeviceSpecManagementPolicy;
+  readonly initProvider?: DeviceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DeviceSpec#managementPolicies
+   */
+  readonly managementPolicies?: DeviceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2995,13 +3060,6 @@ export interface DeviceSpec {
    * @schema DeviceSpec#providerConfigRef
    */
   readonly providerConfigRef?: DeviceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DeviceSpec#providerRef
-   */
-  readonly providerRef?: DeviceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3028,9 +3086,9 @@ export function toJson_DeviceSpec(obj: DeviceSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeviceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DeviceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DeviceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DeviceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeviceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DeviceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3040,7 +3098,7 @@ export function toJson_DeviceSpec(obj: DeviceSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeviceSpecDeletionPolicy
  */
@@ -3111,17 +3169,52 @@ export function toJson_DeviceSpecForProvider(obj: DeviceSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DeviceSpecManagementPolicy
+ * @schema DeviceSpecInitProvider
  */
-export enum DeviceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DeviceSpecInitProvider {
+  /**
+   * The device to register with SageMaker Edge Manager. See Device details below.
+   *
+   * @schema DeviceSpecInitProvider#device
+   */
+  readonly device?: DeviceSpecInitProviderDevice[];
+
+}
+
+/**
+ * Converts an object of type 'DeviceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeviceSpecInitProvider(obj: DeviceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'device': obj.device?.map(y => toJson_DeviceSpecInitProviderDevice(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DeviceSpecManagementPolicies
+ */
+export enum DeviceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3155,43 +3248,6 @@ export function toJson_DeviceSpecProviderConfigRef(obj: DeviceSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_DeviceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DeviceSpecProviderRef
- */
-export interface DeviceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DeviceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DeviceSpecProviderRef#policy
-   */
-  readonly policy?: DeviceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DeviceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeviceSpecProviderRef(obj: DeviceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DeviceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3296,7 +3352,7 @@ export interface DeviceSpecForProviderDevice {
    *
    * @schema DeviceSpecForProviderDevice#deviceName
    */
-  readonly deviceName: string;
+  readonly deviceName?: string;
 
   /**
    * Amazon Web Services Internet of Things (IoT) object name.
@@ -3406,6 +3462,49 @@ export function toJson_DeviceSpecForProviderDeviceFleetNameSelector(obj: DeviceS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeviceSpecInitProviderDevice
+ */
+export interface DeviceSpecInitProviderDevice {
+  /**
+   * A description for the device.
+   *
+   * @schema DeviceSpecInitProviderDevice#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the device.
+   *
+   * @schema DeviceSpecInitProviderDevice#deviceName
+   */
+  readonly deviceName?: string;
+
+  /**
+   * Amazon Web Services Internet of Things (IoT) object name.
+   *
+   * @schema DeviceSpecInitProviderDevice#iotThingName
+   */
+  readonly iotThingName?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeviceSpecInitProviderDevice' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeviceSpecInitProviderDevice(obj: DeviceSpecInitProviderDevice | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'deviceName': obj.deviceName,
+    'iotThingName': obj.iotThingName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DeviceSpecProviderConfigRefPolicy
@@ -3432,43 +3531,6 @@ export interface DeviceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeviceSpecProviderConfigRefPolicy(obj: DeviceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DeviceSpecProviderRefPolicy
- */
-export interface DeviceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DeviceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DeviceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DeviceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DeviceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DeviceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeviceSpecProviderRefPolicy(obj: DeviceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3653,30 +3715,6 @@ export enum DeviceSpecProviderConfigRefPolicyResolution {
  * @schema DeviceSpecProviderConfigRefPolicyResolve
  */
 export enum DeviceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DeviceSpecProviderRefPolicyResolution
- */
-export enum DeviceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DeviceSpecProviderRefPolicyResolve
- */
-export enum DeviceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3889,7 +3927,7 @@ export function toJson_DeviceFleetProps(obj: DeviceFleetProps | undefined): Reco
  */
 export interface DeviceFleetSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DeviceFleetSpec#deletionPolicy
    */
@@ -3901,11 +3939,18 @@ export interface DeviceFleetSpec {
   readonly forProvider: DeviceFleetSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DeviceFleetSpec#managementPolicy
+   * @schema DeviceFleetSpec#initProvider
    */
-  readonly managementPolicy?: DeviceFleetSpecManagementPolicy;
+  readonly initProvider?: DeviceFleetSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DeviceFleetSpec#managementPolicies
+   */
+  readonly managementPolicies?: DeviceFleetSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3913,13 +3958,6 @@ export interface DeviceFleetSpec {
    * @schema DeviceFleetSpec#providerConfigRef
    */
   readonly providerConfigRef?: DeviceFleetSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DeviceFleetSpec#providerRef
-   */
-  readonly providerRef?: DeviceFleetSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3946,9 +3984,9 @@ export function toJson_DeviceFleetSpec(obj: DeviceFleetSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DeviceFleetSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DeviceFleetSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DeviceFleetSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DeviceFleetSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DeviceFleetSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DeviceFleetSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3958,7 +3996,7 @@ export function toJson_DeviceFleetSpec(obj: DeviceFleetSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DeviceFleetSpecDeletionPolicy
  */
@@ -4053,17 +4091,76 @@ export function toJson_DeviceFleetSpecForProvider(obj: DeviceFleetSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DeviceFleetSpecManagementPolicy
+ * @schema DeviceFleetSpecInitProvider
  */
-export enum DeviceFleetSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DeviceFleetSpecInitProvider {
+  /**
+   * A description of the fleet.
+   *
+   * @schema DeviceFleetSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Whether to create an AWS IoT Role Alias during device fleet creation. The name of the role alias generated will match this pattern: "SageMakerEdge-{DeviceFleetName}".
+   *
+   * @schema DeviceFleetSpecInitProvider#enableIotRoleAlias
+   */
+  readonly enableIotRoleAlias?: boolean;
+
+  /**
+   * Specifies details about the repository. see Output Config details below.
+   *
+   * @schema DeviceFleetSpecInitProvider#outputConfig
+   */
+  readonly outputConfig?: DeviceFleetSpecInitProviderOutputConfig[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DeviceFleetSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DeviceFleetSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeviceFleetSpecInitProvider(obj: DeviceFleetSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'enableIotRoleAlias': obj.enableIotRoleAlias,
+    'outputConfig': obj.outputConfig?.map(y => toJson_DeviceFleetSpecInitProviderOutputConfig(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DeviceFleetSpecManagementPolicies
+ */
+export enum DeviceFleetSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4097,43 +4194,6 @@ export function toJson_DeviceFleetSpecProviderConfigRef(obj: DeviceFleetSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_DeviceFleetSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DeviceFleetSpecProviderRef
- */
-export interface DeviceFleetSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DeviceFleetSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DeviceFleetSpecProviderRef#policy
-   */
-  readonly policy?: DeviceFleetSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DeviceFleetSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeviceFleetSpecProviderRef(obj: DeviceFleetSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DeviceFleetSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4238,7 +4298,7 @@ export interface DeviceFleetSpecForProviderOutputConfig {
    *
    * @schema DeviceFleetSpecForProviderOutputConfig#s3OutputLocation
    */
-  readonly s3OutputLocation: string;
+  readonly s3OutputLocation?: string;
 
 }
 
@@ -4340,6 +4400,41 @@ export function toJson_DeviceFleetSpecForProviderRoleArnSelector(obj: DeviceFlee
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DeviceFleetSpecInitProviderOutputConfig
+ */
+export interface DeviceFleetSpecInitProviderOutputConfig {
+  /**
+   * The AWS Key Management Service (AWS KMS) key that Amazon SageMaker uses to encrypt data on the storage volume after compilation job. If you don't provide a KMS key ID, Amazon SageMaker uses the default KMS key for Amazon S3 for your role's account.
+   *
+   * @schema DeviceFleetSpecInitProviderOutputConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * The Amazon Simple Storage (S3) bucker URI.
+   *
+   * @schema DeviceFleetSpecInitProviderOutputConfig#s3OutputLocation
+   */
+  readonly s3OutputLocation?: string;
+
+}
+
+/**
+ * Converts an object of type 'DeviceFleetSpecInitProviderOutputConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DeviceFleetSpecInitProviderOutputConfig(obj: DeviceFleetSpecInitProviderOutputConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+    's3OutputLocation': obj.s3OutputLocation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DeviceFleetSpecProviderConfigRefPolicy
@@ -4366,43 +4461,6 @@ export interface DeviceFleetSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DeviceFleetSpecProviderConfigRefPolicy(obj: DeviceFleetSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DeviceFleetSpecProviderRefPolicy
- */
-export interface DeviceFleetSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DeviceFleetSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DeviceFleetSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DeviceFleetSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DeviceFleetSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DeviceFleetSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DeviceFleetSpecProviderRefPolicy(obj: DeviceFleetSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4587,30 +4645,6 @@ export enum DeviceFleetSpecProviderConfigRefPolicyResolution {
  * @schema DeviceFleetSpecProviderConfigRefPolicyResolve
  */
 export enum DeviceFleetSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DeviceFleetSpecProviderRefPolicyResolution
- */
-export enum DeviceFleetSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DeviceFleetSpecProviderRefPolicyResolve
- */
-export enum DeviceFleetSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4823,7 +4857,7 @@ export function toJson_DomainProps(obj: DomainProps | undefined): Record<string,
  */
 export interface DomainSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DomainSpec#deletionPolicy
    */
@@ -4835,11 +4869,18 @@ export interface DomainSpec {
   readonly forProvider: DomainSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DomainSpec#managementPolicy
+   * @schema DomainSpec#initProvider
    */
-  readonly managementPolicy?: DomainSpecManagementPolicy;
+  readonly initProvider?: DomainSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DomainSpec#managementPolicies
+   */
+  readonly managementPolicies?: DomainSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4847,13 +4888,6 @@ export interface DomainSpec {
    * @schema DomainSpec#providerConfigRef
    */
   readonly providerConfigRef?: DomainSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DomainSpec#providerRef
-   */
-  readonly providerRef?: DomainSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4880,9 +4914,9 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DomainSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DomainSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DomainSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DomainSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DomainSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DomainSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4892,7 +4926,7 @@ export function toJson_DomainSpec(obj: DomainSpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DomainSpecDeletionPolicy
  */
@@ -5073,17 +5107,114 @@ export function toJson_DomainSpecForProvider(obj: DomainSpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DomainSpecManagementPolicy
+ * @schema DomainSpecInitProvider
  */
-export enum DomainSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DomainSpecInitProvider {
+  /**
+   * Specifies the VPC used for non-EFS traffic. The default value is PublicInternetOnly. Valid values are PublicInternetOnly and VpcOnly.
+   *
+   * @schema DomainSpecInitProvider#appNetworkAccessType
+   */
+  readonly appNetworkAccessType?: string;
+
+  /**
+   * The entity that creates and manages the required security groups for inter-app communication in VPCOnly mode. Valid values are Service and Customer.
+   *
+   * @schema DomainSpecInitProvider#appSecurityGroupManagement
+   */
+  readonly appSecurityGroupManagement?: string;
+
+  /**
+   * The mode of authentication that members use to access the domain. Valid values are IAM and SSO.
+   *
+   * @schema DomainSpecInitProvider#authMode
+   */
+  readonly authMode?: string;
+
+  /**
+   * The default space settings. See Default Space Settings below.
+   *
+   * @schema DomainSpecInitProvider#defaultSpaceSettings
+   */
+  readonly defaultSpaceSettings?: DomainSpecInitProviderDefaultSpaceSettings[];
+
+  /**
+   * The default user settings. See Default User Settings below.* domain_name -  The domain name.
+   *
+   * @schema DomainSpecInitProvider#defaultUserSettings
+   */
+  readonly defaultUserSettings?: DomainSpecInitProviderDefaultUserSettings[];
+
+  /**
+   * @schema DomainSpecInitProvider#domainName
+   */
+  readonly domainName?: string;
+
+  /**
+   * The domain settings. See Domain Settings below.
+   *
+   * @schema DomainSpecInitProvider#domainSettings
+   */
+  readonly domainSettings?: DomainSpecInitProviderDomainSettings[];
+
+  /**
+   * The retention policy for this domain, which specifies whether resources will be retained after the Domain is deleted. By default, all resources are retained. See Retention Policy below.
+   *
+   * @schema DomainSpecInitProvider#retentionPolicy
+   */
+  readonly retentionPolicy?: DomainSpecInitProviderRetentionPolicy[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema DomainSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProvider(obj: DomainSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appNetworkAccessType': obj.appNetworkAccessType,
+    'appSecurityGroupManagement': obj.appSecurityGroupManagement,
+    'authMode': obj.authMode,
+    'defaultSpaceSettings': obj.defaultSpaceSettings?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettings(y)),
+    'defaultUserSettings': obj.defaultUserSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettings(y)),
+    'domainName': obj.domainName,
+    'domainSettings': obj.domainSettings?.map(y => toJson_DomainSpecInitProviderDomainSettings(y)),
+    'retentionPolicy': obj.retentionPolicy?.map(y => toJson_DomainSpecInitProviderRetentionPolicy(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DomainSpecManagementPolicies
+ */
+export enum DomainSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5117,43 +5248,6 @@ export function toJson_DomainSpecProviderConfigRef(obj: DomainSpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_DomainSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DomainSpecProviderRef
- */
-export interface DomainSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DomainSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DomainSpecProviderRef#policy
-   */
-  readonly policy?: DomainSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRef(obj: DomainSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DomainSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5251,7 +5345,7 @@ export interface DomainSpecForProviderDefaultSpaceSettings {
    *
    * @schema DomainSpecForProviderDefaultSpaceSettings#executionRole
    */
-  readonly executionRole: string;
+  readonly executionRole?: string;
 
   /**
    * The Jupyter server's app settings. See Jupyter Server App Settings below.
@@ -5717,6 +5811,210 @@ export function toJson_DomainSpecForProviderVpcIdSelector(obj: DomainSpecForProv
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSpecInitProviderDefaultSpaceSettings
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettings {
+  /**
+   * The execution role for the space.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettings#executionRole
+   */
+  readonly executionRole?: string;
+
+  /**
+   * The Jupyter server's app settings. See Jupyter Server App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettings#jupyterServerAppSettings
+   */
+  readonly jupyterServerAppSettings?: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings[];
+
+  /**
+   * The kernel gateway app settings. See Kernel Gateway App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettings#kernelGatewayAppSettings
+   */
+  readonly kernelGatewayAppSettings?: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings[];
+
+  /**
+   * The security groups for the Amazon Virtual Private Cloud that the space uses for communication.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettings#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettings(obj: DomainSpecInitProviderDefaultSpaceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executionRole': obj.executionRole,
+    'jupyterServerAppSettings': obj.jupyterServerAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings(y)),
+    'kernelGatewayAppSettings': obj.kernelGatewayAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings(y)),
+    'securityGroups': obj.securityGroups?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettings {
+  /**
+   * The Canvas app settings. See Canvas App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#canvasAppSettings
+   */
+  readonly canvasAppSettings?: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings[];
+
+  /**
+   * The Jupyter server's app settings. See Jupyter Server App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#jupyterServerAppSettings
+   */
+  readonly jupyterServerAppSettings?: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings[];
+
+  /**
+   * The kernel gateway app settings. See Kernel Gateway App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#kernelGatewayAppSettings
+   */
+  readonly kernelGatewayAppSettings?: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings[];
+
+  /**
+   * The RSession app settings. See RSession App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#rSessionAppSettings
+   */
+  readonly rSessionAppSettings?: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings[];
+
+  /**
+   * A collection of settings that configure user interaction with the RStudioServerPro app. See RStudioServerProAppSettings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#rStudioServerProAppSettings
+   */
+  readonly rStudioServerProAppSettings?: DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings[];
+
+  /**
+   * A list of security group IDs that will be attached to the user.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+  /**
+   * The sharing settings. See Sharing Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#sharingSettings
+   */
+  readonly sharingSettings?: DomainSpecInitProviderDefaultUserSettingsSharingSettings[];
+
+  /**
+   * The TensorBoard app settings. See TensorBoard App Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettings#tensorBoardAppSettings
+   */
+  readonly tensorBoardAppSettings?: DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettings(obj: DomainSpecInitProviderDefaultUserSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'canvasAppSettings': obj.canvasAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings(y)),
+    'jupyterServerAppSettings': obj.jupyterServerAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings(y)),
+    'kernelGatewayAppSettings': obj.kernelGatewayAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings(y)),
+    'rSessionAppSettings': obj.rSessionAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings(y)),
+    'rStudioServerProAppSettings': obj.rStudioServerProAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings(y)),
+    'securityGroups': obj.securityGroups?.map(y => y),
+    'sharingSettings': obj.sharingSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsSharingSettings(y)),
+    'tensorBoardAppSettings': obj.tensorBoardAppSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDomainSettings
+ */
+export interface DomainSpecInitProviderDomainSettings {
+  /**
+   * The configuration for attaching a SageMaker user profile name to the execution role as a sts:SourceIdentity key AWS Docs. Valid values are USER_PROFILE_NAME and DISABLED.
+   *
+   * @schema DomainSpecInitProviderDomainSettings#executionRoleIdentityConfig
+   */
+  readonly executionRoleIdentityConfig?: string;
+
+  /**
+   * A collection of settings that configure the RStudioServerPro Domain-level app. see RStudioServerProDomainSettings below.
+   *
+   * @schema DomainSpecInitProviderDomainSettings#rStudioServerProDomainSettings
+   */
+  readonly rStudioServerProDomainSettings?: DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings[];
+
+  /**
+   * The security groups for the Amazon Virtual Private Cloud that the Domain uses for communication between Domain-level apps and user apps.
+   *
+   * @schema DomainSpecInitProviderDomainSettings#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDomainSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDomainSettings(obj: DomainSpecInitProviderDomainSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'executionRoleIdentityConfig': obj.executionRoleIdentityConfig,
+    'rStudioServerProDomainSettings': obj.rStudioServerProDomainSettings?.map(y => toJson_DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings(y)),
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderRetentionPolicy
+ */
+export interface DomainSpecInitProviderRetentionPolicy {
+  /**
+   * The retention policy for data stored on an Amazon Elastic File System (EFS) volume. Valid values are Retain or Delete.  Default value is Retain.
+   *
+   * @schema DomainSpecInitProviderRetentionPolicy#homeEfsFileSystem
+   */
+  readonly homeEfsFileSystem?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderRetentionPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderRetentionPolicy(obj: DomainSpecInitProviderRetentionPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'homeEfsFileSystem': obj.homeEfsFileSystem,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema DomainSpecProviderConfigRefPolicy
@@ -5743,43 +6041,6 @@ export interface DomainSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_DomainSpecProviderConfigRefPolicy(obj: DomainSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema DomainSpecProviderRefPolicy
- */
-export interface DomainSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DomainSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DomainSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DomainSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DomainSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DomainSpecProviderRefPolicy(obj: DomainSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -6317,7 +6578,7 @@ export interface DomainSpecForProviderDomainSettingsRStudioServerProDomainSettin
    *
    * @schema DomainSpecForProviderDomainSettingsRStudioServerProDomainSettings#domainExecutionRoleArn
    */
-  readonly domainExecutionRoleArn: string;
+  readonly domainExecutionRoleArn?: string;
 
   /**
    * A URL pointing to an RStudio Connect server.
@@ -6575,6 +6836,404 @@ export function toJson_DomainSpecForProviderVpcIdSelectorPolicy(obj: DomainSpecF
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings {
+  /**
+   * A list of Git repositories that SageMaker automatically displays to users for cloning in the JupyterServer application. see Code Repository below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings#codeRepository
+   */
+  readonly codeRepository?: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings(obj: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codeRepository': obj.codeRepository?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings#customImage
+   */
+  readonly customImage?: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings(obj: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings {
+  /**
+   * The model registry settings for the SageMaker Canvas application. See Model Register Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings#modelRegisterSettings
+   */
+  readonly modelRegisterSettings?: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings[];
+
+  /**
+   * Time series forecast settings for the Canvas app. See Time Series Forecasting Settings below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings#timeSeriesForecastingSettings
+   */
+  readonly timeSeriesForecastingSettings?: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'modelRegisterSettings': obj.modelRegisterSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings(y)),
+    'timeSeriesForecastingSettings': obj.timeSeriesForecastingSettings?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings {
+  /**
+   * A list of Git repositories that SageMaker automatically displays to users for cloning in the JupyterServer application. see Code Repository below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings#codeRepository
+   */
+  readonly codeRepository?: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codeRepository': obj.codeRepository?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings#customImage
+   */
+  readonly customImage?: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings#customImage
+   */
+  readonly customImage?: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings {
+  /**
+   * Indicates whether the current user has access to the RStudioServerPro app. Valid values are ENABLED and DISABLED.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings#accessStatus
+   */
+  readonly accessStatus?: string;
+
+  /**
+   * The level of permissions that the user has within the RStudioServerPro app. This value defaults to R_STUDIO_USER. The R_STUDIO_ADMIN value allows the user access to the RStudio Administrative Dashboard. Valid values are R_STUDIO_USER and R_STUDIO_ADMIN.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings#userGroup
+   */
+  readonly userGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsRStudioServerProAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessStatus': obj.accessStatus,
+    'userGroup': obj.userGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsSharingSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsSharingSettings {
+  /**
+   * Whether to include the notebook cell output when sharing the notebook. The default is Disabled. Valid values are Allowed and Disabled.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsSharingSettings#notebookOutputOption
+   */
+  readonly notebookOutputOption?: string;
+
+  /**
+   * When notebook_output_option is Allowed, the AWS Key Management Service (KMS) encryption key ID used to encrypt the notebook cell output in the Amazon S3 bucket.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsSharingSettings#s3KmsKeyId
+   */
+  readonly s3KmsKeyId?: string;
+
+  /**
+   * When notebook_output_option is Allowed, the Amazon S3 bucket used to save the notebook cell output.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsSharingSettings#s3OutputPath
+   */
+  readonly s3OutputPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsSharingSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsSharingSettings(obj: DomainSpecInitProviderDefaultUserSettingsSharingSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'notebookOutputOption': obj.notebookOutputOption,
+    's3KmsKeyId': obj.s3KmsKeyId,
+    's3OutputPath': obj.s3OutputPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings {
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec[];
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings(obj: DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings
+ */
+export interface DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings {
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec[];
+
+  /**
+   * The ARN of the execution role for the RStudioServerPro Domain-level app.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings#domainExecutionRoleArn
+   */
+  readonly domainExecutionRoleArn?: string;
+
+  /**
+   * A URL pointing to an RStudio Connect server.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings#rStudioConnectUrl
+   */
+  readonly rStudioConnectUrl?: string;
+
+  /**
+   * A URL pointing to an RStudio Package Manager server.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings#rStudioPackageManagerUrl
+   */
+  readonly rStudioPackageManagerUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings(obj: DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec(y)),
+    'domainExecutionRoleArn': obj.domainExecutionRoleArn,
+    'rStudioConnectUrl': obj.rStudioConnectUrl,
+    'rStudioPackageManagerUrl': obj.rStudioPackageManagerUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema DomainSpecProviderConfigRefPolicyResolution
@@ -6592,30 +7251,6 @@ export enum DomainSpecProviderConfigRefPolicyResolution {
  * @schema DomainSpecProviderConfigRefPolicyResolve
  */
 export enum DomainSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DomainSpecProviderRefPolicyResolution
- */
-export enum DomainSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DomainSpecProviderRefPolicyResolve
- */
-export enum DomainSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6668,7 +7303,7 @@ export interface DomainSpecForProviderDefaultSpaceSettingsJupyterServerAppSettin
    *
    * @schema DomainSpecForProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
    */
-  readonly repositoryUrl: string;
+  readonly repositoryUrl?: string;
 
 }
 
@@ -6746,14 +7381,14 @@ export interface DomainSpecForProviderDefaultSpaceSettingsKernelGatewayAppSettin
    *
    * @schema DomainSpecForProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
    */
-  readonly appImageConfigName: string;
+  readonly appImageConfigName?: string;
 
   /**
    * The name of the Custom Image.
    *
    * @schema DomainSpecForProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage#imageName
    */
-  readonly imageName: string;
+  readonly imageName?: string;
 
   /**
    * The version number of the Custom Image.
@@ -6984,7 +7619,7 @@ export interface DomainSpecForProviderDefaultUserSettingsJupyterServerAppSetting
    *
    * @schema DomainSpecForProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
    */
-  readonly repositoryUrl: string;
+  readonly repositoryUrl?: string;
 
 }
 
@@ -7188,14 +7823,14 @@ export interface DomainSpecForProviderDefaultUserSettingsRSessionAppSettingsCust
    *
    * @schema DomainSpecForProviderDefaultUserSettingsRSessionAppSettingsCustomImage#appImageConfigName
    */
-  readonly appImageConfigName: string;
+  readonly appImageConfigName?: string;
 
   /**
    * The name of the Custom Image.
    *
    * @schema DomainSpecForProviderDefaultUserSettingsRSessionAppSettingsCustomImage#imageName
    */
-  readonly imageName: string;
+  readonly imageName?: string;
 
   /**
    * The version number of the Custom Image.
@@ -7518,6 +8153,600 @@ export enum DomainSpecForProviderVpcIdSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository {
+  /**
+   * The URL of the Git repository.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
+   */
+  readonly repositoryUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository(obj: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsCodeRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryUrl': obj.repositoryUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage {
+  /**
+   * The name of the App Image Config.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
+   */
+  readonly appImageConfigName?: string;
+
+  /**
+   * The name of the Custom Image.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage(obj: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appImageConfigName': obj.appImageConfigName,
+    'imageName': obj.imageName,
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings {
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker model registry account. Required only to register model versions created by a different SageMaker Canvas AWS account than the AWS account in which SageMaker model registry is set up.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings#crossAccountModelRegisterRoleArn
+   */
+  readonly crossAccountModelRegisterRoleArn?: string;
+
+  /**
+   * Describes whether the integration to the model registry is enabled or disabled in the Canvas application.. Valid values are ENABLED and DISABLED.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings(obj: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsModelRegisterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossAccountModelRegisterRoleArn': obj.crossAccountModelRegisterRoleArn,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings {
+  /**
+   * The IAM role that Canvas passes to Amazon Forecast for time series forecasting. By default, Canvas uses the execution role specified in the UserProfile that launches the Canvas app. If an execution role is not specified in the UserProfile, Canvas uses the execution role specified in the Domain that owns the UserProfile. To allow time series forecasting, this IAM role should have the AmazonSageMakerCanvasForecastAccess policy attached and forecast.amazonaws.com added in the trust relationship as a service principal.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings#amazonForecastRoleArn
+   */
+  readonly amazonForecastRoleArn?: string;
+
+  /**
+   * Describes whether time series forecasting is enabled or disabled in the Canvas app. Valid values are ENABLED and DISABLED.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings(obj: DomainSpecInitProviderDefaultUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'amazonForecastRoleArn': obj.amazonForecastRoleArn,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository {
+  /**
+   * The URL of the Git repository.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
+   */
+  readonly repositoryUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository(obj: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsCodeRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryUrl': obj.repositoryUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultUserSettingsJupyterServerAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage {
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage(obj: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultUserSettingsKernelGatewayAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage {
+  /**
+   * The name of the App Image Config.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage#appImageConfigName
+   */
+  readonly appImageConfigName?: string;
+
+  /**
+   * The name of the Custom Image.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage(obj: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appImageConfigName': obj.appImageConfigName,
+    'imageName': obj.imageName,
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultUserSettingsRSessionAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDefaultUserSettingsTensorBoardAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec
+ */
+export interface DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec {
+  /**
+   * The instance type that the image version runs on.. For valid values see SageMaker Instance Types.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The ARN of the SageMaker image that the image version belongs to.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec(obj: DomainSpecInitProviderDomainSettingsRStudioServerProDomainSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -8096,7 +9325,7 @@ export function toJson_EndpointConfigurationProps(obj: EndpointConfigurationProp
  */
 export interface EndpointConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema EndpointConfigurationSpec#deletionPolicy
    */
@@ -8108,11 +9337,18 @@ export interface EndpointConfigurationSpec {
   readonly forProvider: EndpointConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema EndpointConfigurationSpec#managementPolicy
+   * @schema EndpointConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: EndpointConfigurationSpecManagementPolicy;
+  readonly initProvider?: EndpointConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema EndpointConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: EndpointConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8120,13 +9356,6 @@ export interface EndpointConfigurationSpec {
    * @schema EndpointConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: EndpointConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema EndpointConfigurationSpec#providerRef
-   */
-  readonly providerRef?: EndpointConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8153,9 +9382,9 @@ export function toJson_EndpointConfigurationSpec(obj: EndpointConfigurationSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_EndpointConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_EndpointConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_EndpointConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_EndpointConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_EndpointConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_EndpointConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8165,7 +9394,7 @@ export function toJson_EndpointConfigurationSpec(obj: EndpointConfigurationSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema EndpointConfigurationSpecDeletionPolicy
  */
@@ -8268,17 +9497,84 @@ export function toJson_EndpointConfigurationSpecForProvider(obj: EndpointConfigu
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema EndpointConfigurationSpecManagementPolicy
+ * @schema EndpointConfigurationSpecInitProvider
  */
-export enum EndpointConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface EndpointConfigurationSpecInitProvider {
+  /**
+   * Specifies configuration for how an endpoint performs asynchronous inference.
+   *
+   * @schema EndpointConfigurationSpecInitProvider#asyncInferenceConfig
+   */
+  readonly asyncInferenceConfig?: EndpointConfigurationSpecInitProviderAsyncInferenceConfig[];
+
+  /**
+   * Specifies the parameters to capture input/output of SageMaker models endpoints. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProvider#dataCaptureConfig
+   */
+  readonly dataCaptureConfig?: EndpointConfigurationSpecInitProviderDataCaptureConfig[];
+
+  /**
+   * An list of ProductionVariant objects, one for each model that you want to host at this endpoint. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProvider#productionVariants
+   */
+  readonly productionVariants?: EndpointConfigurationSpecInitProviderProductionVariants[];
+
+  /**
+   * Array of ProductionVariant objects. There is one for each model that you want to host at this endpoint in shadow mode with production traffic replicated from the model specified on ProductionVariants.If you use this field, you can only specify one variant for ProductionVariants and one variant for ShadowProductionVariants. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProvider#shadowProductionVariants
+   */
+  readonly shadowProductionVariants?: EndpointConfigurationSpecInitProviderShadowProductionVariants[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema EndpointConfigurationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProvider(obj: EndpointConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'asyncInferenceConfig': obj.asyncInferenceConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfig(y)),
+    'dataCaptureConfig': obj.dataCaptureConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderDataCaptureConfig(y)),
+    'productionVariants': obj.productionVariants?.map(y => toJson_EndpointConfigurationSpecInitProviderProductionVariants(y)),
+    'shadowProductionVariants': obj.shadowProductionVariants?.map(y => toJson_EndpointConfigurationSpecInitProviderShadowProductionVariants(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema EndpointConfigurationSpecManagementPolicies
+ */
+export enum EndpointConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8312,43 +9608,6 @@ export function toJson_EndpointConfigurationSpecProviderConfigRef(obj: EndpointC
   const result = {
     'name': obj.name,
     'policy': toJson_EndpointConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema EndpointConfigurationSpecProviderRef
- */
-export interface EndpointConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema EndpointConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema EndpointConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: EndpointConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'EndpointConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EndpointConfigurationSpecProviderRef(obj: EndpointConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_EndpointConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8453,7 +9712,7 @@ export interface EndpointConfigurationSpecForProviderAsyncInferenceConfig {
    *
    * @schema EndpointConfigurationSpecForProviderAsyncInferenceConfig#outputConfig
    */
-  readonly outputConfig: EndpointConfigurationSpecForProviderAsyncInferenceConfigOutputConfig[];
+  readonly outputConfig?: EndpointConfigurationSpecForProviderAsyncInferenceConfigOutputConfig[];
 
 }
 
@@ -8488,14 +9747,14 @@ export interface EndpointConfigurationSpecForProviderDataCaptureConfig {
    *
    * @schema EndpointConfigurationSpecForProviderDataCaptureConfig#captureOptions
    */
-  readonly captureOptions: EndpointConfigurationSpecForProviderDataCaptureConfigCaptureOptions[];
+  readonly captureOptions?: EndpointConfigurationSpecForProviderDataCaptureConfigCaptureOptions[];
 
   /**
    * The URL for S3 location where the captured data is stored.
    *
    * @schema EndpointConfigurationSpecForProviderDataCaptureConfig#destinationS3Uri
    */
-  readonly destinationS3Uri: string;
+  readonly destinationS3Uri?: string;
 
   /**
    * Flag to enable data capture. Defaults to false.
@@ -8510,7 +9769,7 @@ export interface EndpointConfigurationSpecForProviderDataCaptureConfig {
    *
    * @schema EndpointConfigurationSpecForProviderDataCaptureConfig#initialSamplingPercentage
    */
-  readonly initialSamplingPercentage: number;
+  readonly initialSamplingPercentage?: number;
 
   /**
    * Amazon Resource Name (ARN) of a AWS Key Management Service key that Amazon SageMaker uses to encrypt the captured data on Amazon S3.
@@ -8818,7 +10077,7 @@ export interface EndpointConfigurationSpecForProviderShadowProductionVariants {
    *
    * @schema EndpointConfigurationSpecForProviderShadowProductionVariants#modelName
    */
-  readonly modelName: string;
+  readonly modelName?: string;
 
   /**
    * Specifies configuration for how an endpoint performs asynchronous inference.
@@ -8869,6 +10128,331 @@ export function toJson_EndpointConfigurationSpecForProviderShadowProductionVaria
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfig
+ */
+export interface EndpointConfigurationSpecInitProviderAsyncInferenceConfig {
+  /**
+   * Configures the behavior of the client used by Amazon SageMaker to interact with the model container during asynchronous inference.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfig#clientConfig
+   */
+  readonly clientConfig?: EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig[];
+
+  /**
+   * Specifies the configuration for asynchronous inference invocation outputs.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfig#outputConfig
+   */
+  readonly outputConfig?: EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig[];
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderAsyncInferenceConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfig(obj: EndpointConfigurationSpecInitProviderAsyncInferenceConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'clientConfig': obj.clientConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig(y)),
+    'outputConfig': obj.outputConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig
+ */
+export interface EndpointConfigurationSpecInitProviderDataCaptureConfig {
+  /**
+   * The content type headers to capture. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#captureContentTypeHeader
+   */
+  readonly captureContentTypeHeader?: EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader[];
+
+  /**
+   * Specifies what data to capture. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#captureOptions
+   */
+  readonly captureOptions?: EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions[];
+
+  /**
+   * The URL for S3 location where the captured data is stored.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#destinationS3Uri
+   */
+  readonly destinationS3Uri?: string;
+
+  /**
+   * Flag to enable data capture. Defaults to false.
+   *
+   * @default false.
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#enableCapture
+   */
+  readonly enableCapture?: boolean;
+
+  /**
+   * Portion of data to capture. Should be between 0 and 100.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#initialSamplingPercentage
+   */
+  readonly initialSamplingPercentage?: number;
+
+  /**
+   * Amazon Resource Name (ARN) of a AWS Key Management Service key that Amazon SageMaker uses to encrypt the captured data on Amazon S3.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderDataCaptureConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderDataCaptureConfig(obj: EndpointConfigurationSpecInitProviderDataCaptureConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'captureContentTypeHeader': obj.captureContentTypeHeader?.map(y => toJson_EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader(y)),
+    'captureOptions': obj.captureOptions?.map(y => toJson_EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions(y)),
+    'destinationS3Uri': obj.destinationS3Uri,
+    'enableCapture': obj.enableCapture,
+    'initialSamplingPercentage': obj.initialSamplingPercentage,
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderProductionVariants
+ */
+export interface EndpointConfigurationSpecInitProviderProductionVariants {
+  /**
+   * The size of the Elastic Inference (EI) instance to use for the production variant.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+  /**
+   * The timeout value, in seconds, for your inference container to pass health check by SageMaker Hosting. For more information about health check, see How Your Container Should Respond to Health Check (Ping) Requests. Valid values between 60 and 3600.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#containerStartupHealthCheckTimeoutInSeconds
+   */
+  readonly containerStartupHealthCheckTimeoutInSeconds?: number;
+
+  /**
+   * Specifies configuration for a core dump from the model container when the process crashes. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#coreDumpConfig
+   */
+  readonly coreDumpConfig?: EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig[];
+
+  /**
+   * You can use this parameter to turn on native Amazon Web Services Systems Manager (SSM) access for a production variant behind an endpoint. By default, SSM access is disabled for all production variants behind an endpoints.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#enableSsmAccess
+   */
+  readonly enableSsmAccess?: boolean;
+
+  /**
+   * Initial number of instances used for auto-scaling.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#initialInstanceCount
+   */
+  readonly initialInstanceCount?: number;
+
+  /**
+   * Determines initial traffic distribution among all of the models that you specify in the endpoint configuration. If unspecified, it defaults to 1.0.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#initialVariantWeight
+   */
+  readonly initialVariantWeight?: number;
+
+  /**
+   * The type of instance to start.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The timeout value, in seconds, to download and extract the model that you want to host from Amazon S3 to the individual inference instance associated with this production variant. Valid values between 60 and 3600.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#modelDataDownloadTimeoutInSeconds
+   */
+  readonly modelDataDownloadTimeoutInSeconds?: number;
+
+  /**
+   * Specifies configuration for how an endpoint performs asynchronous inference.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#serverlessConfig
+   */
+  readonly serverlessConfig?: EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig[];
+
+  /**
+   * The name of the variant.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#variantName
+   */
+  readonly variantName?: string;
+
+  /**
+   * The size, in GB, of the ML storage volume attached to individual inference instance associated with the production variant. Valid values between 1 and 512.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariants#volumeSizeInGb
+   */
+  readonly volumeSizeInGb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderProductionVariants' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderProductionVariants(obj: EndpointConfigurationSpecInitProviderProductionVariants | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorType': obj.acceleratorType,
+    'containerStartupHealthCheckTimeoutInSeconds': obj.containerStartupHealthCheckTimeoutInSeconds,
+    'coreDumpConfig': obj.coreDumpConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig(y)),
+    'enableSsmAccess': obj.enableSsmAccess,
+    'initialInstanceCount': obj.initialInstanceCount,
+    'initialVariantWeight': obj.initialVariantWeight,
+    'instanceType': obj.instanceType,
+    'modelDataDownloadTimeoutInSeconds': obj.modelDataDownloadTimeoutInSeconds,
+    'serverlessConfig': obj.serverlessConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig(y)),
+    'variantName': obj.variantName,
+    'volumeSizeInGb': obj.volumeSizeInGb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants
+ */
+export interface EndpointConfigurationSpecInitProviderShadowProductionVariants {
+  /**
+   * The size of the Elastic Inference (EI) instance to use for the production variant.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#acceleratorType
+   */
+  readonly acceleratorType?: string;
+
+  /**
+   * The timeout value, in seconds, for your inference container to pass health check by SageMaker Hosting. For more information about health check, see How Your Container Should Respond to Health Check (Ping) Requests. Valid values between 60 and 3600.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#containerStartupHealthCheckTimeoutInSeconds
+   */
+  readonly containerStartupHealthCheckTimeoutInSeconds?: number;
+
+  /**
+   * Specifies configuration for a core dump from the model container when the process crashes. Fields are documented below.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#coreDumpConfig
+   */
+  readonly coreDumpConfig?: EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig[];
+
+  /**
+   * You can use this parameter to turn on native Amazon Web Services Systems Manager (SSM) access for a production variant behind an endpoint. By default, SSM access is disabled for all production variants behind an endpoints.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#enableSsmAccess
+   */
+  readonly enableSsmAccess?: boolean;
+
+  /**
+   * Initial number of instances used for auto-scaling.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#initialInstanceCount
+   */
+  readonly initialInstanceCount?: number;
+
+  /**
+   * Determines initial traffic distribution among all of the models that you specify in the endpoint configuration. If unspecified, it defaults to 1.0.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#initialVariantWeight
+   */
+  readonly initialVariantWeight?: number;
+
+  /**
+   * The type of instance to start.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The timeout value, in seconds, to download and extract the model that you want to host from Amazon S3 to the individual inference instance associated with this production variant. Valid values between 60 and 3600.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#modelDataDownloadTimeoutInSeconds
+   */
+  readonly modelDataDownloadTimeoutInSeconds?: number;
+
+  /**
+   * The name of the model to use.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#modelName
+   */
+  readonly modelName?: string;
+
+  /**
+   * Specifies configuration for how an endpoint performs asynchronous inference.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#serverlessConfig
+   */
+  readonly serverlessConfig?: EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig[];
+
+  /**
+   * The name of the variant.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#variantName
+   */
+  readonly variantName?: string;
+
+  /**
+   * The size, in GB, of the ML storage volume attached to individual inference instance associated with the production variant. Valid values between 1 and 512.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariants#volumeSizeInGb
+   */
+  readonly volumeSizeInGb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderShadowProductionVariants' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderShadowProductionVariants(obj: EndpointConfigurationSpecInitProviderShadowProductionVariants | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorType': obj.acceleratorType,
+    'containerStartupHealthCheckTimeoutInSeconds': obj.containerStartupHealthCheckTimeoutInSeconds,
+    'coreDumpConfig': obj.coreDumpConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig(y)),
+    'enableSsmAccess': obj.enableSsmAccess,
+    'initialInstanceCount': obj.initialInstanceCount,
+    'initialVariantWeight': obj.initialVariantWeight,
+    'instanceType': obj.instanceType,
+    'modelDataDownloadTimeoutInSeconds': obj.modelDataDownloadTimeoutInSeconds,
+    'modelName': obj.modelName,
+    'serverlessConfig': obj.serverlessConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig(y)),
+    'variantName': obj.variantName,
+    'volumeSizeInGb': obj.volumeSizeInGb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema EndpointConfigurationSpecProviderConfigRefPolicy
@@ -8895,43 +10479,6 @@ export interface EndpointConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EndpointConfigurationSpecProviderConfigRefPolicy(obj: EndpointConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema EndpointConfigurationSpecProviderRefPolicy
- */
-export interface EndpointConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema EndpointConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: EndpointConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema EndpointConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: EndpointConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'EndpointConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_EndpointConfigurationSpecProviderRefPolicy(obj: EndpointConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9081,7 +10628,7 @@ export interface EndpointConfigurationSpecForProviderAsyncInferenceConfigOutputC
    *
    * @schema EndpointConfigurationSpecForProviderAsyncInferenceConfigOutputConfig#s3OutputPath
    */
-  readonly s3OutputPath: string;
+  readonly s3OutputPath?: string;
 
 }
 
@@ -9146,7 +10693,7 @@ export interface EndpointConfigurationSpecForProviderDataCaptureConfigCaptureOpt
    *
    * @schema EndpointConfigurationSpecForProviderDataCaptureConfigCaptureOptions#captureMode
    */
-  readonly captureMode: string;
+  readonly captureMode?: string;
 
 }
 
@@ -9247,7 +10794,7 @@ export interface EndpointConfigurationSpecForProviderProductionVariantsCoreDumpC
    *
    * @schema EndpointConfigurationSpecForProviderProductionVariantsCoreDumpConfig#destinationS3Uri
    */
-  readonly destinationS3Uri: string;
+  readonly destinationS3Uri?: string;
 
   /**
    * The Amazon Web Services Key Management Service (Amazon Web Services KMS) key that SageMaker uses to encrypt the core dump data at rest using Amazon S3 server-side encryption.
@@ -9364,14 +10911,14 @@ export interface EndpointConfigurationSpecForProviderProductionVariantsServerles
    *
    * @schema EndpointConfigurationSpecForProviderProductionVariantsServerlessConfig#maxConcurrency
    */
-  readonly maxConcurrency: number;
+  readonly maxConcurrency?: number;
 
   /**
    * The memory size of your serverless endpoint. Valid values are in 1 GB increments: 1024 MB, 2048 MB, 3072 MB, 4096 MB, 5120 MB, or 6144 MB.
    *
    * @schema EndpointConfigurationSpecForProviderProductionVariantsServerlessConfig#memorySizeInMb
    */
-  readonly memorySizeInMb: number;
+  readonly memorySizeInMb?: number;
 
 }
 
@@ -9399,14 +10946,14 @@ export interface EndpointConfigurationSpecForProviderShadowProductionVariantsCor
    *
    * @schema EndpointConfigurationSpecForProviderShadowProductionVariantsCoreDumpConfig#destinationS3Uri
    */
-  readonly destinationS3Uri: string;
+  readonly destinationS3Uri?: string;
 
   /**
    * The Amazon Web Services Key Management Service (Amazon Web Services KMS) key that SageMaker uses to encrypt the core dump data at rest using Amazon S3 server-side encryption.
    *
    * @schema EndpointConfigurationSpecForProviderShadowProductionVariantsCoreDumpConfig#kmsKeyId
    */
-  readonly kmsKeyId: string;
+  readonly kmsKeyId?: string;
 
 }
 
@@ -9434,14 +10981,14 @@ export interface EndpointConfigurationSpecForProviderShadowProductionVariantsSer
    *
    * @schema EndpointConfigurationSpecForProviderShadowProductionVariantsServerlessConfig#maxConcurrency
    */
-  readonly maxConcurrency: number;
+  readonly maxConcurrency?: number;
 
   /**
    * The memory size of your serverless endpoint. Valid values are in 1 GB increments: 1024 MB, 2048 MB, 3072 MB, 4096 MB, 5120 MB, or 6144 MB.
    *
    * @schema EndpointConfigurationSpecForProviderShadowProductionVariantsServerlessConfig#memorySizeInMb
    */
-  readonly memorySizeInMb: number;
+  readonly memorySizeInMb?: number;
 
 }
 
@@ -9450,6 +10997,286 @@ export interface EndpointConfigurationSpecForProviderShadowProductionVariantsSer
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_EndpointConfigurationSpecForProviderShadowProductionVariantsServerlessConfig(obj: EndpointConfigurationSpecForProviderShadowProductionVariantsServerlessConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConcurrency': obj.maxConcurrency,
+    'memorySizeInMb': obj.memorySizeInMb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig
+ */
+export interface EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig {
+  /**
+   * The maximum number of concurrent requests sent by the SageMaker client to the model container. If no value is provided, Amazon SageMaker will choose an optimal value for you.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig#maxConcurrentInvocationsPerInstance
+   */
+  readonly maxConcurrentInvocationsPerInstance?: number;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig(obj: EndpointConfigurationSpecInitProviderAsyncInferenceConfigClientConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConcurrentInvocationsPerInstance': obj.maxConcurrentInvocationsPerInstance,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig
+ */
+export interface EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig {
+  /**
+   * The Amazon Web Services Key Management Service (Amazon Web Services KMS) key that Amazon SageMaker uses to encrypt the asynchronous inference output in Amazon S3.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * Specifies the configuration for notifications of inference results for asynchronous inference.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig#notificationConfig
+   */
+  readonly notificationConfig?: EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig[];
+
+  /**
+   * The Amazon S3 location to upload failure inference responses to.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig#s3FailurePath
+   */
+  readonly s3FailurePath?: string;
+
+  /**
+   * The Amazon S3 location to upload inference responses to.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig#s3OutputPath
+   */
+  readonly s3OutputPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig(obj: EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+    'notificationConfig': obj.notificationConfig?.map(y => toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig(y)),
+    's3FailurePath': obj.s3FailurePath,
+    's3OutputPath': obj.s3OutputPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader
+ */
+export interface EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader {
+  /**
+   * The CSV content type headers to capture.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader#csvContentTypes
+   */
+  readonly csvContentTypes?: string[];
+
+  /**
+   * The JSON content type headers to capture.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader#jsonContentTypes
+   */
+  readonly jsonContentTypes?: string[];
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader(obj: EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureContentTypeHeader | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'csvContentTypes': obj.csvContentTypes?.map(y => y),
+    'jsonContentTypes': obj.jsonContentTypes?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions
+ */
+export interface EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions {
+  /**
+   * Specifies the data to be captured. Should be one of Input or Output.
+   *
+   * @schema EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions#captureMode
+   */
+  readonly captureMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions(obj: EndpointConfigurationSpecInitProviderDataCaptureConfigCaptureOptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'captureMode': obj.captureMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig
+ */
+export interface EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig {
+  /**
+   * The Amazon S3 bucket to send the core dump to.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig#destinationS3Uri
+   */
+  readonly destinationS3Uri?: string;
+
+  /**
+   * The Amazon Web Services Key Management Service (Amazon Web Services KMS) key that SageMaker uses to encrypt the core dump data at rest using Amazon S3 server-side encryption.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig(obj: EndpointConfigurationSpecInitProviderProductionVariantsCoreDumpConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationS3Uri': obj.destinationS3Uri,
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig
+ */
+export interface EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig {
+  /**
+   * The maximum number of concurrent invocations your serverless endpoint can process. Valid values are between 1 and 200.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig#maxConcurrency
+   */
+  readonly maxConcurrency?: number;
+
+  /**
+   * The memory size of your serverless endpoint. Valid values are in 1 GB increments: 1024 MB, 2048 MB, 3072 MB, 4096 MB, 5120 MB, or 6144 MB.
+   *
+   * @schema EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig#memorySizeInMb
+   */
+  readonly memorySizeInMb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig(obj: EndpointConfigurationSpecInitProviderProductionVariantsServerlessConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxConcurrency': obj.maxConcurrency,
+    'memorySizeInMb': obj.memorySizeInMb,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig
+ */
+export interface EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig {
+  /**
+   * The Amazon S3 bucket to send the core dump to.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig#destinationS3Uri
+   */
+  readonly destinationS3Uri?: string;
+
+  /**
+   * The Amazon Web Services Key Management Service (Amazon Web Services KMS) key that SageMaker uses to encrypt the core dump data at rest using Amazon S3 server-side encryption.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig(obj: EndpointConfigurationSpecInitProviderShadowProductionVariantsCoreDumpConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationS3Uri': obj.destinationS3Uri,
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig
+ */
+export interface EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig {
+  /**
+   * The maximum number of concurrent invocations your serverless endpoint can process. Valid values are between 1 and 200.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig#maxConcurrency
+   */
+  readonly maxConcurrency?: number;
+
+  /**
+   * The memory size of your serverless endpoint. Valid values are in 1 GB increments: 1024 MB, 2048 MB, 3072 MB, 4096 MB, 5120 MB, or 6144 MB.
+   *
+   * @schema EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig#memorySizeInMb
+   */
+  readonly memorySizeInMb?: number;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig(obj: EndpointConfigurationSpecInitProviderShadowProductionVariantsServerlessConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'maxConcurrency': obj.maxConcurrency,
@@ -9478,30 +11305,6 @@ export enum EndpointConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema EndpointConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum EndpointConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema EndpointConfigurationSpecProviderRefPolicyResolution
- */
-export enum EndpointConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema EndpointConfigurationSpecProviderRefPolicyResolve
- */
-export enum EndpointConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -9711,6 +11514,49 @@ export function toJson_EndpointConfigurationSpecForProviderProductionVariantsMod
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig
+ */
+export interface EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig {
+  /**
+   * Amazon SNS topic to post a notification to when inference fails. If no topic is provided, no notification is sent on failure.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig#errorTopic
+   */
+  readonly errorTopic?: string;
+
+  /**
+   * The Amazon SNS topics where you want the inference response to be included. Valid values are SUCCESS_NOTIFICATION_TOPIC and ERROR_NOTIFICATION_TOPIC.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig#includeInferenceResponseIn
+   */
+  readonly includeInferenceResponseIn?: string[];
+
+  /**
+   * Amazon SNS topic to post a notification to when inference completes successfully. If no topic is provided, no notification is sent on success.
+   *
+   * @schema EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig#successTopic
+   */
+  readonly successTopic?: string;
+
+}
+
+/**
+ * Converts an object of type 'EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig(obj: EndpointConfigurationSpecInitProviderAsyncInferenceConfigOutputConfigNotificationConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorTopic': obj.errorTopic,
+    'includeInferenceResponseIn': obj.includeInferenceResponseIn?.map(y => y),
+    'successTopic': obj.successTopic,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema EndpointConfigurationSpecPublishConnectionDetailsToConfigRefPolicyResolution
@@ -9879,7 +11725,7 @@ export function toJson_FeatureGroupProps(obj: FeatureGroupProps | undefined): Re
  */
 export interface FeatureGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema FeatureGroupSpec#deletionPolicy
    */
@@ -9891,11 +11737,18 @@ export interface FeatureGroupSpec {
   readonly forProvider: FeatureGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema FeatureGroupSpec#managementPolicy
+   * @schema FeatureGroupSpec#initProvider
    */
-  readonly managementPolicy?: FeatureGroupSpecManagementPolicy;
+  readonly initProvider?: FeatureGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema FeatureGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: FeatureGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9903,13 +11756,6 @@ export interface FeatureGroupSpec {
    * @schema FeatureGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: FeatureGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema FeatureGroupSpec#providerRef
-   */
-  readonly providerRef?: FeatureGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9936,9 +11782,9 @@ export function toJson_FeatureGroupSpec(obj: FeatureGroupSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_FeatureGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_FeatureGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_FeatureGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_FeatureGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_FeatureGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_FeatureGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9948,7 +11794,7 @@ export function toJson_FeatureGroupSpec(obj: FeatureGroupSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema FeatureGroupSpecDeletionPolicy
  */
@@ -10067,17 +11913,100 @@ export function toJson_FeatureGroupSpecForProvider(obj: FeatureGroupSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema FeatureGroupSpecManagementPolicy
+ * @schema FeatureGroupSpecInitProvider
  */
-export enum FeatureGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface FeatureGroupSpecInitProvider {
+  /**
+   * A free-form description of a Feature Group.
+   *
+   * @schema FeatureGroupSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the feature that stores the EventTime of a Record in a Feature Group.
+   *
+   * @schema FeatureGroupSpecInitProvider#eventTimeFeatureName
+   */
+  readonly eventTimeFeatureName?: string;
+
+  /**
+   * A list of Feature names and types. See Feature Definition Below.
+   *
+   * @schema FeatureGroupSpecInitProvider#featureDefinition
+   */
+  readonly featureDefinition?: FeatureGroupSpecInitProviderFeatureDefinition[];
+
+  /**
+   * The Offline Feature Store Configuration. See Offline Store Config Below.
+   *
+   * @schema FeatureGroupSpecInitProvider#offlineStoreConfig
+   */
+  readonly offlineStoreConfig?: FeatureGroupSpecInitProviderOfflineStoreConfig[];
+
+  /**
+   * The Online Feature Store Configuration. See Online Store Config Below.
+   *
+   * @schema FeatureGroupSpecInitProvider#onlineStoreConfig
+   */
+  readonly onlineStoreConfig?: FeatureGroupSpecInitProviderOnlineStoreConfig[];
+
+  /**
+   * The name of the Feature whose value uniquely identifies a Record defined in the Feature Store. Only the latest record per identifier value will be stored in the Online Store.
+   *
+   * @schema FeatureGroupSpecInitProvider#recordIdentifierFeatureName
+   */
+  readonly recordIdentifierFeatureName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema FeatureGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProvider(obj: FeatureGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'eventTimeFeatureName': obj.eventTimeFeatureName,
+    'featureDefinition': obj.featureDefinition?.map(y => toJson_FeatureGroupSpecInitProviderFeatureDefinition(y)),
+    'offlineStoreConfig': obj.offlineStoreConfig?.map(y => toJson_FeatureGroupSpecInitProviderOfflineStoreConfig(y)),
+    'onlineStoreConfig': obj.onlineStoreConfig?.map(y => toJson_FeatureGroupSpecInitProviderOnlineStoreConfig(y)),
+    'recordIdentifierFeatureName': obj.recordIdentifierFeatureName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema FeatureGroupSpecManagementPolicies
+ */
+export enum FeatureGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -10111,43 +12040,6 @@ export function toJson_FeatureGroupSpecProviderConfigRef(obj: FeatureGroupSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_FeatureGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema FeatureGroupSpecProviderRef
- */
-export interface FeatureGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema FeatureGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema FeatureGroupSpecProviderRef#policy
-   */
-  readonly policy?: FeatureGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'FeatureGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FeatureGroupSpecProviderRef(obj: FeatureGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_FeatureGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10294,7 +12186,7 @@ export interface FeatureGroupSpecForProviderOfflineStoreConfig {
    *
    * @schema FeatureGroupSpecForProviderOfflineStoreConfig#s3StorageConfig
    */
-  readonly s3StorageConfig: FeatureGroupSpecForProviderOfflineStoreConfigS3StorageConfig[];
+  readonly s3StorageConfig?: FeatureGroupSpecForProviderOfflineStoreConfigS3StorageConfig[];
 
   /**
    * Format for the offline store table. Supported formats are Glue (Default) and Apache Iceberg (https://iceberg.apache.org/).
@@ -10440,6 +12332,127 @@ export function toJson_FeatureGroupSpecForProviderRoleArnSelector(obj: FeatureGr
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FeatureGroupSpecInitProviderFeatureDefinition
+ */
+export interface FeatureGroupSpecInitProviderFeatureDefinition {
+  /**
+   * The name of a feature. feature_name cannot be any of the following: is_deleted, write_time, api_invocation_time.
+   *
+   * @schema FeatureGroupSpecInitProviderFeatureDefinition#featureName
+   */
+  readonly featureName?: string;
+
+  /**
+   * The value type of a feature. Valid values are Integral, Fractional, or String.
+   *
+   * @schema FeatureGroupSpecInitProviderFeatureDefinition#featureType
+   */
+  readonly featureType?: string;
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderFeatureDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderFeatureDefinition(obj: FeatureGroupSpecInitProviderFeatureDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'featureName': obj.featureName,
+    'featureType': obj.featureType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FeatureGroupSpecInitProviderOfflineStoreConfig
+ */
+export interface FeatureGroupSpecInitProviderOfflineStoreConfig {
+  /**
+   * The meta data of the Glue table that is autogenerated when an OfflineStore is created. See Data Catalog Config Below.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfig#dataCatalogConfig
+   */
+  readonly dataCatalogConfig?: FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig[];
+
+  /**
+   * Set to true to turn Online Store On.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfig#disableGlueTableCreation
+   */
+  readonly disableGlueTableCreation?: boolean;
+
+  /**
+   * The Amazon Simple Storage (Amazon S3) location of OfflineStore. See S3 Storage Config Below.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfig#s3StorageConfig
+   */
+  readonly s3StorageConfig?: FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig[];
+
+  /**
+   * Format for the offline store table. Supported formats are Glue (Default) and Apache Iceberg (https://iceberg.apache.org/).
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfig#tableFormat
+   */
+  readonly tableFormat?: string;
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderOfflineStoreConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderOfflineStoreConfig(obj: FeatureGroupSpecInitProviderOfflineStoreConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dataCatalogConfig': obj.dataCatalogConfig?.map(y => toJson_FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig(y)),
+    'disableGlueTableCreation': obj.disableGlueTableCreation,
+    's3StorageConfig': obj.s3StorageConfig?.map(y => toJson_FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig(y)),
+    'tableFormat': obj.tableFormat,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FeatureGroupSpecInitProviderOnlineStoreConfig
+ */
+export interface FeatureGroupSpecInitProviderOnlineStoreConfig {
+  /**
+   * Set to true to disable the automatic creation of an AWS Glue table when configuring an OfflineStore.
+   *
+   * @schema FeatureGroupSpecInitProviderOnlineStoreConfig#enableOnlineStore
+   */
+  readonly enableOnlineStore?: boolean;
+
+  /**
+   * Security config for at-rest encryption of your OnlineStore. See Security Config Below.
+   *
+   * @schema FeatureGroupSpecInitProviderOnlineStoreConfig#securityConfig
+   */
+  readonly securityConfig?: FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig[];
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderOnlineStoreConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderOnlineStoreConfig(obj: FeatureGroupSpecInitProviderOnlineStoreConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enableOnlineStore': obj.enableOnlineStore,
+    'securityConfig': obj.securityConfig?.map(y => toJson_FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema FeatureGroupSpecProviderConfigRefPolicy
@@ -10466,43 +12479,6 @@ export interface FeatureGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_FeatureGroupSpecProviderConfigRefPolicy(obj: FeatureGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema FeatureGroupSpecProviderRefPolicy
- */
-export interface FeatureGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema FeatureGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: FeatureGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema FeatureGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: FeatureGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'FeatureGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_FeatureGroupSpecProviderRefPolicy(obj: FeatureGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -10654,7 +12630,7 @@ export interface FeatureGroupSpecForProviderOfflineStoreConfigS3StorageConfig {
    *
    * @schema FeatureGroupSpecForProviderOfflineStoreConfigS3StorageConfig#s3Uri
    */
-  readonly s3Uri: string;
+  readonly s3Uri?: string;
 
 }
 
@@ -10775,6 +12751,111 @@ export function toJson_FeatureGroupSpecForProviderRoleArnSelectorPolicy(obj: Fea
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig
+ */
+export interface FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig {
+  /**
+   * The name of the Glue table catalog.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig#catalog
+   */
+  readonly catalog?: string;
+
+  /**
+   * The name of the Glue table database.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig#database
+   */
+  readonly database?: string;
+
+  /**
+   * The name of the Glue table.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig#tableName
+   */
+  readonly tableName?: string;
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig(obj: FeatureGroupSpecInitProviderOfflineStoreConfigDataCatalogConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'catalog': obj.catalog,
+    'database': obj.database,
+    'tableName': obj.tableName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig
+ */
+export interface FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig {
+  /**
+   * The AWS Key Management Service (KMS) key ID of the key used to encrypt any objects written into the OfflineStore S3 location.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * The S3 URI, or location in Amazon S3, of OfflineStore.
+   *
+   * @schema FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig#s3Uri
+   */
+  readonly s3Uri?: string;
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig(obj: FeatureGroupSpecInitProviderOfflineStoreConfigS3StorageConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+    's3Uri': obj.s3Uri,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig
+ */
+export interface FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig {
+  /**
+   * The AWS Key Management Service (KMS) key ID of the key used to encrypt any objects written into the OfflineStore S3 location.
+   *
+   * @schema FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig(obj: FeatureGroupSpecInitProviderOnlineStoreConfigSecurityConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'kmsKeyId': obj.kmsKeyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema FeatureGroupSpecProviderConfigRefPolicyResolution
@@ -10792,30 +12873,6 @@ export enum FeatureGroupSpecProviderConfigRefPolicyResolution {
  * @schema FeatureGroupSpecProviderConfigRefPolicyResolve
  */
 export enum FeatureGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema FeatureGroupSpecProviderRefPolicyResolution
- */
-export enum FeatureGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema FeatureGroupSpecProviderRefPolicyResolve
- */
-export enum FeatureGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -11028,7 +13085,7 @@ export function toJson_ImageProps(obj: ImageProps | undefined): Record<string, a
  */
 export interface ImageSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ImageSpec#deletionPolicy
    */
@@ -11040,11 +13097,18 @@ export interface ImageSpec {
   readonly forProvider: ImageSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ImageSpec#managementPolicy
+   * @schema ImageSpec#initProvider
    */
-  readonly managementPolicy?: ImageSpecManagementPolicy;
+  readonly initProvider?: ImageSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ImageSpec#managementPolicies
+   */
+  readonly managementPolicies?: ImageSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11052,13 +13116,6 @@ export interface ImageSpec {
    * @schema ImageSpec#providerConfigRef
    */
   readonly providerConfigRef?: ImageSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ImageSpec#providerRef
-   */
-  readonly providerRef?: ImageSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -11085,9 +13142,9 @@ export function toJson_ImageSpec(obj: ImageSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ImageSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ImageSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ImageSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ImageSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ImageSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ImageSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -11097,7 +13154,7 @@ export function toJson_ImageSpec(obj: ImageSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ImageSpecDeletionPolicy
  */
@@ -11184,17 +13241,68 @@ export function toJson_ImageSpecForProvider(obj: ImageSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ImageSpecManagementPolicy
+ * @schema ImageSpecInitProvider
  */
-export enum ImageSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ImageSpecInitProvider {
+  /**
+   * The description of the image.
+   *
+   * @schema ImageSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The display name of the image. When the image is added to a domain (must be unique to the domain).
+   *
+   * @schema ImageSpecInitProvider#displayName
+   */
+  readonly displayName?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ImageSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ImageSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ImageSpecInitProvider(obj: ImageSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'displayName': obj.displayName,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ImageSpecManagementPolicies
+ */
+export enum ImageSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -11228,43 +13336,6 @@ export function toJson_ImageSpecProviderConfigRef(obj: ImageSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_ImageSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ImageSpecProviderRef
- */
-export interface ImageSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ImageSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ImageSpecProviderRef#policy
-   */
-  readonly policy?: ImageSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ImageSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ImageSpecProviderRef(obj: ImageSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ImageSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11473,43 +13544,6 @@ export function toJson_ImageSpecProviderConfigRefPolicy(obj: ImageSpecProviderCo
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ImageSpecProviderRefPolicy
- */
-export interface ImageSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ImageSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ImageSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ImageSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ImageSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ImageSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ImageSpecProviderRefPolicy(obj: ImageSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ImageSpecPublishConnectionDetailsToConfigRef
@@ -11683,30 +13717,6 @@ export enum ImageSpecProviderConfigRefPolicyResolution {
  * @schema ImageSpecProviderConfigRefPolicyResolve
  */
 export enum ImageSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ImageSpecProviderRefPolicyResolution
- */
-export enum ImageSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ImageSpecProviderRefPolicyResolve
- */
-export enum ImageSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -11919,7 +13929,7 @@ export function toJson_ImageVersionProps(obj: ImageVersionProps | undefined): Re
  */
 export interface ImageVersionSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ImageVersionSpec#deletionPolicy
    */
@@ -11931,11 +13941,18 @@ export interface ImageVersionSpec {
   readonly forProvider: ImageVersionSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ImageVersionSpec#managementPolicy
+   * @schema ImageVersionSpec#initProvider
    */
-  readonly managementPolicy?: ImageVersionSpecManagementPolicy;
+  readonly initProvider?: ImageVersionSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ImageVersionSpec#managementPolicies
+   */
+  readonly managementPolicies?: ImageVersionSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11943,13 +13960,6 @@ export interface ImageVersionSpec {
    * @schema ImageVersionSpec#providerConfigRef
    */
   readonly providerConfigRef?: ImageVersionSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ImageVersionSpec#providerRef
-   */
-  readonly providerRef?: ImageVersionSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -11976,9 +13986,9 @@ export function toJson_ImageVersionSpec(obj: ImageVersionSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ImageVersionSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ImageVersionSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ImageVersionSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ImageVersionSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ImageVersionSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ImageVersionSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -11988,7 +13998,7 @@ export function toJson_ImageVersionSpec(obj: ImageVersionSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ImageVersionSpecDeletionPolicy
  */
@@ -12059,17 +14069,52 @@ export function toJson_ImageVersionSpecForProvider(obj: ImageVersionSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ImageVersionSpecManagementPolicy
+ * @schema ImageVersionSpecInitProvider
  */
-export enum ImageVersionSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ImageVersionSpecInitProvider {
+  /**
+   * The registry path of the container image on which this image version is based.
+   *
+   * @schema ImageVersionSpecInitProvider#baseImage
+   */
+  readonly baseImage?: string;
+
+}
+
+/**
+ * Converts an object of type 'ImageVersionSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ImageVersionSpecInitProvider(obj: ImageVersionSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'baseImage': obj.baseImage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ImageVersionSpecManagementPolicies
+ */
+export enum ImageVersionSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -12103,43 +14148,6 @@ export function toJson_ImageVersionSpecProviderConfigRef(obj: ImageVersionSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_ImageVersionSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ImageVersionSpecProviderRef
- */
-export interface ImageVersionSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ImageVersionSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ImageVersionSpecProviderRef#policy
-   */
-  readonly policy?: ImageVersionSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ImageVersionSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ImageVersionSpecProviderRef(obj: ImageVersionSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ImageVersionSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -12348,43 +14356,6 @@ export function toJson_ImageVersionSpecProviderConfigRefPolicy(obj: ImageVersion
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ImageVersionSpecProviderRefPolicy
- */
-export interface ImageVersionSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ImageVersionSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ImageVersionSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ImageVersionSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ImageVersionSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ImageVersionSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ImageVersionSpecProviderRefPolicy(obj: ImageVersionSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ImageVersionSpecPublishConnectionDetailsToConfigRef
@@ -12558,30 +14529,6 @@ export enum ImageVersionSpecProviderConfigRefPolicyResolution {
  * @schema ImageVersionSpecProviderConfigRefPolicyResolve
  */
 export enum ImageVersionSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ImageVersionSpecProviderRefPolicyResolution
- */
-export enum ImageVersionSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ImageVersionSpecProviderRefPolicyResolve
- */
-export enum ImageVersionSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -12794,7 +14741,7 @@ export function toJson_ModelProps(obj: ModelProps | undefined): Record<string, a
  */
 export interface ModelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ModelSpec#deletionPolicy
    */
@@ -12806,11 +14753,18 @@ export interface ModelSpec {
   readonly forProvider: ModelSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ModelSpec#managementPolicy
+   * @schema ModelSpec#initProvider
    */
-  readonly managementPolicy?: ModelSpecManagementPolicy;
+  readonly initProvider?: ModelSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ModelSpec#managementPolicies
+   */
+  readonly managementPolicies?: ModelSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -12818,13 +14772,6 @@ export interface ModelSpec {
    * @schema ModelSpec#providerConfigRef
    */
   readonly providerConfigRef?: ModelSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ModelSpec#providerRef
-   */
-  readonly providerRef?: ModelSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -12851,9 +14798,9 @@ export function toJson_ModelSpec(obj: ModelSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ModelSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ModelSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ModelSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ModelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ModelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ModelSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -12863,7 +14810,7 @@ export function toJson_ModelSpec(obj: ModelSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ModelSpecDeletionPolicy
  */
@@ -12974,17 +14921,92 @@ export function toJson_ModelSpecForProvider(obj: ModelSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ModelSpecManagementPolicy
+ * @schema ModelSpecInitProvider
  */
-export enum ModelSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ModelSpecInitProvider {
+  /**
+   * Specifies containers in the inference pipeline. If not specified, the primary_container argument is required. Fields are documented below.
+   *
+   * @schema ModelSpecInitProvider#container
+   */
+  readonly container?: ModelSpecInitProviderContainer[];
+
+  /**
+   * Isolates the model container. No inbound or outbound network calls can be made to or from the model container.
+   *
+   * @schema ModelSpecInitProvider#enableNetworkIsolation
+   */
+  readonly enableNetworkIsolation?: boolean;
+
+  /**
+   * Specifies details of how containers in a multi-container endpoint are called. see Inference Execution Config.
+   *
+   * @schema ModelSpecInitProvider#inferenceExecutionConfig
+   */
+  readonly inferenceExecutionConfig?: ModelSpecInitProviderInferenceExecutionConfig[];
+
+  /**
+   * The primary docker image containing inference code that is used when the model is deployed for predictions.  If not specified, the container argument is required. Fields are documented below.
+   *
+   * @schema ModelSpecInitProvider#primaryContainer
+   */
+  readonly primaryContainer?: ModelSpecInitProviderPrimaryContainer[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ModelSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Specifies the VPC that you want your model to connect to. VpcConfig is used in hosting services and in batch transform.
+   *
+   * @schema ModelSpecInitProvider#vpcConfig
+   */
+  readonly vpcConfig?: ModelSpecInitProviderVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProvider(obj: ModelSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'container': obj.container?.map(y => toJson_ModelSpecInitProviderContainer(y)),
+    'enableNetworkIsolation': obj.enableNetworkIsolation,
+    'inferenceExecutionConfig': obj.inferenceExecutionConfig?.map(y => toJson_ModelSpecInitProviderInferenceExecutionConfig(y)),
+    'primaryContainer': obj.primaryContainer?.map(y => toJson_ModelSpecInitProviderPrimaryContainer(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vpcConfig': obj.vpcConfig?.map(y => toJson_ModelSpecInitProviderVpcConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ModelSpecManagementPolicies
+ */
+export enum ModelSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -13018,43 +15040,6 @@ export function toJson_ModelSpecProviderConfigRef(obj: ModelSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_ModelSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ModelSpecProviderRef
- */
-export interface ModelSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ModelSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ModelSpecProviderRef#policy
-   */
-  readonly policy?: ModelSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ModelSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelSpecProviderRef(obj: ModelSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ModelSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -13166,7 +15151,7 @@ export interface ModelSpecForProviderContainer {
    *
    * @schema ModelSpecForProviderContainer#image
    */
-  readonly image: string;
+  readonly image?: string;
 
   /**
    * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). For more information see Using a Private Docker Registry for Real-Time Inference Containers. see Image Config.
@@ -13301,7 +15286,7 @@ export interface ModelSpecForProviderInferenceExecutionConfig {
    *
    * @schema ModelSpecForProviderInferenceExecutionConfig#mode
    */
-  readonly mode: string;
+  readonly mode?: string;
 
 }
 
@@ -13342,7 +15327,7 @@ export interface ModelSpecForProviderPrimaryContainer {
    *
    * @schema ModelSpecForProviderPrimaryContainer#image
    */
-  readonly image: string;
+  readonly image?: string;
 
   /**
    * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). For more information see Using a Private Docker Registry for Real-Time Inference Containers. see Image Config.
@@ -13393,12 +15378,12 @@ export interface ModelSpecForProviderVpcConfig {
   /**
    * @schema ModelSpecForProviderVpcConfig#securityGroupIds
    */
-  readonly securityGroupIds: string[];
+  readonly securityGroupIds?: string[];
 
   /**
    * @schema ModelSpecForProviderVpcConfig#subnets
    */
-  readonly subnets: string[];
+  readonly subnets?: string[];
 
 }
 
@@ -13407,6 +15392,198 @@ export interface ModelSpecForProviderVpcConfig {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ModelSpecForProviderVpcConfig(obj: ModelSpecForProviderVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnets': obj.subnets?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderContainer
+ */
+export interface ModelSpecInitProviderContainer {
+  /**
+   * The DNS host name for the container.
+   *
+   * @schema ModelSpecInitProviderContainer#containerHostname
+   */
+  readonly containerHostname?: string;
+
+  /**
+   * Environment variables for the Docker container. A list of key value pairs.
+   *
+   * @schema ModelSpecInitProviderContainer#environment
+   */
+  readonly environment?: { [key: string]: string };
+
+  /**
+   * The registry path where the inference code image is stored in Amazon ECR.
+   *
+   * @schema ModelSpecInitProviderContainer#image
+   */
+  readonly image?: string;
+
+  /**
+   * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). For more information see Using a Private Docker Registry for Real-Time Inference Containers. see Image Config.
+   *
+   * @schema ModelSpecInitProviderContainer#imageConfig
+   */
+  readonly imageConfig?: ModelSpecInitProviderContainerImageConfig[];
+
+  /**
+   * The container hosts value SingleModel/MultiModel. The default value is SingleModel.
+   *
+   * @schema ModelSpecInitProviderContainer#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * The URL for the S3 location where model artifacts are stored.
+   *
+   * @schema ModelSpecInitProviderContainer#modelDataUrl
+   */
+  readonly modelDataUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderContainer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderContainer(obj: ModelSpecInitProviderContainer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerHostname': obj.containerHostname,
+    'environment': ((obj.environment) === undefined) ? undefined : (Object.entries(obj.environment).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'image': obj.image,
+    'imageConfig': obj.imageConfig?.map(y => toJson_ModelSpecInitProviderContainerImageConfig(y)),
+    'mode': obj.mode,
+    'modelDataUrl': obj.modelDataUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderInferenceExecutionConfig
+ */
+export interface ModelSpecInitProviderInferenceExecutionConfig {
+  /**
+   * The container hosts value SingleModel/MultiModel. The default value is SingleModel.
+   *
+   * @schema ModelSpecInitProviderInferenceExecutionConfig#mode
+   */
+  readonly mode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderInferenceExecutionConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderInferenceExecutionConfig(obj: ModelSpecInitProviderInferenceExecutionConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'mode': obj.mode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderPrimaryContainer
+ */
+export interface ModelSpecInitProviderPrimaryContainer {
+  /**
+   * The DNS host name for the container.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#containerHostname
+   */
+  readonly containerHostname?: string;
+
+  /**
+   * Environment variables for the Docker container. A list of key value pairs.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#environment
+   */
+  readonly environment?: { [key: string]: string };
+
+  /**
+   * The registry path where the inference code image is stored in Amazon ECR.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#image
+   */
+  readonly image?: string;
+
+  /**
+   * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). For more information see Using a Private Docker Registry for Real-Time Inference Containers. see Image Config.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#imageConfig
+   */
+  readonly imageConfig?: ModelSpecInitProviderPrimaryContainerImageConfig[];
+
+  /**
+   * The container hosts value SingleModel/MultiModel. The default value is SingleModel.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * The URL for the S3 location where model artifacts are stored.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainer#modelDataUrl
+   */
+  readonly modelDataUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderPrimaryContainer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderPrimaryContainer(obj: ModelSpecInitProviderPrimaryContainer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerHostname': obj.containerHostname,
+    'environment': ((obj.environment) === undefined) ? undefined : (Object.entries(obj.environment).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'image': obj.image,
+    'imageConfig': obj.imageConfig?.map(y => toJson_ModelSpecInitProviderPrimaryContainerImageConfig(y)),
+    'mode': obj.mode,
+    'modelDataUrl': obj.modelDataUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderVpcConfig
+ */
+export interface ModelSpecInitProviderVpcConfig {
+  /**
+   * @schema ModelSpecInitProviderVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * @schema ModelSpecInitProviderVpcConfig#subnets
+   */
+  readonly subnets?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderVpcConfig(obj: ModelSpecInitProviderVpcConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'securityGroupIds': obj.securityGroupIds?.map(y => y),
@@ -13444,43 +15621,6 @@ export interface ModelSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ModelSpecProviderConfigRefPolicy(obj: ModelSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ModelSpecProviderRefPolicy
- */
-export interface ModelSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ModelSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ModelSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ModelSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ModelSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ModelSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelSpecProviderRefPolicy(obj: ModelSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -13582,7 +15722,7 @@ export interface ModelSpecForProviderContainerImageConfig {
    *
    * @schema ModelSpecForProviderContainerImageConfig#repositoryAccessMode
    */
-  readonly repositoryAccessMode: string;
+  readonly repositoryAccessMode?: string;
 
   /**
    * Specifies an authentication configuration for the private docker registry where your model image is hosted. Specify a value for this property only if you specified Vpc as the value for the RepositoryAccessMode field, and the private Docker registry where the model image is hosted requires authentication. see Repository Auth Config.
@@ -13691,7 +15831,7 @@ export interface ModelSpecForProviderPrimaryContainerImageConfig {
    *
    * @schema ModelSpecForProviderPrimaryContainerImageConfig#repositoryAccessMode
    */
-  readonly repositoryAccessMode: string;
+  readonly repositoryAccessMode?: string;
 
   /**
    * Specifies an authentication configuration for the private docker registry where your model image is hosted. Specify a value for this property only if you specified Vpc as the value for the RepositoryAccessMode field, and the private Docker registry where the model image is hosted requires authentication. see Repository Auth Config.
@@ -13718,6 +15858,76 @@ export function toJson_ModelSpecForProviderPrimaryContainerImageConfig(obj: Mode
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ModelSpecInitProviderContainerImageConfig
+ */
+export interface ModelSpecInitProviderContainerImageConfig {
+  /**
+   * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). Allowed values are: Platform and Vpc.
+   *
+   * @schema ModelSpecInitProviderContainerImageConfig#repositoryAccessMode
+   */
+  readonly repositoryAccessMode?: string;
+
+  /**
+   * Specifies an authentication configuration for the private docker registry where your model image is hosted. Specify a value for this property only if you specified Vpc as the value for the RepositoryAccessMode field, and the private Docker registry where the model image is hosted requires authentication. see Repository Auth Config.
+   *
+   * @schema ModelSpecInitProviderContainerImageConfig#repositoryAuthConfig
+   */
+  readonly repositoryAuthConfig?: ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderContainerImageConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderContainerImageConfig(obj: ModelSpecInitProviderContainerImageConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryAccessMode': obj.repositoryAccessMode,
+    'repositoryAuthConfig': obj.repositoryAuthConfig?.map(y => toJson_ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderPrimaryContainerImageConfig
+ */
+export interface ModelSpecInitProviderPrimaryContainerImageConfig {
+  /**
+   * Specifies whether the model container is in Amazon ECR or a private Docker registry accessible from your Amazon Virtual Private Cloud (VPC). Allowed values are: Platform and Vpc.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainerImageConfig#repositoryAccessMode
+   */
+  readonly repositoryAccessMode?: string;
+
+  /**
+   * Specifies an authentication configuration for the private docker registry where your model image is hosted. Specify a value for this property only if you specified Vpc as the value for the RepositoryAccessMode field, and the private Docker registry where the model image is hosted requires authentication. see Repository Auth Config.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainerImageConfig#repositoryAuthConfig
+   */
+  readonly repositoryAuthConfig?: ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig[];
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderPrimaryContainerImageConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderPrimaryContainerImageConfig(obj: ModelSpecInitProviderPrimaryContainerImageConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryAccessMode': obj.repositoryAccessMode,
+    'repositoryAuthConfig': obj.repositoryAuthConfig?.map(y => toJson_ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ModelSpecProviderConfigRefPolicyResolution
@@ -13735,30 +15945,6 @@ export enum ModelSpecProviderConfigRefPolicyResolution {
  * @schema ModelSpecProviderConfigRefPolicyResolve
  */
 export enum ModelSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ModelSpecProviderRefPolicyResolution
- */
-export enum ModelSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ModelSpecProviderRefPolicyResolve
- */
-export enum ModelSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -13811,7 +15997,7 @@ export interface ModelSpecForProviderContainerImageConfigRepositoryAuthConfig {
    *
    * @schema ModelSpecForProviderContainerImageConfigRepositoryAuthConfig#repositoryCredentialsProviderArn
    */
-  readonly repositoryCredentialsProviderArn: string;
+  readonly repositoryCredentialsProviderArn?: string;
 
 }
 
@@ -13886,7 +16072,7 @@ export interface ModelSpecForProviderPrimaryContainerImageConfigRepositoryAuthCo
    *
    * @schema ModelSpecForProviderPrimaryContainerImageConfigRepositoryAuthConfig#repositoryCredentialsProviderArn
    */
-  readonly repositoryCredentialsProviderArn: string;
+  readonly repositoryCredentialsProviderArn?: string;
 
 }
 
@@ -13895,6 +16081,60 @@ export interface ModelSpecForProviderPrimaryContainerImageConfigRepositoryAuthCo
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ModelSpecForProviderPrimaryContainerImageConfigRepositoryAuthConfig(obj: ModelSpecForProviderPrimaryContainerImageConfigRepositoryAuthConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryCredentialsProviderArn': obj.repositoryCredentialsProviderArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig
+ */
+export interface ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig {
+  /**
+   * The Amazon Resource Name (ARN) of an AWS Lambda function that provides credentials to authenticate to the private Docker registry where your model image is hosted. For information about how to create an AWS Lambda function, see Create a Lambda function with the console in the AWS Lambda Developer Guide.
+   *
+   * @schema ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig#repositoryCredentialsProviderArn
+   */
+  readonly repositoryCredentialsProviderArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig(obj: ModelSpecInitProviderContainerImageConfigRepositoryAuthConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryCredentialsProviderArn': obj.repositoryCredentialsProviderArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig
+ */
+export interface ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig {
+  /**
+   * The Amazon Resource Name (ARN) of an AWS Lambda function that provides credentials to authenticate to the private Docker registry where your model image is hosted. For information about how to create an AWS Lambda function, see Create a Lambda function with the console in the AWS Lambda Developer Guide.
+   *
+   * @schema ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig#repositoryCredentialsProviderArn
+   */
+  readonly repositoryCredentialsProviderArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig(obj: ModelSpecInitProviderPrimaryContainerImageConfigRepositoryAuthConfig | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'repositoryCredentialsProviderArn': obj.repositoryCredentialsProviderArn,
@@ -14025,7 +16265,7 @@ export function toJson_ModelPackageGroupProps(obj: ModelPackageGroupProps | unde
  */
 export interface ModelPackageGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ModelPackageGroupSpec#deletionPolicy
    */
@@ -14037,11 +16277,18 @@ export interface ModelPackageGroupSpec {
   readonly forProvider: ModelPackageGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ModelPackageGroupSpec#managementPolicy
+   * @schema ModelPackageGroupSpec#initProvider
    */
-  readonly managementPolicy?: ModelPackageGroupSpecManagementPolicy;
+  readonly initProvider?: ModelPackageGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ModelPackageGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: ModelPackageGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -14049,13 +16296,6 @@ export interface ModelPackageGroupSpec {
    * @schema ModelPackageGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: ModelPackageGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ModelPackageGroupSpec#providerRef
-   */
-  readonly providerRef?: ModelPackageGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -14082,9 +16322,9 @@ export function toJson_ModelPackageGroupSpec(obj: ModelPackageGroupSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ModelPackageGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ModelPackageGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ModelPackageGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ModelPackageGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ModelPackageGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ModelPackageGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -14094,7 +16334,7 @@ export function toJson_ModelPackageGroupSpec(obj: ModelPackageGroupSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ModelPackageGroupSpecDeletionPolicy
  */
@@ -14149,17 +16389,60 @@ export function toJson_ModelPackageGroupSpecForProvider(obj: ModelPackageGroupSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ModelPackageGroupSpecManagementPolicy
+ * @schema ModelPackageGroupSpecInitProvider
  */
-export enum ModelPackageGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ModelPackageGroupSpecInitProvider {
+  /**
+   * A description for the model group.
+   *
+   * @schema ModelPackageGroupSpecInitProvider#modelPackageGroupDescription
+   */
+  readonly modelPackageGroupDescription?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ModelPackageGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'ModelPackageGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelPackageGroupSpecInitProvider(obj: ModelPackageGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'modelPackageGroupDescription': obj.modelPackageGroupDescription,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ModelPackageGroupSpecManagementPolicies
+ */
+export enum ModelPackageGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -14193,43 +16476,6 @@ export function toJson_ModelPackageGroupSpecProviderConfigRef(obj: ModelPackageG
   const result = {
     'name': obj.name,
     'policy': toJson_ModelPackageGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ModelPackageGroupSpecProviderRef
- */
-export interface ModelPackageGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ModelPackageGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ModelPackageGroupSpecProviderRef#policy
-   */
-  readonly policy?: ModelPackageGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ModelPackageGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelPackageGroupSpecProviderRef(obj: ModelPackageGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ModelPackageGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -14356,43 +16602,6 @@ export function toJson_ModelPackageGroupSpecProviderConfigRefPolicy(obj: ModelPa
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ModelPackageGroupSpecProviderRefPolicy
- */
-export interface ModelPackageGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ModelPackageGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ModelPackageGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ModelPackageGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ModelPackageGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ModelPackageGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelPackageGroupSpecProviderRefPolicy(obj: ModelPackageGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ModelPackageGroupSpecPublishConnectionDetailsToConfigRef
@@ -14492,30 +16701,6 @@ export enum ModelPackageGroupSpecProviderConfigRefPolicyResolution {
  * @schema ModelPackageGroupSpecProviderConfigRefPolicyResolve
  */
 export enum ModelPackageGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ModelPackageGroupSpecProviderRefPolicyResolution
- */
-export enum ModelPackageGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ModelPackageGroupSpecProviderRefPolicyResolve
- */
-export enum ModelPackageGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -14680,7 +16865,7 @@ export function toJson_ModelPackageGroupPolicyProps(obj: ModelPackageGroupPolicy
  */
 export interface ModelPackageGroupPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ModelPackageGroupPolicySpec#deletionPolicy
    */
@@ -14692,11 +16877,18 @@ export interface ModelPackageGroupPolicySpec {
   readonly forProvider: ModelPackageGroupPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ModelPackageGroupPolicySpec#managementPolicy
+   * @schema ModelPackageGroupPolicySpec#initProvider
    */
-  readonly managementPolicy?: ModelPackageGroupPolicySpecManagementPolicy;
+  readonly initProvider?: ModelPackageGroupPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ModelPackageGroupPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: ModelPackageGroupPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -14704,13 +16896,6 @@ export interface ModelPackageGroupPolicySpec {
    * @schema ModelPackageGroupPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: ModelPackageGroupPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ModelPackageGroupPolicySpec#providerRef
-   */
-  readonly providerRef?: ModelPackageGroupPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -14737,9 +16922,9 @@ export function toJson_ModelPackageGroupPolicySpec(obj: ModelPackageGroupPolicyS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ModelPackageGroupPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ModelPackageGroupPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ModelPackageGroupPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ModelPackageGroupPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ModelPackageGroupPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ModelPackageGroupPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -14749,7 +16934,7 @@ export function toJson_ModelPackageGroupPolicySpec(obj: ModelPackageGroupPolicyS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ModelPackageGroupPolicySpecDeletionPolicy
  */
@@ -14818,17 +17003,50 @@ export function toJson_ModelPackageGroupPolicySpecForProvider(obj: ModelPackageG
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ModelPackageGroupPolicySpecManagementPolicy
+ * @schema ModelPackageGroupPolicySpecInitProvider
  */
-export enum ModelPackageGroupPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ModelPackageGroupPolicySpecInitProvider {
+  /**
+   * @schema ModelPackageGroupPolicySpecInitProvider#resourcePolicy
+   */
+  readonly resourcePolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'ModelPackageGroupPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ModelPackageGroupPolicySpecInitProvider(obj: ModelPackageGroupPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resourcePolicy': obj.resourcePolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ModelPackageGroupPolicySpecManagementPolicies
+ */
+export enum ModelPackageGroupPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -14862,43 +17080,6 @@ export function toJson_ModelPackageGroupPolicySpecProviderConfigRef(obj: ModelPa
   const result = {
     'name': obj.name,
     'policy': toJson_ModelPackageGroupPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ModelPackageGroupPolicySpecProviderRef
- */
-export interface ModelPackageGroupPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ModelPackageGroupPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ModelPackageGroupPolicySpecProviderRef#policy
-   */
-  readonly policy?: ModelPackageGroupPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ModelPackageGroupPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelPackageGroupPolicySpecProviderRef(obj: ModelPackageGroupPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ModelPackageGroupPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -15107,43 +17288,6 @@ export function toJson_ModelPackageGroupPolicySpecProviderConfigRefPolicy(obj: M
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ModelPackageGroupPolicySpecProviderRefPolicy
- */
-export interface ModelPackageGroupPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ModelPackageGroupPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ModelPackageGroupPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ModelPackageGroupPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ModelPackageGroupPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ModelPackageGroupPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ModelPackageGroupPolicySpecProviderRefPolicy(obj: ModelPackageGroupPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ModelPackageGroupPolicySpecPublishConnectionDetailsToConfigRef
@@ -15317,30 +17461,6 @@ export enum ModelPackageGroupPolicySpecProviderConfigRefPolicyResolution {
  * @schema ModelPackageGroupPolicySpecProviderConfigRefPolicyResolve
  */
 export enum ModelPackageGroupPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ModelPackageGroupPolicySpecProviderRefPolicyResolution
- */
-export enum ModelPackageGroupPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ModelPackageGroupPolicySpecProviderRefPolicyResolve
- */
-export enum ModelPackageGroupPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -15553,7 +17673,7 @@ export function toJson_NotebookInstanceProps(obj: NotebookInstanceProps | undefi
  */
 export interface NotebookInstanceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NotebookInstanceSpec#deletionPolicy
    */
@@ -15565,11 +17685,18 @@ export interface NotebookInstanceSpec {
   readonly forProvider: NotebookInstanceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NotebookInstanceSpec#managementPolicy
+   * @schema NotebookInstanceSpec#initProvider
    */
-  readonly managementPolicy?: NotebookInstanceSpecManagementPolicy;
+  readonly initProvider?: NotebookInstanceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NotebookInstanceSpec#managementPolicies
+   */
+  readonly managementPolicies?: NotebookInstanceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -15577,13 +17704,6 @@ export interface NotebookInstanceSpec {
    * @schema NotebookInstanceSpec#providerConfigRef
    */
   readonly providerConfigRef?: NotebookInstanceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NotebookInstanceSpec#providerRef
-   */
-  readonly providerRef?: NotebookInstanceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -15610,9 +17730,9 @@ export function toJson_NotebookInstanceSpec(obj: NotebookInstanceSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NotebookInstanceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NotebookInstanceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NotebookInstanceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NotebookInstanceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NotebookInstanceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NotebookInstanceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -15622,7 +17742,7 @@ export function toJson_NotebookInstanceSpec(obj: NotebookInstanceSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NotebookInstanceSpecDeletionPolicy
  */
@@ -15845,17 +17965,132 @@ export function toJson_NotebookInstanceSpecForProvider(obj: NotebookInstanceSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NotebookInstanceSpecManagementPolicy
+ * @schema NotebookInstanceSpecInitProvider
  */
-export enum NotebookInstanceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NotebookInstanceSpecInitProvider {
+  /**
+   * A list of Elastic Inference (EI) instance types to associate with this notebook instance. See Elastic Inference Accelerator for more details. Valid values: ml.eia1.medium, ml.eia1.large, ml.eia1.xlarge, ml.eia2.medium, ml.eia2.large, ml.eia2.xlarge.
+   *
+   * @schema NotebookInstanceSpecInitProvider#acceleratorTypes
+   */
+  readonly acceleratorTypes?: string[];
+
+  /**
+   * An array of up to three Git repositories to associate with the notebook instance. These can be either the names of Git repositories stored as resources in your account, or the URL of Git repositories in AWS CodeCommit or in any other Git repository. These repositories are cloned at the same level as the default repository of your notebook instance.
+   *
+   * @schema NotebookInstanceSpecInitProvider#additionalCodeRepositories
+   */
+  readonly additionalCodeRepositories?: string[];
+
+  /**
+   * Set to Disabled to disable internet access to notebook. Requires security_groups and subnet_id to be set. Supported values: Enabled (Default) or Disabled. If set to Disabled, the notebook instance will be able to access resources only in your VPC, and will not be able to connect to Amazon SageMaker training and endpoint services unless your configure a NAT Gateway in your VPC.
+   *
+   * @schema NotebookInstanceSpecInitProvider#directInternetAccess
+   */
+  readonly directInternetAccess?: string;
+
+  /**
+   * Information on the IMDS configuration of the notebook instance. Conflicts with instance_metadata_service_configuration. see details below.
+   *
+   * @schema NotebookInstanceSpecInitProvider#instanceMetadataServiceConfiguration
+   */
+  readonly instanceMetadataServiceConfiguration?: NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration[];
+
+  /**
+   * The name of ML compute instance type.
+   *
+   * @schema NotebookInstanceSpecInitProvider#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The name of a lifecycle configuration to associate with the notebook instance.
+   *
+   * @schema NotebookInstanceSpecInitProvider#lifecycleConfigName
+   */
+  readonly lifecycleConfigName?: string;
+
+  /**
+   * The platform identifier of the notebook instance runtime environment. This value can be either notebook-al1-v1, notebook-al2-v1, or  notebook-al2-v2, depending on which version of Amazon Linux you require.
+   *
+   * @schema NotebookInstanceSpecInitProvider#platformIdentifier
+   */
+  readonly platformIdentifier?: string;
+
+  /**
+   * Whether root access is Enabled or Disabled for users of the notebook instance. The default value is Enabled.
+   *
+   * @schema NotebookInstanceSpecInitProvider#rootAccess
+   */
+  readonly rootAccess?: string;
+
+  /**
+   * The associated security groups.
+   *
+   * @schema NotebookInstanceSpecInitProvider#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema NotebookInstanceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The size, in GB, of the ML storage volume to attach to the notebook instance. The default value is 5 GB.
+   *
+   * @schema NotebookInstanceSpecInitProvider#volumeSize
+   */
+  readonly volumeSize?: number;
+
+}
+
+/**
+ * Converts an object of type 'NotebookInstanceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotebookInstanceSpecInitProvider(obj: NotebookInstanceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acceleratorTypes': obj.acceleratorTypes?.map(y => y),
+    'additionalCodeRepositories': obj.additionalCodeRepositories?.map(y => y),
+    'directInternetAccess': obj.directInternetAccess,
+    'instanceMetadataServiceConfiguration': obj.instanceMetadataServiceConfiguration?.map(y => toJson_NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration(y)),
+    'instanceType': obj.instanceType,
+    'lifecycleConfigName': obj.lifecycleConfigName,
+    'platformIdentifier': obj.platformIdentifier,
+    'rootAccess': obj.rootAccess,
+    'securityGroups': obj.securityGroups?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'volumeSize': obj.volumeSize,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NotebookInstanceSpecManagementPolicies
+ */
+export enum NotebookInstanceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -15889,43 +18124,6 @@ export function toJson_NotebookInstanceSpecProviderConfigRef(obj: NotebookInstan
   const result = {
     'name': obj.name,
     'policy': toJson_NotebookInstanceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NotebookInstanceSpecProviderRef
- */
-export interface NotebookInstanceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NotebookInstanceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NotebookInstanceSpecProviderRef#policy
-   */
-  readonly policy?: NotebookInstanceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NotebookInstanceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotebookInstanceSpecProviderRef(obj: NotebookInstanceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NotebookInstanceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -16370,6 +18568,33 @@ export function toJson_NotebookInstanceSpecForProviderSubnetIdSelector(obj: Note
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration
+ */
+export interface NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration {
+  /**
+   * Indicates the minimum IMDS version that the notebook instance supports. When passed "1" is passed. This means that both IMDSv1 and IMDSv2 are supported. Valid values are 1 and 2.
+   *
+   * @schema NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration#minimumInstanceMetadataServiceVersion
+   */
+  readonly minimumInstanceMetadataServiceVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration(obj: NotebookInstanceSpecInitProviderInstanceMetadataServiceConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'minimumInstanceMetadataServiceVersion': obj.minimumInstanceMetadataServiceVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema NotebookInstanceSpecProviderConfigRefPolicy
@@ -16396,43 +18621,6 @@ export interface NotebookInstanceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_NotebookInstanceSpecProviderConfigRefPolicy(obj: NotebookInstanceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema NotebookInstanceSpecProviderRefPolicy
- */
-export interface NotebookInstanceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NotebookInstanceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NotebookInstanceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NotebookInstanceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NotebookInstanceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NotebookInstanceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotebookInstanceSpecProviderRefPolicy(obj: NotebookInstanceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -16846,30 +19034,6 @@ export enum NotebookInstanceSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NotebookInstanceSpecProviderRefPolicyResolution
- */
-export enum NotebookInstanceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NotebookInstanceSpecProviderRefPolicyResolve
- */
-export enum NotebookInstanceSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema NotebookInstanceSpecPublishConnectionDetailsToConfigRefPolicy
@@ -17219,7 +19383,7 @@ export function toJson_NotebookInstanceLifecycleConfigurationProps(obj: Notebook
  */
 export interface NotebookInstanceLifecycleConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema NotebookInstanceLifecycleConfigurationSpec#deletionPolicy
    */
@@ -17231,11 +19395,18 @@ export interface NotebookInstanceLifecycleConfigurationSpec {
   readonly forProvider: NotebookInstanceLifecycleConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema NotebookInstanceLifecycleConfigurationSpec#managementPolicy
+   * @schema NotebookInstanceLifecycleConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: NotebookInstanceLifecycleConfigurationSpecManagementPolicy;
+  readonly initProvider?: NotebookInstanceLifecycleConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema NotebookInstanceLifecycleConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: NotebookInstanceLifecycleConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -17243,13 +19414,6 @@ export interface NotebookInstanceLifecycleConfigurationSpec {
    * @schema NotebookInstanceLifecycleConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: NotebookInstanceLifecycleConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema NotebookInstanceLifecycleConfigurationSpec#providerRef
-   */
-  readonly providerRef?: NotebookInstanceLifecycleConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -17276,9 +19440,9 @@ export function toJson_NotebookInstanceLifecycleConfigurationSpec(obj: NotebookI
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_NotebookInstanceLifecycleConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_NotebookInstanceLifecycleConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_NotebookInstanceLifecycleConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_NotebookInstanceLifecycleConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_NotebookInstanceLifecycleConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_NotebookInstanceLifecycleConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -17288,7 +19452,7 @@ export function toJson_NotebookInstanceLifecycleConfigurationSpec(obj: NotebookI
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema NotebookInstanceLifecycleConfigurationSpecDeletionPolicy
  */
@@ -17343,17 +19507,60 @@ export function toJson_NotebookInstanceLifecycleConfigurationSpecForProvider(obj
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema NotebookInstanceLifecycleConfigurationSpecManagementPolicy
+ * @schema NotebookInstanceLifecycleConfigurationSpecInitProvider
  */
-export enum NotebookInstanceLifecycleConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface NotebookInstanceLifecycleConfigurationSpecInitProvider {
+  /**
+   * A shell script (base64-encoded) that runs only once when the SageMaker Notebook Instance is created.
+   *
+   * @schema NotebookInstanceLifecycleConfigurationSpecInitProvider#onCreate
+   */
+  readonly onCreate?: string;
+
+  /**
+   * A shell script (base64-encoded) that runs every time the SageMaker Notebook Instance is started including the time it's created.
+   *
+   * @schema NotebookInstanceLifecycleConfigurationSpecInitProvider#onStart
+   */
+  readonly onStart?: string;
+
+}
+
+/**
+ * Converts an object of type 'NotebookInstanceLifecycleConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_NotebookInstanceLifecycleConfigurationSpecInitProvider(obj: NotebookInstanceLifecycleConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'onCreate': obj.onCreate,
+    'onStart': obj.onStart,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema NotebookInstanceLifecycleConfigurationSpecManagementPolicies
+ */
+export enum NotebookInstanceLifecycleConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -17387,43 +19594,6 @@ export function toJson_NotebookInstanceLifecycleConfigurationSpecProviderConfigR
   const result = {
     'name': obj.name,
     'policy': toJson_NotebookInstanceLifecycleConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema NotebookInstanceLifecycleConfigurationSpecProviderRef
- */
-export interface NotebookInstanceLifecycleConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema NotebookInstanceLifecycleConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema NotebookInstanceLifecycleConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'NotebookInstanceLifecycleConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotebookInstanceLifecycleConfigurationSpecProviderRef(obj: NotebookInstanceLifecycleConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -17550,43 +19720,6 @@ export function toJson_NotebookInstanceLifecycleConfigurationSpecProviderConfigR
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy
- */
-export interface NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy(obj: NotebookInstanceLifecycleConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema NotebookInstanceLifecycleConfigurationSpecPublishConnectionDetailsToConfigRef
@@ -17686,30 +19819,6 @@ export enum NotebookInstanceLifecycleConfigurationSpecProviderConfigRefPolicyRes
  * @schema NotebookInstanceLifecycleConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum NotebookInstanceLifecycleConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolution
- */
-export enum NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolve
- */
-export enum NotebookInstanceLifecycleConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -17874,7 +19983,7 @@ export function toJson_ServicecatalogPortfolioStatusProps(obj: ServicecatalogPor
  */
 export interface ServicecatalogPortfolioStatusSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ServicecatalogPortfolioStatusSpec#deletionPolicy
    */
@@ -17886,11 +19995,18 @@ export interface ServicecatalogPortfolioStatusSpec {
   readonly forProvider: ServicecatalogPortfolioStatusSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ServicecatalogPortfolioStatusSpec#managementPolicy
+   * @schema ServicecatalogPortfolioStatusSpec#initProvider
    */
-  readonly managementPolicy?: ServicecatalogPortfolioStatusSpecManagementPolicy;
+  readonly initProvider?: ServicecatalogPortfolioStatusSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ServicecatalogPortfolioStatusSpec#managementPolicies
+   */
+  readonly managementPolicies?: ServicecatalogPortfolioStatusSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -17898,13 +20014,6 @@ export interface ServicecatalogPortfolioStatusSpec {
    * @schema ServicecatalogPortfolioStatusSpec#providerConfigRef
    */
   readonly providerConfigRef?: ServicecatalogPortfolioStatusSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ServicecatalogPortfolioStatusSpec#providerRef
-   */
-  readonly providerRef?: ServicecatalogPortfolioStatusSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -17931,9 +20040,9 @@ export function toJson_ServicecatalogPortfolioStatusSpec(obj: ServicecatalogPort
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ServicecatalogPortfolioStatusSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ServicecatalogPortfolioStatusSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ServicecatalogPortfolioStatusSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ServicecatalogPortfolioStatusSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ServicecatalogPortfolioStatusSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ServicecatalogPortfolioStatusSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -17943,7 +20052,7 @@ export function toJson_ServicecatalogPortfolioStatusSpec(obj: ServicecatalogPort
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ServicecatalogPortfolioStatusSpecDeletionPolicy
  */
@@ -17990,17 +20099,52 @@ export function toJson_ServicecatalogPortfolioStatusSpecForProvider(obj: Service
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ServicecatalogPortfolioStatusSpecManagementPolicy
+ * @schema ServicecatalogPortfolioStatusSpecInitProvider
  */
-export enum ServicecatalogPortfolioStatusSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ServicecatalogPortfolioStatusSpecInitProvider {
+  /**
+   * Whether Service Catalog is enabled or disabled in SageMaker. Valid values are Enabled and Disabled.
+   *
+   * @schema ServicecatalogPortfolioStatusSpecInitProvider#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'ServicecatalogPortfolioStatusSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ServicecatalogPortfolioStatusSpecInitProvider(obj: ServicecatalogPortfolioStatusSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ServicecatalogPortfolioStatusSpecManagementPolicies
+ */
+export enum ServicecatalogPortfolioStatusSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -18034,43 +20178,6 @@ export function toJson_ServicecatalogPortfolioStatusSpecProviderConfigRef(obj: S
   const result = {
     'name': obj.name,
     'policy': toJson_ServicecatalogPortfolioStatusSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ServicecatalogPortfolioStatusSpecProviderRef
- */
-export interface ServicecatalogPortfolioStatusSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ServicecatalogPortfolioStatusSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ServicecatalogPortfolioStatusSpecProviderRef#policy
-   */
-  readonly policy?: ServicecatalogPortfolioStatusSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ServicecatalogPortfolioStatusSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServicecatalogPortfolioStatusSpecProviderRef(obj: ServicecatalogPortfolioStatusSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ServicecatalogPortfolioStatusSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -18197,43 +20304,6 @@ export function toJson_ServicecatalogPortfolioStatusSpecProviderConfigRefPolicy(
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ServicecatalogPortfolioStatusSpecProviderRefPolicy
- */
-export interface ServicecatalogPortfolioStatusSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ServicecatalogPortfolioStatusSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ServicecatalogPortfolioStatusSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ServicecatalogPortfolioStatusSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ServicecatalogPortfolioStatusSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ServicecatalogPortfolioStatusSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ServicecatalogPortfolioStatusSpecProviderRefPolicy(obj: ServicecatalogPortfolioStatusSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ServicecatalogPortfolioStatusSpecPublishConnectionDetailsToConfigRef
@@ -18333,30 +20403,6 @@ export enum ServicecatalogPortfolioStatusSpecProviderConfigRefPolicyResolution {
  * @schema ServicecatalogPortfolioStatusSpecProviderConfigRefPolicyResolve
  */
 export enum ServicecatalogPortfolioStatusSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ServicecatalogPortfolioStatusSpecProviderRefPolicyResolution
- */
-export enum ServicecatalogPortfolioStatusSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ServicecatalogPortfolioStatusSpecProviderRefPolicyResolve
- */
-export enum ServicecatalogPortfolioStatusSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -18521,7 +20567,7 @@ export function toJson_SpaceProps(obj: SpaceProps | undefined): Record<string, a
  */
 export interface SpaceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema SpaceSpec#deletionPolicy
    */
@@ -18533,11 +20579,18 @@ export interface SpaceSpec {
   readonly forProvider: SpaceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema SpaceSpec#managementPolicy
+   * @schema SpaceSpec#initProvider
    */
-  readonly managementPolicy?: SpaceSpecManagementPolicy;
+  readonly initProvider?: SpaceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema SpaceSpec#managementPolicies
+   */
+  readonly managementPolicies?: SpaceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -18545,13 +20598,6 @@ export interface SpaceSpec {
    * @schema SpaceSpec#providerConfigRef
    */
   readonly providerConfigRef?: SpaceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema SpaceSpec#providerRef
-   */
-  readonly providerRef?: SpaceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -18578,9 +20624,9 @@ export function toJson_SpaceSpec(obj: SpaceSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_SpaceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_SpaceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_SpaceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_SpaceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_SpaceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_SpaceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -18590,7 +20636,7 @@ export function toJson_SpaceSpec(obj: SpaceSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema SpaceSpecDeletionPolicy
  */
@@ -18677,17 +20723,68 @@ export function toJson_SpaceSpecForProvider(obj: SpaceSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema SpaceSpecManagementPolicy
+ * @schema SpaceSpecInitProvider
  */
-export enum SpaceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface SpaceSpecInitProvider {
+  /**
+   * The name of the space.
+   *
+   * @schema SpaceSpecInitProvider#spaceName
+   */
+  readonly spaceName?: string;
+
+  /**
+   * A collection of space settings. See Space Settings below.
+   *
+   * @schema SpaceSpecInitProvider#spaceSettings
+   */
+  readonly spaceSettings?: SpaceSpecInitProviderSpaceSettings[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema SpaceSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProvider(obj: SpaceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'spaceName': obj.spaceName,
+    'spaceSettings': obj.spaceSettings?.map(y => toJson_SpaceSpecInitProviderSpaceSettings(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema SpaceSpecManagementPolicies
+ */
+export enum SpaceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -18721,43 +20818,6 @@ export function toJson_SpaceSpecProviderConfigRef(obj: SpaceSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_SpaceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema SpaceSpecProviderRef
- */
-export interface SpaceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema SpaceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema SpaceSpecProviderRef#policy
-   */
-  readonly policy?: SpaceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'SpaceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SpaceSpecProviderRef(obj: SpaceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_SpaceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -18964,6 +21024,41 @@ export function toJson_SpaceSpecForProviderSpaceSettings(obj: SpaceSpecForProvid
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SpaceSpecInitProviderSpaceSettings
+ */
+export interface SpaceSpecInitProviderSpaceSettings {
+  /**
+   * The Jupyter server's app settings. See Jupyter Server App Settings below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettings#jupyterServerAppSettings
+   */
+  readonly jupyterServerAppSettings?: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings[];
+
+  /**
+   * The kernel gateway app settings. See Kernel Gateway App Settings below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettings#kernelGatewayAppSettings
+   */
+  readonly kernelGatewayAppSettings?: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings[];
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettings(obj: SpaceSpecInitProviderSpaceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'jupyterServerAppSettings': obj.jupyterServerAppSettings?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings(y)),
+    'kernelGatewayAppSettings': obj.kernelGatewayAppSettings?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema SpaceSpecProviderConfigRefPolicy
@@ -18990,43 +21085,6 @@ export interface SpaceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SpaceSpecProviderConfigRefPolicy(obj: SpaceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema SpaceSpecProviderRefPolicy
- */
-export interface SpaceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema SpaceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: SpaceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema SpaceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: SpaceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'SpaceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_SpaceSpecProviderRefPolicy(obj: SpaceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -19209,7 +21267,7 @@ export interface SpaceSpecForProviderSpaceSettingsJupyterServerAppSettings {
    *
    * @schema SpaceSpecForProviderSpaceSettingsJupyterServerAppSettings#defaultResourceSpec
    */
-  readonly defaultResourceSpec: SpaceSpecForProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec[];
+  readonly defaultResourceSpec?: SpaceSpecForProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec[];
 
   /**
    * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
@@ -19252,7 +21310,7 @@ export interface SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettings {
    *
    * @schema SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettings#defaultResourceSpec
    */
-  readonly defaultResourceSpec: SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
+  readonly defaultResourceSpec?: SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
 
   /**
    * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
@@ -19280,6 +21338,92 @@ export function toJson_SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettings
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings
+ */
+export interface SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings {
+  /**
+   * A list of Git repositories that SageMaker automatically displays to users for cloning in the JupyterServer application. see Code Repository below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings#codeRepository
+   */
+  readonly codeRepository?: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings(obj: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codeRepository': obj.codeRepository?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings
+ */
+export interface SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings#customImage
+   */
+  readonly customImage?: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings(obj: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema SpaceSpecProviderConfigRefPolicyResolution
@@ -19297,30 +21441,6 @@ export enum SpaceSpecProviderConfigRefPolicyResolution {
  * @schema SpaceSpecProviderConfigRefPolicyResolve
  */
 export enum SpaceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema SpaceSpecProviderRefPolicyResolution
- */
-export enum SpaceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema SpaceSpecProviderRefPolicyResolve
- */
-export enum SpaceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -19421,7 +21541,7 @@ export interface SpaceSpecForProviderSpaceSettingsJupyterServerAppSettingsCodeRe
    *
    * @schema SpaceSpecForProviderSpaceSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
    */
-  readonly repositoryUrl: string;
+  readonly repositoryUrl?: string;
 
 }
 
@@ -19499,14 +21619,14 @@ export interface SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsCustom
    *
    * @schema SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
    */
-  readonly appImageConfigName: string;
+  readonly appImageConfigName?: string;
 
   /**
    * The name of the Custom Image.
    *
    * @schema SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsCustomImage#imageName
    */
-  readonly imageName: string;
+  readonly imageName?: string;
 
   /**
    * The version number of the Custom Image.
@@ -19572,6 +21692,178 @@ export interface SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsDefaul
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec(obj: SpaceSpecForProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository
+ */
+export interface SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository {
+  /**
+   * The URL of the Git repository.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
+   */
+  readonly repositoryUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository(obj: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsCodeRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryUrl': obj.repositoryUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec
+ */
+export interface SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec(obj: SpaceSpecInitProviderSpaceSettingsJupyterServerAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage
+ */
+export interface SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage {
+  /**
+   * The name of the App Image Config.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
+   */
+  readonly appImageConfigName?: string;
+
+  /**
+   * The name of the Custom Image.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage(obj: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appImageConfigName': obj.appImageConfigName,
+    'imageName': obj.imageName,
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec
+ */
+export interface SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec(obj: SpaceSpecInitProviderSpaceSettingsKernelGatewayAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'instanceType': obj.instanceType,
@@ -19705,7 +21997,7 @@ export function toJson_StudioLifecycleConfigProps(obj: StudioLifecycleConfigProp
  */
 export interface StudioLifecycleConfigSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StudioLifecycleConfigSpec#deletionPolicy
    */
@@ -19717,11 +22009,18 @@ export interface StudioLifecycleConfigSpec {
   readonly forProvider: StudioLifecycleConfigSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StudioLifecycleConfigSpec#managementPolicy
+   * @schema StudioLifecycleConfigSpec#initProvider
    */
-  readonly managementPolicy?: StudioLifecycleConfigSpecManagementPolicy;
+  readonly initProvider?: StudioLifecycleConfigSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StudioLifecycleConfigSpec#managementPolicies
+   */
+  readonly managementPolicies?: StudioLifecycleConfigSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -19729,13 +22028,6 @@ export interface StudioLifecycleConfigSpec {
    * @schema StudioLifecycleConfigSpec#providerConfigRef
    */
   readonly providerConfigRef?: StudioLifecycleConfigSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StudioLifecycleConfigSpec#providerRef
-   */
-  readonly providerRef?: StudioLifecycleConfigSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -19762,9 +22054,9 @@ export function toJson_StudioLifecycleConfigSpec(obj: StudioLifecycleConfigSpec 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StudioLifecycleConfigSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StudioLifecycleConfigSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StudioLifecycleConfigSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StudioLifecycleConfigSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StudioLifecycleConfigSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StudioLifecycleConfigSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -19774,7 +22066,7 @@ export function toJson_StudioLifecycleConfigSpec(obj: StudioLifecycleConfigSpec 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StudioLifecycleConfigSpecDeletionPolicy
  */
@@ -19837,17 +22129,68 @@ export function toJson_StudioLifecycleConfigSpecForProvider(obj: StudioLifecycle
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StudioLifecycleConfigSpecManagementPolicy
+ * @schema StudioLifecycleConfigSpecInitProvider
  */
-export enum StudioLifecycleConfigSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StudioLifecycleConfigSpecInitProvider {
+  /**
+   * The App type that the Lifecycle Configuration is attached to. Valid values are JupyterServer and KernelGateway.
+   *
+   * @schema StudioLifecycleConfigSpecInitProvider#studioLifecycleConfigAppType
+   */
+  readonly studioLifecycleConfigAppType?: string;
+
+  /**
+   * The content of your Studio Lifecycle Configuration script. This content must be base64 encoded.
+   *
+   * @schema StudioLifecycleConfigSpecInitProvider#studioLifecycleConfigContent
+   */
+  readonly studioLifecycleConfigContent?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StudioLifecycleConfigSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'StudioLifecycleConfigSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StudioLifecycleConfigSpecInitProvider(obj: StudioLifecycleConfigSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'studioLifecycleConfigAppType': obj.studioLifecycleConfigAppType,
+    'studioLifecycleConfigContent': obj.studioLifecycleConfigContent,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StudioLifecycleConfigSpecManagementPolicies
+ */
+export enum StudioLifecycleConfigSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -19881,43 +22224,6 @@ export function toJson_StudioLifecycleConfigSpecProviderConfigRef(obj: StudioLif
   const result = {
     'name': obj.name,
     'policy': toJson_StudioLifecycleConfigSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StudioLifecycleConfigSpecProviderRef
- */
-export interface StudioLifecycleConfigSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StudioLifecycleConfigSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StudioLifecycleConfigSpecProviderRef#policy
-   */
-  readonly policy?: StudioLifecycleConfigSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StudioLifecycleConfigSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StudioLifecycleConfigSpecProviderRef(obj: StudioLifecycleConfigSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StudioLifecycleConfigSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20044,43 +22350,6 @@ export function toJson_StudioLifecycleConfigSpecProviderConfigRefPolicy(obj: Stu
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema StudioLifecycleConfigSpecProviderRefPolicy
- */
-export interface StudioLifecycleConfigSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StudioLifecycleConfigSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StudioLifecycleConfigSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StudioLifecycleConfigSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StudioLifecycleConfigSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StudioLifecycleConfigSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StudioLifecycleConfigSpecProviderRefPolicy(obj: StudioLifecycleConfigSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema StudioLifecycleConfigSpecPublishConnectionDetailsToConfigRef
@@ -20180,30 +22449,6 @@ export enum StudioLifecycleConfigSpecProviderConfigRefPolicyResolution {
  * @schema StudioLifecycleConfigSpecProviderConfigRefPolicyResolve
  */
 export enum StudioLifecycleConfigSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StudioLifecycleConfigSpecProviderRefPolicyResolution
- */
-export enum StudioLifecycleConfigSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StudioLifecycleConfigSpecProviderRefPolicyResolve
- */
-export enum StudioLifecycleConfigSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -20368,7 +22613,7 @@ export function toJson_UserProfileProps(obj: UserProfileProps | undefined): Reco
  */
 export interface UserProfileSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserProfileSpec#deletionPolicy
    */
@@ -20380,11 +22625,18 @@ export interface UserProfileSpec {
   readonly forProvider: UserProfileSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserProfileSpec#managementPolicy
+   * @schema UserProfileSpec#initProvider
    */
-  readonly managementPolicy?: UserProfileSpecManagementPolicy;
+  readonly initProvider?: UserProfileSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserProfileSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserProfileSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -20392,13 +22644,6 @@ export interface UserProfileSpec {
    * @schema UserProfileSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserProfileSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserProfileSpec#providerRef
-   */
-  readonly providerRef?: UserProfileSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -20425,9 +22670,9 @@ export function toJson_UserProfileSpec(obj: UserProfileSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserProfileSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserProfileSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserProfileSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserProfileSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserProfileSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserProfileSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -20437,7 +22682,7 @@ export function toJson_UserProfileSpec(obj: UserProfileSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserProfileSpecDeletionPolicy
  */
@@ -20540,17 +22785,84 @@ export function toJson_UserProfileSpecForProvider(obj: UserProfileSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserProfileSpecManagementPolicy
+ * @schema UserProfileSpecInitProvider
  */
-export enum UserProfileSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserProfileSpecInitProvider {
+  /**
+   * A specifier for the type of value specified in single_sign_on_user_value. Currently, the only supported value is UserName. If the Domain's AuthMode is SSO, this field is required. If the Domain's AuthMode is not SSO, this field cannot be specified.
+   *
+   * @schema UserProfileSpecInitProvider#singleSignOnUserIdentifier
+   */
+  readonly singleSignOnUserIdentifier?: string;
+
+  /**
+   * The username of the associated AWS Single Sign-On User for this User Profile. If the Domain's AuthMode is SSO, this field is required, and must match a valid username of a user in your directory. If the Domain's AuthMode is not SSO, this field cannot be specified.
+   *
+   * @schema UserProfileSpecInitProvider#singleSignOnUserValue
+   */
+  readonly singleSignOnUserValue?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema UserProfileSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The name for the User Profile.
+   *
+   * @schema UserProfileSpecInitProvider#userProfileName
+   */
+  readonly userProfileName?: string;
+
+  /**
+   * The user settings. See User Settings below.
+   *
+   * @schema UserProfileSpecInitProvider#userSettings
+   */
+  readonly userSettings?: UserProfileSpecInitProviderUserSettings[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProvider(obj: UserProfileSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'singleSignOnUserIdentifier': obj.singleSignOnUserIdentifier,
+    'singleSignOnUserValue': obj.singleSignOnUserValue,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'userProfileName': obj.userProfileName,
+    'userSettings': obj.userSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserProfileSpecManagementPolicies
+ */
+export enum UserProfileSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -20584,43 +22896,6 @@ export function toJson_UserProfileSpecProviderConfigRef(obj: UserProfileSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_UserProfileSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserProfileSpecProviderRef
- */
-export interface UserProfileSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserProfileSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserProfileSpecProviderRef#policy
-   */
-  readonly policy?: UserProfileSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserProfileSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserProfileSpecProviderRef(obj: UserProfileSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserProfileSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -20807,7 +23082,7 @@ export interface UserProfileSpecForProviderUserSettings {
    *
    * @schema UserProfileSpecForProviderUserSettings#executionRole
    */
-  readonly executionRole: string;
+  readonly executionRole?: string;
 
   /**
    * The Jupyter server's app settings. See Jupyter Server App Settings below.
@@ -20883,6 +23158,97 @@ export function toJson_UserProfileSpecForProviderUserSettings(obj: UserProfileSp
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserProfileSpecInitProviderUserSettings
+ */
+export interface UserProfileSpecInitProviderUserSettings {
+  /**
+   * The Canvas app settings. See Canvas App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#canvasAppSettings
+   */
+  readonly canvasAppSettings?: UserProfileSpecInitProviderUserSettingsCanvasAppSettings[];
+
+  /**
+   * The execution role ARN for the user.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#executionRole
+   */
+  readonly executionRole?: string;
+
+  /**
+   * The Jupyter server's app settings. See Jupyter Server App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#jupyterServerAppSettings
+   */
+  readonly jupyterServerAppSettings?: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings[];
+
+  /**
+   * The kernel gateway app settings. See Kernel Gateway App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#kernelGatewayAppSettings
+   */
+  readonly kernelGatewayAppSettings?: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings[];
+
+  /**
+   * The RSession app settings. See RSession App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#rSessionAppSettings
+   */
+  readonly rSessionAppSettings?: UserProfileSpecInitProviderUserSettingsRSessionAppSettings[];
+
+  /**
+   * A collection of settings that configure user interaction with the RStudioServerPro app. See RStudio Server Pro App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#rStudioServerProAppSettings
+   */
+  readonly rStudioServerProAppSettings?: UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings[];
+
+  /**
+   * The security groups.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#securityGroups
+   */
+  readonly securityGroups?: string[];
+
+  /**
+   * The sharing settings. See Sharing Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#sharingSettings
+   */
+  readonly sharingSettings?: UserProfileSpecInitProviderUserSettingsSharingSettings[];
+
+  /**
+   * The TensorBoard app settings. See TensorBoard App Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettings#tensorBoardAppSettings
+   */
+  readonly tensorBoardAppSettings?: UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettings(obj: UserProfileSpecInitProviderUserSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'canvasAppSettings': obj.canvasAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettings(y)),
+    'executionRole': obj.executionRole,
+    'jupyterServerAppSettings': obj.jupyterServerAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings(y)),
+    'kernelGatewayAppSettings': obj.kernelGatewayAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings(y)),
+    'rSessionAppSettings': obj.rSessionAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettings(y)),
+    'rStudioServerProAppSettings': obj.rStudioServerProAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings(y)),
+    'securityGroups': obj.securityGroups?.map(y => y),
+    'sharingSettings': obj.sharingSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsSharingSettings(y)),
+    'tensorBoardAppSettings': obj.tensorBoardAppSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema UserProfileSpecProviderConfigRefPolicy
@@ -20909,43 +23275,6 @@ export interface UserProfileSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserProfileSpecProviderConfigRefPolicy(obj: UserProfileSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UserProfileSpecProviderRefPolicy
- */
-export interface UserProfileSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserProfileSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserProfileSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserProfileSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserProfileSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserProfileSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserProfileSpecProviderRefPolicy(obj: UserProfileSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -21355,7 +23684,7 @@ export interface UserProfileSpecForProviderUserSettingsTensorBoardAppSettings {
    *
    * @schema UserProfileSpecForProviderUserSettingsTensorBoardAppSettings#defaultResourceSpec
    */
-  readonly defaultResourceSpec: UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec[];
+  readonly defaultResourceSpec?: UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec[];
 
 }
 
@@ -21367,6 +23696,267 @@ export function toJson_UserProfileSpecForProviderUserSettingsTensorBoardAppSetti
   if (obj === undefined) { return undefined; }
   const result = {
     'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsCanvasAppSettings {
+  /**
+   * The model registry settings for the SageMaker Canvas application. See Model Register Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettings#modelRegisterSettings
+   */
+  readonly modelRegisterSettings?: UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings[];
+
+  /**
+   * Time series forecast settings for the Canvas app. see Time Series Forecasting Settings below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettings#timeSeriesForecastingSettings
+   */
+  readonly timeSeriesForecastingSettings?: UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsCanvasAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettings(obj: UserProfileSpecInitProviderUserSettingsCanvasAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'modelRegisterSettings': obj.modelRegisterSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings(y)),
+    'timeSeriesForecastingSettings': obj.timeSeriesForecastingSettings?.map(y => toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings {
+  /**
+   * A list of Git repositories that SageMaker automatically displays to users for cloning in the JupyterServer application. see Code Repository below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings#codeRepository
+   */
+  readonly codeRepository?: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings(obj: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codeRepository': obj.codeRepository?.map(y => toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings#customImage
+   */
+  readonly customImage?: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec[];
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configurations.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings#lifecycleConfigArns
+   */
+  readonly lifecycleConfigArns?: string[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings(obj: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec(y)),
+    'lifecycleConfigArns': obj.lifecycleConfigArns?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsRSessionAppSettings {
+  /**
+   * A list of custom SageMaker images that are configured to run as a KernelGateway app. see Custom Image below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettings#customImage
+   */
+  readonly customImage?: UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage[];
+
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsRSessionAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettings(obj: UserProfileSpecInitProviderUserSettingsRSessionAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'customImage': obj.customImage?.map(y => toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage(y)),
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings {
+  /**
+   * Indicates whether the current user has access to the RStudioServerPro app. Valid values are ENABLED and DISABLED.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings#accessStatus
+   */
+  readonly accessStatus?: string;
+
+  /**
+   * The level of permissions that the user has within the RStudioServerPro app. This value defaults to R_STUDIO_USER. The R_STUDIO_ADMIN value allows the user access to the RStudio Administrative Dashboard. Valid values are R_STUDIO_USER and R_STUDIO_ADMIN.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings#userGroup
+   */
+  readonly userGroup?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings(obj: UserProfileSpecInitProviderUserSettingsRStudioServerProAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessStatus': obj.accessStatus,
+    'userGroup': obj.userGroup,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsSharingSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsSharingSettings {
+  /**
+   * Whether to include the notebook cell output when sharing the notebook. The default is Disabled. Valid values are Allowed and Disabled.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsSharingSettings#notebookOutputOption
+   */
+  readonly notebookOutputOption?: string;
+
+  /**
+   * When notebook_output_option is Allowed, the AWS Key Management Service (KMS) encryption key ID used to encrypt the notebook cell output in the Amazon S3 bucket.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsSharingSettings#s3KmsKeyId
+   */
+  readonly s3KmsKeyId?: string;
+
+  /**
+   * When notebook_output_option is Allowed, the Amazon S3 bucket used to save the notebook cell output.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsSharingSettings#s3OutputPath
+   */
+  readonly s3OutputPath?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsSharingSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsSharingSettings(obj: UserProfileSpecInitProviderUserSettingsSharingSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'notebookOutputOption': obj.notebookOutputOption,
+    's3KmsKeyId': obj.s3KmsKeyId,
+    's3OutputPath': obj.s3OutputPath,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings {
+  /**
+   * The default instance type and the Amazon Resource Name (ARN) of the SageMaker image created on the instance. see Default Resource Spec below.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings#defaultResourceSpec
+   */
+  readonly defaultResourceSpec?: UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec[];
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings(obj: UserProfileSpecInitProviderUserSettingsTensorBoardAppSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultResourceSpec': obj.defaultResourceSpec?.map(y => toJson_UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -21391,30 +23981,6 @@ export enum UserProfileSpecProviderConfigRefPolicyResolution {
  * @schema UserProfileSpecProviderConfigRefPolicyResolve
  */
 export enum UserProfileSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserProfileSpecProviderRefPolicyResolution
- */
-export enum UserProfileSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserProfileSpecProviderRefPolicyResolve
- */
-export enum UserProfileSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -21585,7 +24151,7 @@ export interface UserProfileSpecForProviderUserSettingsJupyterServerAppSettingsC
    *
    * @schema UserProfileSpecForProviderUserSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
    */
-  readonly repositoryUrl: string;
+  readonly repositoryUrl?: string;
 
 }
 
@@ -21663,14 +24229,14 @@ export interface UserProfileSpecForProviderUserSettingsKernelGatewayAppSettingsC
    *
    * @schema UserProfileSpecForProviderUserSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
    */
-  readonly appImageConfigName: string;
+  readonly appImageConfigName?: string;
 
   /**
    * The name of the Custom Image.
    *
    * @schema UserProfileSpecForProviderUserSettingsKernelGatewayAppSettingsCustomImage#imageName
    */
-  readonly imageName: string;
+  readonly imageName?: string;
 
   /**
    * The version number of the Custom Image.
@@ -21757,14 +24323,14 @@ export interface UserProfileSpecForProviderUserSettingsRSessionAppSettingsCustom
    *
    * @schema UserProfileSpecForProviderUserSettingsRSessionAppSettingsCustomImage#appImageConfigName
    */
-  readonly appImageConfigName: string;
+  readonly appImageConfigName?: string;
 
   /**
    * The name of the Custom Image.
    *
    * @schema UserProfileSpecForProviderUserSettingsRSessionAppSettingsCustomImage#imageName
    */
-  readonly imageName: string;
+  readonly imageName?: string;
 
   /**
    * The version number of the Custom Image.
@@ -21881,6 +24447,393 @@ export interface UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDef
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec(obj: UserProfileSpecForProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings {
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker model registry account. Required only to register model versions created by a different SageMaker Canvas AWS account than the AWS account in which SageMaker model registry is set up.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings#crossAccountModelRegisterRoleArn
+   */
+  readonly crossAccountModelRegisterRoleArn?: string;
+
+  /**
+   * Describes whether time series forecasting is enabled or disabled in the Canvas app. Valid values are ENABLED and DISABLED.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings(obj: UserProfileSpecInitProviderUserSettingsCanvasAppSettingsModelRegisterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'crossAccountModelRegisterRoleArn': obj.crossAccountModelRegisterRoleArn,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings
+ */
+export interface UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings {
+  /**
+   * The IAM role that Canvas passes to Amazon Forecast for time series forecasting. By default, Canvas uses the execution role specified in the UserProfile that launches the Canvas app. If an execution role is not specified in the UserProfile, Canvas uses the execution role specified in the Domain that owns the UserProfile. To allow time series forecasting, this IAM role should have the AmazonSageMakerCanvasForecastAccess policy attached and forecast.amazonaws.com added in the trust relationship as a service principal.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings#amazonForecastRoleArn
+   */
+  readonly amazonForecastRoleArn?: string;
+
+  /**
+   * Describes whether time series forecasting is enabled or disabled in the Canvas app. Valid values are ENABLED and DISABLED.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings#status
+   */
+  readonly status?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings(obj: UserProfileSpecInitProviderUserSettingsCanvasAppSettingsTimeSeriesForecastingSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'amazonForecastRoleArn': obj.amazonForecastRoleArn,
+    'status': obj.status,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository
+ */
+export interface UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository {
+  /**
+   * The URL of the Git repository.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository#repositoryUrl
+   */
+  readonly repositoryUrl?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository(obj: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsCodeRepository | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repositoryUrl': obj.repositoryUrl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec
+ */
+export interface UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec(obj: UserProfileSpecInitProviderUserSettingsJupyterServerAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage
+ */
+export interface UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage {
+  /**
+   * The name of the App Image Config.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage#appImageConfigName
+   */
+  readonly appImageConfigName?: string;
+
+  /**
+   * The name of the Custom Image.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage(obj: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appImageConfigName': obj.appImageConfigName,
+    'imageName': obj.imageName,
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec
+ */
+export interface UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec(obj: UserProfileSpecInitProviderUserSettingsKernelGatewayAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage
+ */
+export interface UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage {
+  /**
+   * The name of the App Image Config.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage#appImageConfigName
+   */
+  readonly appImageConfigName?: string;
+
+  /**
+   * The name of the Custom Image.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage#imageName
+   */
+  readonly imageName?: string;
+
+  /**
+   * The version number of the Custom Image.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage#imageVersionNumber
+   */
+  readonly imageVersionNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage(obj: UserProfileSpecInitProviderUserSettingsRSessionAppSettingsCustomImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'appImageConfigName': obj.appImageConfigName,
+    'imageName': obj.imageName,
+    'imageVersionNumber': obj.imageVersionNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec
+ */
+export interface UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec(obj: UserProfileSpecInitProviderUserSettingsRSessionAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'instanceType': obj.instanceType,
+    'lifecycleConfigArn': obj.lifecycleConfigArn,
+    'sagemakerImageArn': obj.sagemakerImageArn,
+    'sagemakerImageVersionArn': obj.sagemakerImageVersionArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec
+ */
+export interface UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec {
+  /**
+   * The instance type.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec#instanceType
+   */
+  readonly instanceType?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the Lifecycle Configuration attached to the Resource.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec#lifecycleConfigArn
+   */
+  readonly lifecycleConfigArn?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the SageMaker image created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec#sagemakerImageArn
+   */
+  readonly sagemakerImageArn?: string;
+
+  /**
+   * The ARN of the image version created on the instance.
+   *
+   * @schema UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec#sagemakerImageVersionArn
+   */
+  readonly sagemakerImageVersionArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec(obj: UserProfileSpecInitProviderUserSettingsTensorBoardAppSettingsDefaultResourceSpec | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'instanceType': obj.instanceType,
@@ -22014,7 +24967,7 @@ export function toJson_WorkforceProps(obj: WorkforceProps | undefined): Record<s
  */
 export interface WorkforceSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkforceSpec#deletionPolicy
    */
@@ -22026,11 +24979,18 @@ export interface WorkforceSpec {
   readonly forProvider: WorkforceSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkforceSpec#managementPolicy
+   * @schema WorkforceSpec#initProvider
    */
-  readonly managementPolicy?: WorkforceSpecManagementPolicy;
+  readonly initProvider?: WorkforceSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkforceSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkforceSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -22038,13 +24998,6 @@ export interface WorkforceSpec {
    * @schema WorkforceSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkforceSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkforceSpec#providerRef
-   */
-  readonly providerRef?: WorkforceSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -22071,9 +25024,9 @@ export function toJson_WorkforceSpec(obj: WorkforceSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkforceSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkforceSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkforceSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkforceSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkforceSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkforceSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -22083,7 +25036,7 @@ export function toJson_WorkforceSpec(obj: WorkforceSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkforceSpecDeletionPolicy
  */
@@ -22154,17 +25107,76 @@ export function toJson_WorkforceSpecForProvider(obj: WorkforceSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkforceSpecManagementPolicy
+ * @schema WorkforceSpecInitProvider
  */
-export enum WorkforceSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkforceSpecInitProvider {
+  /**
+   * Use this parameter to configure an Amazon Cognito private workforce. A single Cognito workforce is created using and corresponds to a single Amazon Cognito user pool. Conflicts with oidc_config. see Cognito Config details below.
+   *
+   * @schema WorkforceSpecInitProvider#cognitoConfig
+   */
+  readonly cognitoConfig?: any[];
+
+  /**
+   * Use this parameter to configure a private workforce using your own OIDC Identity Provider. Conflicts with cognito_config. see OIDC Config details below.
+   *
+   * @schema WorkforceSpecInitProvider#oidcConfig
+   */
+  readonly oidcConfig?: WorkforceSpecInitProviderOidcConfig[];
+
+  /**
+   * A list of IP address ranges Used to create an allow list of IP addresses for a private workforce. By default, a workforce isn't restricted to specific IP addresses. see Source Ip Config details below.
+   *
+   * @schema WorkforceSpecInitProvider#sourceIpConfig
+   */
+  readonly sourceIpConfig?: WorkforceSpecInitProviderSourceIpConfig[];
+
+  /**
+   * configure a workforce using VPC. see Workforce VPC Config details below.
+   *
+   * @schema WorkforceSpecInitProvider#workforceVpcConfig
+   */
+  readonly workforceVpcConfig?: WorkforceSpecInitProviderWorkforceVpcConfig[];
+
+}
+
+/**
+ * Converts an object of type 'WorkforceSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkforceSpecInitProvider(obj: WorkforceSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cognitoConfig': obj.cognitoConfig?.map(y => y),
+    'oidcConfig': obj.oidcConfig?.map(y => toJson_WorkforceSpecInitProviderOidcConfig(y)),
+    'sourceIpConfig': obj.sourceIpConfig?.map(y => toJson_WorkforceSpecInitProviderSourceIpConfig(y)),
+    'workforceVpcConfig': obj.workforceVpcConfig?.map(y => toJson_WorkforceSpecInitProviderWorkforceVpcConfig(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkforceSpecManagementPolicies
+ */
+export enum WorkforceSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -22198,43 +25210,6 @@ export function toJson_WorkforceSpecProviderConfigRef(obj: WorkforceSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_WorkforceSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkforceSpecProviderRef
- */
-export interface WorkforceSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkforceSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkforceSpecProviderRef#policy
-   */
-  readonly policy?: WorkforceSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkforceSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkforceSpecProviderRef(obj: WorkforceSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkforceSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -22399,14 +25374,14 @@ export interface WorkforceSpecForProviderOidcConfig {
    *
    * @schema WorkforceSpecForProviderOidcConfig#authorizationEndpoint
    */
-  readonly authorizationEndpoint: string;
+  readonly authorizationEndpoint?: string;
 
   /**
    * The client ID for your Amazon Cognito user pool.
    *
    * @schema WorkforceSpecForProviderOidcConfig#clientId
    */
-  readonly clientId: string;
+  readonly clientId?: string;
 
   /**
    * The OIDC IdP client secret used to configure your private workforce.
@@ -22420,35 +25395,35 @@ export interface WorkforceSpecForProviderOidcConfig {
    *
    * @schema WorkforceSpecForProviderOidcConfig#issuer
    */
-  readonly issuer: string;
+  readonly issuer?: string;
 
   /**
    * The OIDC IdP JSON Web Key Set (Jwks) URI used to configure your private workforce.
    *
    * @schema WorkforceSpecForProviderOidcConfig#jwksUri
    */
-  readonly jwksUri: string;
+  readonly jwksUri?: string;
 
   /**
    * The OIDC IdP logout endpoint used to configure your private workforce.
    *
    * @schema WorkforceSpecForProviderOidcConfig#logoutEndpoint
    */
-  readonly logoutEndpoint: string;
+  readonly logoutEndpoint?: string;
 
   /**
    * The OIDC IdP token endpoint used to configure your private workforce.
    *
    * @schema WorkforceSpecForProviderOidcConfig#tokenEndpoint
    */
-  readonly tokenEndpoint: string;
+  readonly tokenEndpoint?: string;
 
   /**
    * The OIDC IdP user information endpoint used to configure your private workforce.
    *
    * @schema WorkforceSpecForProviderOidcConfig#userInfoEndpoint
    */
-  readonly userInfoEndpoint: string;
+  readonly userInfoEndpoint?: string;
 
 }
 
@@ -22482,7 +25457,7 @@ export interface WorkforceSpecForProviderSourceIpConfig {
    *
    * @schema WorkforceSpecForProviderSourceIpConfig#cidrs
    */
-  readonly cidrs: string[];
+  readonly cidrs?: string[];
 
 }
 
@@ -22544,6 +25519,151 @@ export function toJson_WorkforceSpecForProviderWorkforceVpcConfig(obj: Workforce
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkforceSpecInitProviderOidcConfig
+ */
+export interface WorkforceSpecInitProviderOidcConfig {
+  /**
+   * The OIDC IdP authorization endpoint used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#authorizationEndpoint
+   */
+  readonly authorizationEndpoint?: string;
+
+  /**
+   * The client ID for your Amazon Cognito user pool.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#clientId
+   */
+  readonly clientId?: string;
+
+  /**
+   * The OIDC IdP issuer used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#issuer
+   */
+  readonly issuer?: string;
+
+  /**
+   * The OIDC IdP JSON Web Key Set (Jwks) URI used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#jwksUri
+   */
+  readonly jwksUri?: string;
+
+  /**
+   * The OIDC IdP logout endpoint used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#logoutEndpoint
+   */
+  readonly logoutEndpoint?: string;
+
+  /**
+   * The OIDC IdP token endpoint used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#tokenEndpoint
+   */
+  readonly tokenEndpoint?: string;
+
+  /**
+   * The OIDC IdP user information endpoint used to configure your private workforce.
+   *
+   * @schema WorkforceSpecInitProviderOidcConfig#userInfoEndpoint
+   */
+  readonly userInfoEndpoint?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkforceSpecInitProviderOidcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkforceSpecInitProviderOidcConfig(obj: WorkforceSpecInitProviderOidcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'authorizationEndpoint': obj.authorizationEndpoint,
+    'clientId': obj.clientId,
+    'issuer': obj.issuer,
+    'jwksUri': obj.jwksUri,
+    'logoutEndpoint': obj.logoutEndpoint,
+    'tokenEndpoint': obj.tokenEndpoint,
+    'userInfoEndpoint': obj.userInfoEndpoint,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkforceSpecInitProviderSourceIpConfig
+ */
+export interface WorkforceSpecInitProviderSourceIpConfig {
+  /**
+   * A list of up to 10 CIDR values.
+   *
+   * @schema WorkforceSpecInitProviderSourceIpConfig#cidrs
+   */
+  readonly cidrs?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkforceSpecInitProviderSourceIpConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkforceSpecInitProviderSourceIpConfig(obj: WorkforceSpecInitProviderSourceIpConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidrs': obj.cidrs?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkforceSpecInitProviderWorkforceVpcConfig
+ */
+export interface WorkforceSpecInitProviderWorkforceVpcConfig {
+  /**
+   * The VPC security group IDs. The security groups must be for the same VPC as specified in the subnet.
+   *
+   * @schema WorkforceSpecInitProviderWorkforceVpcConfig#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * The ID of the subnets in the VPC that you want to connect.
+   *
+   * @schema WorkforceSpecInitProviderWorkforceVpcConfig#subnets
+   */
+  readonly subnets?: string[];
+
+  /**
+   * The ID of the VPC that the workforce uses for communication.
+   *
+   * @schema WorkforceSpecInitProviderWorkforceVpcConfig#vpcId
+   */
+  readonly vpcId?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkforceSpecInitProviderWorkforceVpcConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkforceSpecInitProviderWorkforceVpcConfig(obj: WorkforceSpecInitProviderWorkforceVpcConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnets': obj.subnets?.map(y => y),
+    'vpcId': obj.vpcId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema WorkforceSpecProviderConfigRefPolicy
@@ -22570,43 +25690,6 @@ export interface WorkforceSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkforceSpecProviderConfigRefPolicy(obj: WorkforceSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkforceSpecProviderRefPolicy
- */
-export interface WorkforceSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkforceSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkforceSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkforceSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkforceSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkforceSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkforceSpecProviderRefPolicy(obj: WorkforceSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -22926,30 +26009,6 @@ export enum WorkforceSpecProviderConfigRefPolicyResolution {
  * @schema WorkforceSpecProviderConfigRefPolicyResolve
  */
 export enum WorkforceSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkforceSpecProviderRefPolicyResolution
- */
-export enum WorkforceSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkforceSpecProviderRefPolicyResolve
- */
-export enum WorkforceSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -23358,7 +26417,7 @@ export function toJson_WorkteamProps(obj: WorkteamProps | undefined): Record<str
  */
 export interface WorkteamSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema WorkteamSpec#deletionPolicy
    */
@@ -23370,11 +26429,18 @@ export interface WorkteamSpec {
   readonly forProvider: WorkteamSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema WorkteamSpec#managementPolicy
+   * @schema WorkteamSpec#initProvider
    */
-  readonly managementPolicy?: WorkteamSpecManagementPolicy;
+  readonly initProvider?: WorkteamSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema WorkteamSpec#managementPolicies
+   */
+  readonly managementPolicies?: WorkteamSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -23382,13 +26448,6 @@ export interface WorkteamSpec {
    * @schema WorkteamSpec#providerConfigRef
    */
   readonly providerConfigRef?: WorkteamSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema WorkteamSpec#providerRef
-   */
-  readonly providerRef?: WorkteamSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -23415,9 +26474,9 @@ export function toJson_WorkteamSpec(obj: WorkteamSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_WorkteamSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_WorkteamSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_WorkteamSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_WorkteamSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_WorkteamSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_WorkteamSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -23427,7 +26486,7 @@ export function toJson_WorkteamSpec(obj: WorkteamSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema WorkteamSpecDeletionPolicy
  */
@@ -23522,17 +26581,76 @@ export function toJson_WorkteamSpecForProvider(obj: WorkteamSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema WorkteamSpecManagementPolicy
+ * @schema WorkteamSpecInitProvider
  */
-export enum WorkteamSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface WorkteamSpecInitProvider {
+  /**
+   * A description of the work team.
+   *
+   * @schema WorkteamSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * A list of Member Definitions that contains objects that identify the workers that make up the work team. Workforces can be created using Amazon Cognito or your own OIDC Identity Provider (IdP). For private workforces created using Amazon Cognito use cognito_member_definition. For workforces created using your own OIDC identity provider (IdP) use oidc_member_definition. Do not provide input for both of these parameters in a single request. see Member Definition details below.
+   *
+   * @schema WorkteamSpecInitProvider#memberDefinition
+   */
+  readonly memberDefinition?: WorkteamSpecInitProviderMemberDefinition[];
+
+  /**
+   * Configures notification of workers regarding available or expiring work items. see Notification Configuration details below.
+   *
+   * @schema WorkteamSpecInitProvider#notificationConfiguration
+   */
+  readonly notificationConfiguration?: WorkteamSpecInitProviderNotificationConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema WorkteamSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'WorkteamSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkteamSpecInitProvider(obj: WorkteamSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'memberDefinition': obj.memberDefinition?.map(y => toJson_WorkteamSpecInitProviderMemberDefinition(y)),
+    'notificationConfiguration': obj.notificationConfiguration?.map(y => toJson_WorkteamSpecInitProviderNotificationConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema WorkteamSpecManagementPolicies
+ */
+export enum WorkteamSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -23566,43 +26684,6 @@ export function toJson_WorkteamSpecProviderConfigRef(obj: WorkteamSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_WorkteamSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema WorkteamSpecProviderRef
- */
-export interface WorkteamSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema WorkteamSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema WorkteamSpecProviderRef#policy
-   */
-  readonly policy?: WorkteamSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'WorkteamSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkteamSpecProviderRef(obj: WorkteamSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_WorkteamSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -23836,6 +26917,68 @@ export function toJson_WorkteamSpecForProviderWorkforceNameSelector(obj: Worktea
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkteamSpecInitProviderMemberDefinition
+ */
+export interface WorkteamSpecInitProviderMemberDefinition {
+  /**
+   * The Amazon Cognito user group that is part of the work team. See Cognito Member Definition details below.
+   *
+   * @schema WorkteamSpecInitProviderMemberDefinition#cognitoMemberDefinition
+   */
+  readonly cognitoMemberDefinition?: any[];
+
+  /**
+   * A list user groups that exist in your OIDC Identity Provider (IdP). One to ten groups can be used to create a single private work team. See Cognito Member Definition details below.
+   *
+   * @schema WorkteamSpecInitProviderMemberDefinition#oidcMemberDefinition
+   */
+  readonly oidcMemberDefinition?: WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition[];
+
+}
+
+/**
+ * Converts an object of type 'WorkteamSpecInitProviderMemberDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkteamSpecInitProviderMemberDefinition(obj: WorkteamSpecInitProviderMemberDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cognitoMemberDefinition': obj.cognitoMemberDefinition?.map(y => y),
+    'oidcMemberDefinition': obj.oidcMemberDefinition?.map(y => toJson_WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema WorkteamSpecInitProviderNotificationConfiguration
+ */
+export interface WorkteamSpecInitProviderNotificationConfiguration {
+  /**
+   * The ARN for the SNS topic to which notifications should be published.
+   *
+   * @schema WorkteamSpecInitProviderNotificationConfiguration#notificationTopicArn
+   */
+  readonly notificationTopicArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'WorkteamSpecInitProviderNotificationConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkteamSpecInitProviderNotificationConfiguration(obj: WorkteamSpecInitProviderNotificationConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'notificationTopicArn': obj.notificationTopicArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema WorkteamSpecProviderConfigRefPolicy
@@ -23862,43 +27005,6 @@ export interface WorkteamSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_WorkteamSpecProviderConfigRefPolicy(obj: WorkteamSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema WorkteamSpecProviderRefPolicy
- */
-export interface WorkteamSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema WorkteamSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: WorkteamSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema WorkteamSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: WorkteamSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'WorkteamSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_WorkteamSpecProviderRefPolicy(obj: WorkteamSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -24091,7 +27197,7 @@ export interface WorkteamSpecForProviderMemberDefinitionOidcMemberDefinition {
    *
    * @schema WorkteamSpecForProviderMemberDefinitionOidcMemberDefinition#groups
    */
-  readonly groups: string[];
+  readonly groups?: string[];
 
 }
 
@@ -24184,6 +27290,33 @@ export function toJson_WorkteamSpecForProviderWorkforceNameSelectorPolicy(obj: W
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition
+ */
+export interface WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition {
+  /**
+   * A list of comma separated strings that identifies user groups in your OIDC IdP. Each user group is made up of a group of private workers.
+   *
+   * @schema WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition#groups
+   */
+  readonly groups?: string[];
+
+}
+
+/**
+ * Converts an object of type 'WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition(obj: WorkteamSpecInitProviderMemberDefinitionOidcMemberDefinition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groups': obj.groups?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema WorkteamSpecProviderConfigRefPolicyResolution
@@ -24201,30 +27334,6 @@ export enum WorkteamSpecProviderConfigRefPolicyResolution {
  * @schema WorkteamSpecProviderConfigRefPolicyResolve
  */
 export enum WorkteamSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema WorkteamSpecProviderRefPolicyResolution
- */
-export enum WorkteamSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema WorkteamSpecProviderRefPolicyResolve
- */
-export enum WorkteamSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

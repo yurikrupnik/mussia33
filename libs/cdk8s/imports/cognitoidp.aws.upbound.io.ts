@@ -99,7 +99,7 @@ export function toJson_IdentityProviderProps(obj: IdentityProviderProps | undefi
  */
 export interface IdentityProviderSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema IdentityProviderSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface IdentityProviderSpec {
   readonly forProvider: IdentityProviderSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema IdentityProviderSpec#managementPolicy
+   * @schema IdentityProviderSpec#initProvider
    */
-  readonly managementPolicy?: IdentityProviderSpecManagementPolicy;
+  readonly initProvider?: IdentityProviderSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema IdentityProviderSpec#managementPolicies
+   */
+  readonly managementPolicies?: IdentityProviderSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface IdentityProviderSpec {
    * @schema IdentityProviderSpec#providerConfigRef
    */
   readonly providerConfigRef?: IdentityProviderSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema IdentityProviderSpec#providerRef
-   */
-  readonly providerRef?: IdentityProviderSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_IdentityProviderSpec(obj: IdentityProviderSpec | undefine
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_IdentityProviderSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_IdentityProviderSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_IdentityProviderSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_IdentityProviderSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_IdentityProviderSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_IdentityProviderSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_IdentityProviderSpec(obj: IdentityProviderSpec | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema IdentityProviderSpecDeletionPolicy
  */
@@ -271,17 +271,84 @@ export function toJson_IdentityProviderSpecForProvider(obj: IdentityProviderSpec
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema IdentityProviderSpecManagementPolicy
+ * @schema IdentityProviderSpecInitProvider
  */
-export enum IdentityProviderSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface IdentityProviderSpecInitProvider {
+  /**
+   * The map of attribute mapping of user pool attributes. AttributeMapping in AWS API documentation
+   *
+   * @schema IdentityProviderSpecInitProvider#attributeMapping
+   */
+  readonly attributeMapping?: { [key: string]: string };
+
+  /**
+   * The list of identity providers.
+   *
+   * @schema IdentityProviderSpecInitProvider#idpIdentifiers
+   */
+  readonly idpIdentifiers?: string[];
+
+  /**
+   * The map of identity details, such as access token
+   *
+   * @schema IdentityProviderSpecInitProvider#providerDetails
+   */
+  readonly providerDetails?: { [key: string]: string };
+
+  /**
+   * The provider name
+   *
+   * @schema IdentityProviderSpecInitProvider#providerName
+   */
+  readonly providerName?: string;
+
+  /**
+   * The provider type.  See AWS API for valid values
+   *
+   * @schema IdentityProviderSpecInitProvider#providerType
+   */
+  readonly providerType?: string;
+
+}
+
+/**
+ * Converts an object of type 'IdentityProviderSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_IdentityProviderSpecInitProvider(obj: IdentityProviderSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributeMapping': ((obj.attributeMapping) === undefined) ? undefined : (Object.entries(obj.attributeMapping).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'idpIdentifiers': obj.idpIdentifiers?.map(y => y),
+    'providerDetails': ((obj.providerDetails) === undefined) ? undefined : (Object.entries(obj.providerDetails).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'providerName': obj.providerName,
+    'providerType': obj.providerType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema IdentityProviderSpecManagementPolicies
+ */
+export enum IdentityProviderSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -315,43 +382,6 @@ export function toJson_IdentityProviderSpecProviderConfigRef(obj: IdentityProvid
   const result = {
     'name': obj.name,
     'policy': toJson_IdentityProviderSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema IdentityProviderSpecProviderRef
- */
-export interface IdentityProviderSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema IdentityProviderSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema IdentityProviderSpecProviderRef#policy
-   */
-  readonly policy?: IdentityProviderSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'IdentityProviderSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IdentityProviderSpecProviderRef(obj: IdentityProviderSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_IdentityProviderSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -560,43 +590,6 @@ export function toJson_IdentityProviderSpecProviderConfigRefPolicy(obj: Identity
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema IdentityProviderSpecProviderRefPolicy
- */
-export interface IdentityProviderSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema IdentityProviderSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: IdentityProviderSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema IdentityProviderSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: IdentityProviderSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'IdentityProviderSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_IdentityProviderSpecProviderRefPolicy(obj: IdentityProviderSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema IdentityProviderSpecPublishConnectionDetailsToConfigRef
@@ -770,30 +763,6 @@ export enum IdentityProviderSpecProviderConfigRefPolicyResolution {
  * @schema IdentityProviderSpecProviderConfigRefPolicyResolve
  */
 export enum IdentityProviderSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema IdentityProviderSpecProviderRefPolicyResolution
- */
-export enum IdentityProviderSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema IdentityProviderSpecProviderRefPolicyResolve
- */
-export enum IdentityProviderSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1006,7 +975,7 @@ export function toJson_ResourceServerProps(obj: ResourceServerProps | undefined)
  */
 export interface ResourceServerSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ResourceServerSpec#deletionPolicy
    */
@@ -1018,11 +987,18 @@ export interface ResourceServerSpec {
   readonly forProvider: ResourceServerSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ResourceServerSpec#managementPolicy
+   * @schema ResourceServerSpec#initProvider
    */
-  readonly managementPolicy?: ResourceServerSpecManagementPolicy;
+  readonly initProvider?: ResourceServerSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ResourceServerSpec#managementPolicies
+   */
+  readonly managementPolicies?: ResourceServerSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1030,13 +1006,6 @@ export interface ResourceServerSpec {
    * @schema ResourceServerSpec#providerConfigRef
    */
   readonly providerConfigRef?: ResourceServerSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ResourceServerSpec#providerRef
-   */
-  readonly providerRef?: ResourceServerSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1063,9 +1032,9 @@ export function toJson_ResourceServerSpec(obj: ResourceServerSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ResourceServerSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ResourceServerSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ResourceServerSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ResourceServerSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ResourceServerSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ResourceServerSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1075,7 +1044,7 @@ export function toJson_ResourceServerSpec(obj: ResourceServerSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ResourceServerSpecDeletionPolicy
  */
@@ -1160,17 +1129,68 @@ export function toJson_ResourceServerSpecForProvider(obj: ResourceServerSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ResourceServerSpecManagementPolicy
+ * @schema ResourceServerSpecInitProvider
  */
-export enum ResourceServerSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ResourceServerSpecInitProvider {
+  /**
+   * An identifier for the resource server.
+   *
+   * @schema ResourceServerSpecInitProvider#identifier
+   */
+  readonly identifier?: string;
+
+  /**
+   * A name for the resource server.
+   *
+   * @schema ResourceServerSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * A list of Authorization Scope.
+   *
+   * @schema ResourceServerSpecInitProvider#scope
+   */
+  readonly scope?: ResourceServerSpecInitProviderScope[];
+
+}
+
+/**
+ * Converts an object of type 'ResourceServerSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceServerSpecInitProvider(obj: ResourceServerSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'identifier': obj.identifier,
+    'name': obj.name,
+    'scope': obj.scope?.map(y => toJson_ResourceServerSpecInitProviderScope(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ResourceServerSpecManagementPolicies
+ */
+export enum ResourceServerSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1204,43 +1224,6 @@ export function toJson_ResourceServerSpecProviderConfigRef(obj: ResourceServerSp
   const result = {
     'name': obj.name,
     'policy': toJson_ResourceServerSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ResourceServerSpecProviderRef
- */
-export interface ResourceServerSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ResourceServerSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ResourceServerSpecProviderRef#policy
-   */
-  readonly policy?: ResourceServerSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ResourceServerSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ResourceServerSpecProviderRef(obj: ResourceServerSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ResourceServerSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1338,14 +1321,14 @@ export interface ResourceServerSpecForProviderScope {
    *
    * @schema ResourceServerSpecForProviderScope#scopeDescription
    */
-  readonly scopeDescription: string;
+  readonly scopeDescription?: string;
 
   /**
    * The scope name.
    *
    * @schema ResourceServerSpecForProviderScope#scopeName
    */
-  readonly scopeName: string;
+  readonly scopeName?: string;
 
 }
 
@@ -1447,6 +1430,41 @@ export function toJson_ResourceServerSpecForProviderUserPoolIdSelector(obj: Reso
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ResourceServerSpecInitProviderScope
+ */
+export interface ResourceServerSpecInitProviderScope {
+  /**
+   * The scope description.
+   *
+   * @schema ResourceServerSpecInitProviderScope#scopeDescription
+   */
+  readonly scopeDescription?: string;
+
+  /**
+   * The scope name.
+   *
+   * @schema ResourceServerSpecInitProviderScope#scopeName
+   */
+  readonly scopeName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ResourceServerSpecInitProviderScope' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ResourceServerSpecInitProviderScope(obj: ResourceServerSpecInitProviderScope | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'scopeDescription': obj.scopeDescription,
+    'scopeName': obj.scopeName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema ResourceServerSpecProviderConfigRefPolicy
@@ -1473,43 +1491,6 @@ export interface ResourceServerSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ResourceServerSpecProviderConfigRefPolicy(obj: ResourceServerSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ResourceServerSpecProviderRefPolicy
- */
-export interface ResourceServerSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ResourceServerSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ResourceServerSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ResourceServerSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ResourceServerSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ResourceServerSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ResourceServerSpecProviderRefPolicy(obj: ResourceServerSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1694,30 +1675,6 @@ export enum ResourceServerSpecProviderConfigRefPolicyResolution {
  * @schema ResourceServerSpecProviderConfigRefPolicyResolve
  */
 export enum ResourceServerSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ResourceServerSpecProviderRefPolicyResolution
- */
-export enum ResourceServerSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ResourceServerSpecProviderRefPolicyResolve
- */
-export enum ResourceServerSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1930,7 +1887,7 @@ export function toJson_RiskConfigurationProps(obj: RiskConfigurationProps | unde
  */
 export interface RiskConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema RiskConfigurationSpec#deletionPolicy
    */
@@ -1942,11 +1899,18 @@ export interface RiskConfigurationSpec {
   readonly forProvider: RiskConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema RiskConfigurationSpec#managementPolicy
+   * @schema RiskConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: RiskConfigurationSpecManagementPolicy;
+  readonly initProvider?: RiskConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema RiskConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: RiskConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1954,13 +1918,6 @@ export interface RiskConfigurationSpec {
    * @schema RiskConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: RiskConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema RiskConfigurationSpec#providerRef
-   */
-  readonly providerRef?: RiskConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1987,9 +1944,9 @@ export function toJson_RiskConfigurationSpec(obj: RiskConfigurationSpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_RiskConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_RiskConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_RiskConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_RiskConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_RiskConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_RiskConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1999,7 +1956,7 @@ export function toJson_RiskConfigurationSpec(obj: RiskConfigurationSpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema RiskConfigurationSpecDeletionPolicy
  */
@@ -2094,17 +2051,76 @@ export function toJson_RiskConfigurationSpecForProvider(obj: RiskConfigurationSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema RiskConfigurationSpecManagementPolicy
+ * @schema RiskConfigurationSpecInitProvider
  */
-export enum RiskConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface RiskConfigurationSpecInitProvider {
+  /**
+   * The account takeover risk configuration. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProvider#accountTakeoverRiskConfiguration
+   */
+  readonly accountTakeoverRiskConfiguration?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration[];
+
+  /**
+   * The app client ID. When the client ID is not provided, the same risk configuration is applied to all the clients in the User Pool.
+   *
+   * @schema RiskConfigurationSpecInitProvider#clientId
+   */
+  readonly clientId?: string;
+
+  /**
+   * The compromised credentials risk configuration. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProvider#compromisedCredentialsRiskConfiguration
+   */
+  readonly compromisedCredentialsRiskConfiguration?: RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration[];
+
+  /**
+   * The configuration to override the risk decision. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProvider#riskExceptionConfiguration
+   */
+  readonly riskExceptionConfiguration?: RiskConfigurationSpecInitProviderRiskExceptionConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProvider(obj: RiskConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountTakeoverRiskConfiguration': obj.accountTakeoverRiskConfiguration?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration(y)),
+    'clientId': obj.clientId,
+    'compromisedCredentialsRiskConfiguration': obj.compromisedCredentialsRiskConfiguration?.map(y => toJson_RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration(y)),
+    'riskExceptionConfiguration': obj.riskExceptionConfiguration?.map(y => toJson_RiskConfigurationSpecInitProviderRiskExceptionConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema RiskConfigurationSpecManagementPolicies
+ */
+export enum RiskConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2138,43 +2154,6 @@ export function toJson_RiskConfigurationSpecProviderConfigRef(obj: RiskConfigura
   const result = {
     'name': obj.name,
     'policy': toJson_RiskConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema RiskConfigurationSpecProviderRef
- */
-export interface RiskConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema RiskConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema RiskConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: RiskConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'RiskConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RiskConfigurationSpecProviderRef(obj: RiskConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_RiskConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2272,14 +2251,14 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguration#actions
    */
-  readonly actions: RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActions[];
+  readonly actions?: RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActions[];
 
   /**
    * The notify configuration used to construct email notifications. See details below.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguration#notifyConfiguration
    */
-  readonly notifyConfiguration: RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfiguration[];
+  readonly notifyConfiguration?: RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfiguration[];
 
 }
 
@@ -2307,7 +2286,7 @@ export interface RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfi
    *
    * @schema RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfiguration#actions
    */
-  readonly actions: RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfigurationActions[];
+  readonly actions?: RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfigurationActions[];
 
   /**
    * Perform the action for these events. The default is to perform all events if no event filter is specified. Valid values are SIGN_IN, PASSWORD_CHANGE, and SIGN_UP.
@@ -2451,6 +2430,111 @@ export function toJson_RiskConfigurationSpecForProviderUserPoolIdSelector(obj: R
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration {
+  /**
+   * Account takeover risk configuration actions. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration#actions
+   */
+  readonly actions?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions[];
+
+  /**
+   * The notify configuration used to construct email notifications. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration#notifyConfiguration
+   */
+  readonly notifyConfiguration?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actions': obj.actions?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions(y)),
+    'notifyConfiguration': obj.notifyConfiguration?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration
+ */
+export interface RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration {
+  /**
+   * The compromised credentials risk configuration actions. See details below.
+   *
+   * @schema RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration#actions
+   */
+  readonly actions?: RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions[];
+
+  /**
+   * Perform the action for these events. The default is to perform all events if no event filter is specified. Valid values are SIGN_IN, PASSWORD_CHANGE, and SIGN_UP.
+   *
+   * @schema RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration#eventFilter
+   */
+  readonly eventFilter?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration(obj: RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actions': obj.actions?.map(y => toJson_RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions(y)),
+    'eventFilter': obj.eventFilter?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderRiskExceptionConfiguration
+ */
+export interface RiskConfigurationSpecInitProviderRiskExceptionConfiguration {
+  /**
+   * Overrides the risk decision to always block the pre-authentication requests. The IP range is in CIDR notation, a compact representation of an IP address and its routing prefix. Can contain a maximum of 200 items.
+   *
+   * @schema RiskConfigurationSpecInitProviderRiskExceptionConfiguration#blockedIpRangeList
+   */
+  readonly blockedIpRangeList?: string[];
+
+  /**
+   * Risk detection isn't performed on the IP addresses in this range list. The IP range is in CIDR notation. Can contain a maximum of 200 items.
+   *
+   * @schema RiskConfigurationSpecInitProviderRiskExceptionConfiguration#skippedIpRangeList
+   */
+  readonly skippedIpRangeList?: string[];
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderRiskExceptionConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderRiskExceptionConfiguration(obj: RiskConfigurationSpecInitProviderRiskExceptionConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockedIpRangeList': obj.blockedIpRangeList?.map(y => y),
+    'skippedIpRangeList': obj.skippedIpRangeList?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema RiskConfigurationSpecProviderConfigRefPolicy
@@ -2477,43 +2561,6 @@ export interface RiskConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_RiskConfigurationSpecProviderConfigRefPolicy(obj: RiskConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema RiskConfigurationSpecProviderRefPolicy
- */
-export interface RiskConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema RiskConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: RiskConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema RiskConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: RiskConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'RiskConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_RiskConfigurationSpecProviderRefPolicy(obj: RiskConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2693,7 +2740,7 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfiguration#sourceArn
    */
-  readonly sourceArn: string;
+  readonly sourceArn?: string;
 
 }
 
@@ -2725,7 +2772,7 @@ export interface RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfi
    *
    * @schema RiskConfigurationSpecForProviderCompromisedCredentialsRiskConfigurationActions#eventAction
    */
-  readonly eventAction: string;
+  readonly eventAction?: string;
 
 }
 
@@ -2818,6 +2865,143 @@ export function toJson_RiskConfigurationSpecForProviderUserPoolIdSelectorPolicy(
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions {
+  /**
+   * Action to take for a high risk. See action block below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions#highAction
+   */
+  readonly highAction?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction[];
+
+  /**
+   * Action to take for a low risk. See action block below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions#lowAction
+   */
+  readonly lowAction?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction[];
+
+  /**
+   * Action to take for a medium risk. See action block below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions#mediumAction
+   */
+  readonly mediumAction?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction[];
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'highAction': obj.highAction?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction(y)),
+    'lowAction': obj.lowAction?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction(y)),
+    'mediumAction': obj.mediumAction?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration {
+  /**
+   * Email template used when a detected risk event is blocked. See notify email type below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#blockEmail
+   */
+  readonly blockEmail?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail[];
+
+  /**
+   * The email address that is sending the email. The address must be either individually verified with Amazon Simple Email Service, or from a domain that has been verified with Amazon SES.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#from
+   */
+  readonly from?: string;
+
+  /**
+   * The multi-factor authentication (MFA) email template used when MFA is challenged as part of a detected risk. See notify email type below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#mfaEmail
+   */
+  readonly mfaEmail?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail[];
+
+  /**
+   * The email template used when a detected risk event is allowed. See notify email type below.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#noActionEmail
+   */
+  readonly noActionEmail?: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail[];
+
+  /**
+   * The destination to which the receiver of an email should reply to.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#replyTo
+   */
+  readonly replyTo?: string;
+
+  /**
+   * The Amazon Resource Name (ARN) of the identity that is associated with the sending authorization policy. This identity permits Amazon Cognito to send for the email address specified in the From parameter.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration#sourceArn
+   */
+  readonly sourceArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockEmail': obj.blockEmail?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail(y)),
+    'from': obj.from,
+    'mfaEmail': obj.mfaEmail?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail(y)),
+    'noActionEmail': obj.noActionEmail?.map(y => toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail(y)),
+    'replyTo': obj.replyTo,
+    'sourceArn': obj.sourceArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions
+ */
+export interface RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions {
+  /**
+   * The action to take in response to the account takeover action. Valid values are BLOCK, MFA_IF_CONFIGURED, MFA_REQUIRED and NO_ACTION.
+   *
+   * @schema RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions#eventAction
+   */
+  readonly eventAction?: string;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions(obj: RiskConfigurationSpecInitProviderCompromisedCredentialsRiskConfigurationActions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventAction': obj.eventAction,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema RiskConfigurationSpecProviderConfigRefPolicyResolution
@@ -2835,30 +3019,6 @@ export enum RiskConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema RiskConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum RiskConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema RiskConfigurationSpecProviderRefPolicyResolution
- */
-export enum RiskConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema RiskConfigurationSpecProviderRefPolicyResolve
- */
-export enum RiskConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2911,14 +3071,14 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsHighAction#eventAction
    */
-  readonly eventAction: string;
+  readonly eventAction?: string;
 
   /**
    * Whether to send a notification.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsHighAction#notify
    */
-  readonly notify: boolean;
+  readonly notify?: boolean;
 
 }
 
@@ -2946,14 +3106,14 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsLowAction#eventAction
    */
-  readonly eventAction: string;
+  readonly eventAction?: string;
 
   /**
    * Whether to send a notification.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsLowAction#notify
    */
-  readonly notify: boolean;
+  readonly notify?: boolean;
 
 }
 
@@ -2981,14 +3141,14 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsMediumAction#eventAction
    */
-  readonly eventAction: string;
+  readonly eventAction?: string;
 
   /**
    * Whether to send a notification.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationActionsMediumAction#notify
    */
-  readonly notify: boolean;
+  readonly notify?: boolean;
 
 }
 
@@ -3016,21 +3176,21 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#htmlBody
    */
-  readonly htmlBody: string;
+  readonly htmlBody?: string;
 
   /**
    * The email subject.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#subject
    */
-  readonly subject: string;
+  readonly subject?: string;
 
   /**
    * The email text body.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#textBody
    */
-  readonly textBody: string;
+  readonly textBody?: string;
 
 }
 
@@ -3059,21 +3219,21 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#htmlBody
    */
-  readonly htmlBody: string;
+  readonly htmlBody?: string;
 
   /**
    * The email subject.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#subject
    */
-  readonly subject: string;
+  readonly subject?: string;
 
   /**
    * The email text body.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#textBody
    */
-  readonly textBody: string;
+  readonly textBody?: string;
 
 }
 
@@ -3102,21 +3262,21 @@ export interface RiskConfigurationSpecForProviderAccountTakeoverRiskConfiguratio
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#htmlBody
    */
-  readonly htmlBody: string;
+  readonly htmlBody?: string;
 
   /**
    * The email subject.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#subject
    */
-  readonly subject: string;
+  readonly subject?: string;
 
   /**
    * The email text body.
    *
    * @schema RiskConfigurationSpecForProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#textBody
    */
-  readonly textBody: string;
+  readonly textBody?: string;
 
 }
 
@@ -3183,6 +3343,240 @@ export enum RiskConfigurationSpecForProviderUserPoolIdSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction {
+  /**
+   * The action to take in response to the account takeover action. Valid values are BLOCK, MFA_IF_CONFIGURED, MFA_REQUIRED and NO_ACTION.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction#eventAction
+   */
+  readonly eventAction?: string;
+
+  /**
+   * Whether to send a notification.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction#notify
+   */
+  readonly notify?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsHighAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventAction': obj.eventAction,
+    'notify': obj.notify,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction {
+  /**
+   * The action to take in response to the account takeover action. Valid values are BLOCK, MFA_IF_CONFIGURED, MFA_REQUIRED and NO_ACTION.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction#eventAction
+   */
+  readonly eventAction?: string;
+
+  /**
+   * Whether to send a notification.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction#notify
+   */
+  readonly notify?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsLowAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventAction': obj.eventAction,
+    'notify': obj.notify,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction {
+  /**
+   * The action to take in response to the account takeover action. Valid values are BLOCK, MFA_IF_CONFIGURED, MFA_REQUIRED and NO_ACTION.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction#eventAction
+   */
+  readonly eventAction?: string;
+
+  /**
+   * Whether to send a notification.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction#notify
+   */
+  readonly notify?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationActionsMediumAction | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'eventAction': obj.eventAction,
+    'notify': obj.notify,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail {
+  /**
+   * The email HTML body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#htmlBody
+   */
+  readonly htmlBody?: string;
+
+  /**
+   * The email subject.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#subject
+   */
+  readonly subject?: string;
+
+  /**
+   * The email text body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail#textBody
+   */
+  readonly textBody?: string;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationBlockEmail | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'htmlBody': obj.htmlBody,
+    'subject': obj.subject,
+    'textBody': obj.textBody,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail {
+  /**
+   * The email HTML body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#htmlBody
+   */
+  readonly htmlBody?: string;
+
+  /**
+   * The email subject.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#subject
+   */
+  readonly subject?: string;
+
+  /**
+   * The email text body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail#textBody
+   */
+  readonly textBody?: string;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationMfaEmail | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'htmlBody': obj.htmlBody,
+    'subject': obj.subject,
+    'textBody': obj.textBody,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail
+ */
+export interface RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail {
+  /**
+   * The email HTML body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#htmlBody
+   */
+  readonly htmlBody?: string;
+
+  /**
+   * The email subject.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#subject
+   */
+  readonly subject?: string;
+
+  /**
+   * The email text body.
+   *
+   * @schema RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail#textBody
+   */
+  readonly textBody?: string;
+
+}
+
+/**
+ * Converts an object of type 'RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail(obj: RiskConfigurationSpecInitProviderAccountTakeoverRiskConfigurationNotifyConfigurationNoActionEmail | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'htmlBody': obj.htmlBody,
+    'subject': obj.subject,
+    'textBody': obj.textBody,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -3305,7 +3699,7 @@ export function toJson_UserProps(obj: UserProps | undefined): Record<string, any
  */
 export interface UserSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserSpec#deletionPolicy
    */
@@ -3317,11 +3711,18 @@ export interface UserSpec {
   readonly forProvider: UserSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserSpec#managementPolicy
+   * @schema UserSpec#initProvider
    */
-  readonly managementPolicy?: UserSpecManagementPolicy;
+  readonly initProvider?: UserSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3329,13 +3730,6 @@ export interface UserSpec {
    * @schema UserSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserSpec#providerRef
-   */
-  readonly providerRef?: UserSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3362,9 +3756,9 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3374,7 +3768,7 @@ export function toJson_UserSpec(obj: UserSpec | undefined): Record<string, any> 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserSpecDeletionPolicy
  */
@@ -3512,17 +3906,103 @@ export function toJson_UserSpecForProvider(obj: UserSpecForProvider | undefined)
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserSpecManagementPolicy
+ * @schema UserSpecInitProvider
  */
-export enum UserSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserSpecInitProvider {
+  /**
+   * A map that contains user attributes and attribute values to be set for the user.
+   *
+   * @schema UserSpecInitProvider#attributes
+   */
+  readonly attributes?: { [key: string]: string };
+
+  /**
+   * A map of custom key-value pairs that you can provide as input for any custom workflows that user creation triggers. Amazon Cognito does not store the client_metadata value. This data is available only to Lambda triggers that are assigned to a user pool to support custom workflows. If your user pool configuration does not include triggers, the ClientMetadata parameter serves no purpose. For more information, see Customizing User Pool Workflows with Lambda Triggers.
+   *
+   * @schema UserSpecInitProvider#clientMetadata
+   */
+  readonly clientMetadata?: { [key: string]: string };
+
+  /**
+   * A list of mediums to the welcome message will be sent through. Allowed values are EMAIL and SMS. If it's provided, make sure you have also specified email attribute for the EMAIL medium and phone_number for the SMS. More than one value can be specified. Amazon Cognito does not store the desired_delivery_mediums value. Defaults to ["SMS"].
+   *
+   * @default SMS"].
+   * @schema UserSpecInitProvider#desiredDeliveryMediums
+   */
+  readonly desiredDeliveryMediums?: string[];
+
+  /**
+   * Specifies whether the user should be enabled after creation. The welcome message will be sent regardless of the enabled value. The behavior can be changed with message_action argument. Defaults to true.
+   *
+   * @default true.
+   * @schema UserSpecInitProvider#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * If this parameter is set to True and the phone_number or email address specified in the attributes parameter already exists as an alias with a different user, Amazon Cognito will migrate the alias from the previous user to the newly created user. The previous user will no longer be able to log in using that alias. Amazon Cognito does not store the force_alias_creation value. Defaults to false.
+   *
+   * @default false.
+   * @schema UserSpecInitProvider#forceAliasCreation
+   */
+  readonly forceAliasCreation?: boolean;
+
+  /**
+   * Set to RESEND to resend the invitation message to a user that already exists and reset the expiration limit on the user's account. Set to SUPPRESS to suppress sending the message. Only one value can be specified. Amazon Cognito does not store the message_action value.
+   *
+   * @schema UserSpecInitProvider#messageAction
+   */
+  readonly messageAction?: string;
+
+  /**
+   * The user's validation data. This is an array of name-value pairs that contain user attributes and attribute values that you can use for custom validation, such as restricting the types of user accounts that can be registered. Amazon Cognito does not store the validation_data value. For more information, see Customizing User Pool Workflows with Lambda Triggers.
+   *
+   * @schema UserSpecInitProvider#validationData
+   */
+  readonly validationData?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'UserSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserSpecInitProvider(obj: UserSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributes': ((obj.attributes) === undefined) ? undefined : (Object.entries(obj.attributes).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'clientMetadata': ((obj.clientMetadata) === undefined) ? undefined : (Object.entries(obj.clientMetadata).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'desiredDeliveryMediums': obj.desiredDeliveryMediums?.map(y => y),
+    'enabled': obj.enabled,
+    'forceAliasCreation': obj.forceAliasCreation,
+    'messageAction': obj.messageAction,
+    'validationData': ((obj.validationData) === undefined) ? undefined : (Object.entries(obj.validationData).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserSpecManagementPolicies
+ */
+export enum UserSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3556,43 +4036,6 @@ export function toJson_UserSpecProviderConfigRef(obj: UserSpecProviderConfigRef 
   const result = {
     'name': obj.name,
     'policy': toJson_UserSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserSpecProviderRef
- */
-export interface UserSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserSpecProviderRef#policy
-   */
-  readonly policy?: UserSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRef(obj: UserSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3891,43 +4334,6 @@ export function toJson_UserSpecProviderConfigRefPolicy(obj: UserSpecProviderConf
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserSpecProviderRefPolicy
- */
-export interface UserSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserSpecProviderRefPolicy(obj: UserSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserSpecPublishConnectionDetailsToConfigRef
@@ -4101,30 +4507,6 @@ export enum UserSpecProviderConfigRefPolicyResolution {
  * @schema UserSpecProviderConfigRefPolicyResolve
  */
 export enum UserSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserSpecProviderRefPolicyResolution
- */
-export enum UserSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserSpecProviderRefPolicyResolve
- */
-export enum UserSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4337,7 +4719,7 @@ export function toJson_UserGroupProps(obj: UserGroupProps | undefined): Record<s
  */
 export interface UserGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserGroupSpec#deletionPolicy
    */
@@ -4349,11 +4731,18 @@ export interface UserGroupSpec {
   readonly forProvider: UserGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserGroupSpec#managementPolicy
+   * @schema UserGroupSpec#initProvider
    */
-  readonly managementPolicy?: UserGroupSpecManagementPolicy;
+  readonly initProvider?: UserGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4361,13 +4750,6 @@ export interface UserGroupSpec {
    * @schema UserGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserGroupSpec#providerRef
-   */
-  readonly providerRef?: UserGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4394,9 +4776,9 @@ export function toJson_UserGroupSpec(obj: UserGroupSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4406,7 +4788,7 @@ export function toJson_UserGroupSpec(obj: UserGroupSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserGroupSpecDeletionPolicy
  */
@@ -4517,17 +4899,68 @@ export function toJson_UserGroupSpecForProvider(obj: UserGroupSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserGroupSpecManagementPolicy
+ * @schema UserGroupSpecInitProvider
  */
-export enum UserGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserGroupSpecInitProvider {
+  /**
+   * The description of the user group.
+   *
+   * @schema UserGroupSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The name of the user group.
+   *
+   * @schema UserGroupSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The precedence of the user group.
+   *
+   * @schema UserGroupSpecInitProvider#precedence
+   */
+  readonly precedence?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserGroupSpecInitProvider(obj: UserGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'description': obj.description,
+    'name': obj.name,
+    'precedence': obj.precedence,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserGroupSpecManagementPolicies
+ */
+export enum UserGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4561,43 +4994,6 @@ export function toJson_UserGroupSpecProviderConfigRef(obj: UserGroupSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_UserGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserGroupSpecProviderRef
- */
-export interface UserGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserGroupSpecProviderRef#policy
-   */
-  readonly policy?: UserGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserGroupSpecProviderRef(obj: UserGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4888,43 +5284,6 @@ export function toJson_UserGroupSpecProviderConfigRefPolicy(obj: UserGroupSpecPr
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserGroupSpecProviderRefPolicy
- */
-export interface UserGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserGroupSpecProviderRefPolicy(obj: UserGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserGroupSpecPublishConnectionDetailsToConfigRef
@@ -5172,30 +5531,6 @@ export enum UserGroupSpecProviderConfigRefPolicyResolution {
  * @schema UserGroupSpecProviderConfigRefPolicyResolve
  */
 export enum UserGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserGroupSpecProviderRefPolicyResolution
- */
-export enum UserGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserGroupSpecProviderRefPolicyResolve
- */
-export enum UserGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5456,7 +5791,7 @@ export function toJson_UserInGroupProps(obj: UserInGroupProps | undefined): Reco
  */
 export interface UserInGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserInGroupSpec#deletionPolicy
    */
@@ -5468,11 +5803,18 @@ export interface UserInGroupSpec {
   readonly forProvider: UserInGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserInGroupSpec#managementPolicy
+   * @schema UserInGroupSpec#initProvider
    */
-  readonly managementPolicy?: UserInGroupSpecManagementPolicy;
+  readonly initProvider?: any;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserInGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserInGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5480,13 +5822,6 @@ export interface UserInGroupSpec {
    * @schema UserInGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserInGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserInGroupSpec#providerRef
-   */
-  readonly providerRef?: UserInGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5513,9 +5848,9 @@ export function toJson_UserInGroupSpec(obj: UserInGroupSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserInGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': obj.initProvider,
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserInGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserInGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserInGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserInGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5525,7 +5860,7 @@ export function toJson_UserInGroupSpec(obj: UserInGroupSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserInGroupSpecDeletionPolicy
  */
@@ -5636,17 +5971,23 @@ export function toJson_UserInGroupSpecForProvider(obj: UserInGroupSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
  *
- * @schema UserInGroupSpecManagementPolicy
+ * @schema UserInGroupSpecManagementPolicies
  */
-export enum UserInGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export enum UserInGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -5680,43 +6021,6 @@ export function toJson_UserInGroupSpecProviderConfigRef(obj: UserInGroupSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_UserInGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserInGroupSpecProviderRef
- */
-export interface UserInGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserInGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserInGroupSpecProviderRef#policy
-   */
-  readonly policy?: UserInGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserInGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserInGroupSpecProviderRef(obj: UserInGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserInGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6089,43 +6393,6 @@ export function toJson_UserInGroupSpecProviderConfigRefPolicy(obj: UserInGroupSp
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserInGroupSpecProviderRefPolicy
- */
-export interface UserInGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserInGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserInGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserInGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserInGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserInGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserInGroupSpecProviderRefPolicy(obj: UserInGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserInGroupSpecPublishConnectionDetailsToConfigRef
@@ -6454,30 +6721,6 @@ export enum UserInGroupSpecProviderConfigRefPolicyResolve {
 }
 
 /**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserInGroupSpecProviderRefPolicyResolution
- */
-export enum UserInGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserInGroupSpecProviderRefPolicyResolve
- */
-export enum UserInGroupSpecProviderRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
  * Policies for referencing.
  *
  * @schema UserInGroupSpecPublishConnectionDetailsToConfigRefPolicy
@@ -6779,7 +7022,7 @@ export function toJson_UserPoolProps(obj: UserPoolProps | undefined): Record<str
  */
 export interface UserPoolSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserPoolSpec#deletionPolicy
    */
@@ -6791,11 +7034,18 @@ export interface UserPoolSpec {
   readonly forProvider: UserPoolSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserPoolSpec#managementPolicy
+   * @schema UserPoolSpec#initProvider
    */
-  readonly managementPolicy?: UserPoolSpecManagementPolicy;
+  readonly initProvider?: UserPoolSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserPoolSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserPoolSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6803,13 +7053,6 @@ export interface UserPoolSpec {
    * @schema UserPoolSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserPoolSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserPoolSpec#providerRef
-   */
-  readonly providerRef?: UserPoolSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6836,9 +7079,9 @@ export function toJson_UserPoolSpec(obj: UserPoolSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserPoolSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserPoolSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserPoolSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserPoolSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserPoolSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserPoolSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6848,7 +7091,7 @@ export function toJson_UserPoolSpec(obj: UserPoolSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserPoolSpecDeletionPolicy
  */
@@ -7079,17 +7322,236 @@ export function toJson_UserPoolSpecForProvider(obj: UserPoolSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserPoolSpecManagementPolicy
+ * @schema UserPoolSpecInitProvider
  */
-export enum UserPoolSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserPoolSpecInitProvider {
+  /**
+   * Configuration block to define which verified available method a user can use to recover their forgotten password. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#accountRecoverySetting
+   */
+  readonly accountRecoverySetting?: UserPoolSpecInitProviderAccountRecoverySetting[];
+
+  /**
+   * Configuration block for creating a new user profile. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#adminCreateUserConfig
+   */
+  readonly adminCreateUserConfig?: UserPoolSpecInitProviderAdminCreateUserConfig[];
+
+  /**
+   * Attributes supported as an alias for this user pool. Valid values: phone_number, email, or preferred_username. Conflicts with username_attributes.
+   *
+   * @schema UserPoolSpecInitProvider#aliasAttributes
+   */
+  readonly aliasAttributes?: string[];
+
+  /**
+   * Attributes to be auto-verified. Valid values: email, phone_number.
+   *
+   * @schema UserPoolSpecInitProvider#autoVerifiedAttributes
+   */
+  readonly autoVerifiedAttributes?: string[];
+
+  /**
+   * When active, DeletionProtection prevents accidental deletion of your user pool. Before you can delete a user pool that you have protected against deletion, you must deactivate this feature. Valid values are ACTIVE and INACTIVE, Default value is INACTIVE.
+   *
+   * @schema UserPoolSpecInitProvider#deletionProtection
+   */
+  readonly deletionProtection?: string;
+
+  /**
+   * Configuration block for the user pool's device tracking. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#deviceConfiguration
+   */
+  readonly deviceConfiguration?: UserPoolSpecInitProviderDeviceConfiguration[];
+
+  /**
+   * Configuration block for configuring email. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#emailConfiguration
+   */
+  readonly emailConfiguration?: UserPoolSpecInitProviderEmailConfiguration[];
+
+  /**
+   * String representing the email verification message. Conflicts with verification_message_template configuration block email_message argument.
+   *
+   * @schema UserPoolSpecInitProvider#emailVerificationMessage
+   */
+  readonly emailVerificationMessage?: string;
+
+  /**
+   * String representing the email verification subject. Conflicts with verification_message_template configuration block email_subject argument.
+   *
+   * @schema UserPoolSpecInitProvider#emailVerificationSubject
+   */
+  readonly emailVerificationSubject?: string;
+
+  /**
+   * Configuration block for the AWS Lambda triggers associated with the user pool. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#lambdaConfig
+   */
+  readonly lambdaConfig?: UserPoolSpecInitProviderLambdaConfig[];
+
+  /**
+   * Multi-Factor Authentication (MFA) configuration for the User Pool. Defaults of OFF. Valid values are OFF (MFA Tokens are not required), ON (MFA is required for all users to sign in; requires at least one of sms_configuration or software_token_mfa_configuration to be configured), or OPTIONAL (MFA Will be required only for individual users who have MFA Enabled; requires at least one of sms_configuration or software_token_mfa_configuration to be configured).
+   *
+   * @schema UserPoolSpecInitProvider#mfaConfiguration
+   */
+  readonly mfaConfiguration?: string;
+
+  /**
+   * Name of the user pool.
+   *
+   * @schema UserPoolSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Configuration blocked for information about the user pool password policy. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#passwordPolicy
+   */
+  readonly passwordPolicy?: UserPoolSpecInitProviderPasswordPolicy[];
+
+  /**
+   * Configuration block for the schema attributes of a user pool. Detailed below. Schema attributes from the standard attribute set only need to be specified if they are different from the default configuration. Attributes can be added, but not modified or removed. Maximum of 50 attributes.
+   *
+   * @schema UserPoolSpecInitProvider#schema
+   */
+  readonly schema?: UserPoolSpecInitProviderSchema[];
+
+  /**
+   * String representing the SMS authentication message. The Message must contain the {####} placeholder, which will be replaced with the code.
+   *
+   * @schema UserPoolSpecInitProvider#smsAuthenticationMessage
+   */
+  readonly smsAuthenticationMessage?: string;
+
+  /**
+   * Configuration block for Short Message Service (SMS) settings. Detailed below. These settings apply to SMS user verification and SMS Multi-Factor Authentication (MFA). Due to Cognito API restrictions, the SMS configuration cannot be removed without recreating the Cognito User Pool. For user data safety, this resource will ignore the removal of this configuration by disabling drift detection. To force resource recreation after this configuration has been applied, see the taint command.
+   *
+   * @schema UserPoolSpecInitProvider#smsConfiguration
+   */
+  readonly smsConfiguration?: UserPoolSpecInitProviderSmsConfiguration[];
+
+  /**
+   * String representing the SMS verification message. Conflicts with verification_message_template configuration block sms_message argument.
+   *
+   * @schema UserPoolSpecInitProvider#smsVerificationMessage
+   */
+  readonly smsVerificationMessage?: string;
+
+  /**
+   * Configuration block for software token Mult-Factor Authentication (MFA) settings. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#softwareTokenMfaConfiguration
+   */
+  readonly softwareTokenMfaConfiguration?: UserPoolSpecInitProviderSoftwareTokenMfaConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema UserPoolSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Configuration block for user attribute update settings. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#userAttributeUpdateSettings
+   */
+  readonly userAttributeUpdateSettings?: UserPoolSpecInitProviderUserAttributeUpdateSettings[];
+
+  /**
+   * Configuration block for user pool add-ons to enable user pool advanced security mode features. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#userPoolAddOns
+   */
+  readonly userPoolAddOns?: UserPoolSpecInitProviderUserPoolAddOns[];
+
+  /**
+   * Whether email addresses or phone numbers can be specified as usernames when a user signs up. Conflicts with alias_attributes.
+   *
+   * @schema UserPoolSpecInitProvider#usernameAttributes
+   */
+  readonly usernameAttributes?: string[];
+
+  /**
+   * Configuration block for username configuration. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#usernameConfiguration
+   */
+  readonly usernameConfiguration?: UserPoolSpecInitProviderUsernameConfiguration[];
+
+  /**
+   * Configuration block for verification message templates. Detailed below.
+   *
+   * @schema UserPoolSpecInitProvider#verificationMessageTemplate
+   */
+  readonly verificationMessageTemplate?: UserPoolSpecInitProviderVerificationMessageTemplate[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProvider(obj: UserPoolSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountRecoverySetting': obj.accountRecoverySetting?.map(y => toJson_UserPoolSpecInitProviderAccountRecoverySetting(y)),
+    'adminCreateUserConfig': obj.adminCreateUserConfig?.map(y => toJson_UserPoolSpecInitProviderAdminCreateUserConfig(y)),
+    'aliasAttributes': obj.aliasAttributes?.map(y => y),
+    'autoVerifiedAttributes': obj.autoVerifiedAttributes?.map(y => y),
+    'deletionProtection': obj.deletionProtection,
+    'deviceConfiguration': obj.deviceConfiguration?.map(y => toJson_UserPoolSpecInitProviderDeviceConfiguration(y)),
+    'emailConfiguration': obj.emailConfiguration?.map(y => toJson_UserPoolSpecInitProviderEmailConfiguration(y)),
+    'emailVerificationMessage': obj.emailVerificationMessage,
+    'emailVerificationSubject': obj.emailVerificationSubject,
+    'lambdaConfig': obj.lambdaConfig?.map(y => toJson_UserPoolSpecInitProviderLambdaConfig(y)),
+    'mfaConfiguration': obj.mfaConfiguration,
+    'name': obj.name,
+    'passwordPolicy': obj.passwordPolicy?.map(y => toJson_UserPoolSpecInitProviderPasswordPolicy(y)),
+    'schema': obj.schema?.map(y => toJson_UserPoolSpecInitProviderSchema(y)),
+    'smsAuthenticationMessage': obj.smsAuthenticationMessage,
+    'smsConfiguration': obj.smsConfiguration?.map(y => toJson_UserPoolSpecInitProviderSmsConfiguration(y)),
+    'smsVerificationMessage': obj.smsVerificationMessage,
+    'softwareTokenMfaConfiguration': obj.softwareTokenMfaConfiguration?.map(y => toJson_UserPoolSpecInitProviderSoftwareTokenMfaConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'userAttributeUpdateSettings': obj.userAttributeUpdateSettings?.map(y => toJson_UserPoolSpecInitProviderUserAttributeUpdateSettings(y)),
+    'userPoolAddOns': obj.userPoolAddOns?.map(y => toJson_UserPoolSpecInitProviderUserPoolAddOns(y)),
+    'usernameAttributes': obj.usernameAttributes?.map(y => y),
+    'usernameConfiguration': obj.usernameConfiguration?.map(y => toJson_UserPoolSpecInitProviderUsernameConfiguration(y)),
+    'verificationMessageTemplate': obj.verificationMessageTemplate?.map(y => toJson_UserPoolSpecInitProviderVerificationMessageTemplate(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserPoolSpecManagementPolicies
+ */
+export enum UserPoolSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -7123,43 +7585,6 @@ export function toJson_UserPoolSpecProviderConfigRef(obj: UserPoolSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_UserPoolSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserPoolSpecProviderRef
- */
-export interface UserPoolSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserPoolSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserPoolSpecProviderRef#policy
-   */
-  readonly policy?: UserPoolSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserPoolSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolSpecProviderRef(obj: UserPoolSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserPoolSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7603,7 +8028,7 @@ export interface UserPoolSpecForProviderSchema {
    *
    * @schema UserPoolSpecForProviderSchema#attributeDataType
    */
-  readonly attributeDataType: string;
+  readonly attributeDataType?: string;
 
   /**
    * Whether the attribute type is developer only.
@@ -7624,7 +8049,7 @@ export interface UserPoolSpecForProviderSchema {
    *
    * @schema UserPoolSpecForProviderSchema#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Configuration block for the constraints for an attribute of the number type. Detailed below.
@@ -7678,7 +8103,7 @@ export interface UserPoolSpecForProviderSmsConfiguration {
    *
    * @schema UserPoolSpecForProviderSmsConfiguration#externalId
    */
-  readonly externalId: string;
+  readonly externalId?: string;
 
   /**
    * ARN of the Amazon SNS caller. This is usually the IAM role that you've given Cognito permission to assume.
@@ -7737,7 +8162,7 @@ export interface UserPoolSpecForProviderSoftwareTokenMfaConfiguration {
    *
    * @schema UserPoolSpecForProviderSoftwareTokenMfaConfiguration#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -7764,7 +8189,7 @@ export interface UserPoolSpecForProviderUserAttributeUpdateSettings {
    *
    * @schema UserPoolSpecForProviderUserAttributeUpdateSettings#attributesRequireVerificationBeforeUpdate
    */
-  readonly attributesRequireVerificationBeforeUpdate: string[];
+  readonly attributesRequireVerificationBeforeUpdate?: string[];
 
 }
 
@@ -7791,7 +8216,7 @@ export interface UserPoolSpecForProviderUserPoolAddOns {
    *
    * @schema UserPoolSpecForProviderUserPoolAddOns#advancedSecurityMode
    */
-  readonly advancedSecurityMode: string;
+  readonly advancedSecurityMode?: string;
 
 }
 
@@ -7818,7 +8243,7 @@ export interface UserPoolSpecForProviderUsernameConfiguration {
    *
    * @schema UserPoolSpecForProviderUsernameConfiguration#caseSensitive
    */
-  readonly caseSensitive: boolean;
+  readonly caseSensitive?: boolean;
 
 }
 
@@ -7905,6 +8330,638 @@ export function toJson_UserPoolSpecForProviderVerificationMessageTemplate(obj: U
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserPoolSpecInitProviderAccountRecoverySetting
+ */
+export interface UserPoolSpecInitProviderAccountRecoverySetting {
+  /**
+   * List of Account Recovery Options of the following structure:
+   *
+   * @schema UserPoolSpecInitProviderAccountRecoverySetting#recoveryMechanism
+   */
+  readonly recoveryMechanism?: UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderAccountRecoverySetting' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderAccountRecoverySetting(obj: UserPoolSpecInitProviderAccountRecoverySetting | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'recoveryMechanism': obj.recoveryMechanism?.map(y => toJson_UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderAdminCreateUserConfig
+ */
+export interface UserPoolSpecInitProviderAdminCreateUserConfig {
+  /**
+   * Set to True if only the administrator is allowed to create user profiles. Set to False if users can sign themselves up via an app.
+   *
+   * @schema UserPoolSpecInitProviderAdminCreateUserConfig#allowAdminCreateUserOnly
+   */
+  readonly allowAdminCreateUserOnly?: boolean;
+
+  /**
+   * Invite message template structure. Detailed below.
+   *
+   * @schema UserPoolSpecInitProviderAdminCreateUserConfig#inviteMessageTemplate
+   */
+  readonly inviteMessageTemplate?: UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderAdminCreateUserConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderAdminCreateUserConfig(obj: UserPoolSpecInitProviderAdminCreateUserConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowAdminCreateUserOnly': obj.allowAdminCreateUserOnly,
+    'inviteMessageTemplate': obj.inviteMessageTemplate?.map(y => toJson_UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderDeviceConfiguration
+ */
+export interface UserPoolSpecInitProviderDeviceConfiguration {
+  /**
+   * Whether a challenge is required on a new device. Only applicable to a new device.
+   *
+   * @schema UserPoolSpecInitProviderDeviceConfiguration#challengeRequiredOnNewDevice
+   */
+  readonly challengeRequiredOnNewDevice?: boolean;
+
+  /**
+   * Whether a device is only remembered on user prompt. false equates to "Always" remember, true is "User Opt In," and not using a device_configuration block is "No."
+   *
+   * @schema UserPoolSpecInitProviderDeviceConfiguration#deviceOnlyRememberedOnUserPrompt
+   */
+  readonly deviceOnlyRememberedOnUserPrompt?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderDeviceConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderDeviceConfiguration(obj: UserPoolSpecInitProviderDeviceConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'challengeRequiredOnNewDevice': obj.challengeRequiredOnNewDevice,
+    'deviceOnlyRememberedOnUserPrompt': obj.deviceOnlyRememberedOnUserPrompt,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderEmailConfiguration
+ */
+export interface UserPoolSpecInitProviderEmailConfiguration {
+  /**
+   * Email configuration set name from SES.
+   *
+   * @schema UserPoolSpecInitProviderEmailConfiguration#configurationSet
+   */
+  readonly configurationSet?: string;
+
+  /**
+   * Email delivery method to use. COGNITO_DEFAULT for the default email functionality built into Cognito or DEVELOPER to use your Amazon SES configuration.
+   *
+   * @schema UserPoolSpecInitProviderEmailConfiguration#emailSendingAccount
+   */
+  readonly emailSendingAccount?: string;
+
+  /**
+   * Sender’s email address or sender’s display name with their email address (e.g., john@example.com, John Smith <john@example.com> or \"John Smith Ph.D.\" <john@example.com>). Escaped double quotes are required around display names that contain certain characters as specified in RFC 5322.
+   *
+   * @schema UserPoolSpecInitProviderEmailConfiguration#fromEmailAddress
+   */
+  readonly fromEmailAddress?: string;
+
+  /**
+   * REPLY-TO email address.
+   *
+   * @schema UserPoolSpecInitProviderEmailConfiguration#replyToEmailAddress
+   */
+  readonly replyToEmailAddress?: string;
+
+  /**
+   * ARN of the SES verified email identity to use. Required if email_sending_account is set to DEVELOPER.
+   *
+   * @schema UserPoolSpecInitProviderEmailConfiguration#sourceArn
+   */
+  readonly sourceArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderEmailConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderEmailConfiguration(obj: UserPoolSpecInitProviderEmailConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'configurationSet': obj.configurationSet,
+    'emailSendingAccount': obj.emailSendingAccount,
+    'fromEmailAddress': obj.fromEmailAddress,
+    'replyToEmailAddress': obj.replyToEmailAddress,
+    'sourceArn': obj.sourceArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderLambdaConfig
+ */
+export interface UserPoolSpecInitProviderLambdaConfig {
+  /**
+   * ARN of the lambda creating an authentication challenge.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#createAuthChallenge
+   */
+  readonly createAuthChallenge?: string;
+
+  /**
+   * A custom email sender AWS Lambda trigger. See custom_email_sender Below.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#customEmailSender
+   */
+  readonly customEmailSender?: UserPoolSpecInitProviderLambdaConfigCustomEmailSender[];
+
+  /**
+   * Custom Message AWS Lambda trigger.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#customMessage
+   */
+  readonly customMessage?: string;
+
+  /**
+   * A custom SMS sender AWS Lambda trigger. See custom_sms_sender Below.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#customSmsSender
+   */
+  readonly customSmsSender?: UserPoolSpecInitProviderLambdaConfigCustomSmsSender[];
+
+  /**
+   * Defines the authentication challenge.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#defineAuthChallenge
+   */
+  readonly defineAuthChallenge?: string;
+
+  /**
+   * The Amazon Resource Name of Key Management Service Customer master keys. Amazon Cognito uses the key to encrypt codes and temporary passwords sent to CustomEmailSender and CustomSMSSender.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#kmsKeyId
+   */
+  readonly kmsKeyId?: string;
+
+  /**
+   * Post-authentication AWS Lambda trigger.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#postAuthentication
+   */
+  readonly postAuthentication?: string;
+
+  /**
+   * Post-confirmation AWS Lambda trigger.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#postConfirmation
+   */
+  readonly postConfirmation?: string;
+
+  /**
+   * Pre-authentication AWS Lambda trigger.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#preAuthentication
+   */
+  readonly preAuthentication?: string;
+
+  /**
+   * Pre-registration AWS Lambda trigger.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#preSignUp
+   */
+  readonly preSignUp?: string;
+
+  /**
+   * Allow to customize identity token claims before token generation.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#preTokenGeneration
+   */
+  readonly preTokenGeneration?: string;
+
+  /**
+   * User migration Lambda config type.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#userMigration
+   */
+  readonly userMigration?: string;
+
+  /**
+   * Verifies the authentication challenge response.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfig#verifyAuthChallengeResponse
+   */
+  readonly verifyAuthChallengeResponse?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderLambdaConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderLambdaConfig(obj: UserPoolSpecInitProviderLambdaConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'createAuthChallenge': obj.createAuthChallenge,
+    'customEmailSender': obj.customEmailSender?.map(y => toJson_UserPoolSpecInitProviderLambdaConfigCustomEmailSender(y)),
+    'customMessage': obj.customMessage,
+    'customSmsSender': obj.customSmsSender?.map(y => toJson_UserPoolSpecInitProviderLambdaConfigCustomSmsSender(y)),
+    'defineAuthChallenge': obj.defineAuthChallenge,
+    'kmsKeyId': obj.kmsKeyId,
+    'postAuthentication': obj.postAuthentication,
+    'postConfirmation': obj.postConfirmation,
+    'preAuthentication': obj.preAuthentication,
+    'preSignUp': obj.preSignUp,
+    'preTokenGeneration': obj.preTokenGeneration,
+    'userMigration': obj.userMigration,
+    'verifyAuthChallengeResponse': obj.verifyAuthChallengeResponse,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderPasswordPolicy
+ */
+export interface UserPoolSpecInitProviderPasswordPolicy {
+  /**
+   * Minimum length of the password policy that you have set.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#minimumLength
+   */
+  readonly minimumLength?: number;
+
+  /**
+   * Whether you have required users to use at least one lowercase letter in their password.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#requireLowercase
+   */
+  readonly requireLowercase?: boolean;
+
+  /**
+   * Whether you have required users to use at least one number in their password.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#requireNumbers
+   */
+  readonly requireNumbers?: boolean;
+
+  /**
+   * Whether you have required users to use at least one symbol in their password.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#requireSymbols
+   */
+  readonly requireSymbols?: boolean;
+
+  /**
+   * Whether you have required users to use at least one uppercase letter in their password.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#requireUppercase
+   */
+  readonly requireUppercase?: boolean;
+
+  /**
+   * In the password policy you have set, refers to the number of days a temporary password is valid. If the user does not sign-in during this time, their password will need to be reset by an administrator.
+   *
+   * @schema UserPoolSpecInitProviderPasswordPolicy#temporaryPasswordValidityDays
+   */
+  readonly temporaryPasswordValidityDays?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderPasswordPolicy' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderPasswordPolicy(obj: UserPoolSpecInitProviderPasswordPolicy | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'minimumLength': obj.minimumLength,
+    'requireLowercase': obj.requireLowercase,
+    'requireNumbers': obj.requireNumbers,
+    'requireSymbols': obj.requireSymbols,
+    'requireUppercase': obj.requireUppercase,
+    'temporaryPasswordValidityDays': obj.temporaryPasswordValidityDays,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderSchema
+ */
+export interface UserPoolSpecInitProviderSchema {
+  /**
+   * Attribute data type. Must be one of Boolean, Number, String, DateTime.
+   *
+   * @schema UserPoolSpecInitProviderSchema#attributeDataType
+   */
+  readonly attributeDataType?: string;
+
+  /**
+   * Whether the attribute type is developer only.
+   *
+   * @schema UserPoolSpecInitProviderSchema#developerOnlyAttribute
+   */
+  readonly developerOnlyAttribute?: boolean;
+
+  /**
+   * Whether the attribute can be changed once it has been created.
+   *
+   * @schema UserPoolSpecInitProviderSchema#mutable
+   */
+  readonly mutable?: boolean;
+
+  /**
+   * Name of the user pool.
+   *
+   * @schema UserPoolSpecInitProviderSchema#name
+   */
+  readonly name?: string;
+
+  /**
+   * Configuration block for the constraints for an attribute of the number type. Detailed below.
+   *
+   * @schema UserPoolSpecInitProviderSchema#numberAttributeConstraints
+   */
+  readonly numberAttributeConstraints?: UserPoolSpecInitProviderSchemaNumberAttributeConstraints[];
+
+  /**
+   * Whether a user pool attribute is required. If the attribute is required and the user does not provide a value, registration or sign-in will fail.
+   *
+   * @schema UserPoolSpecInitProviderSchema#required
+   */
+  readonly required?: boolean;
+
+  /**
+   * Constraints for an attribute of the string type. Detailed below.
+   *
+   * @schema UserPoolSpecInitProviderSchema#stringAttributeConstraints
+   */
+  readonly stringAttributeConstraints?: UserPoolSpecInitProviderSchemaStringAttributeConstraints[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderSchema' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderSchema(obj: UserPoolSpecInitProviderSchema | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributeDataType': obj.attributeDataType,
+    'developerOnlyAttribute': obj.developerOnlyAttribute,
+    'mutable': obj.mutable,
+    'name': obj.name,
+    'numberAttributeConstraints': obj.numberAttributeConstraints?.map(y => toJson_UserPoolSpecInitProviderSchemaNumberAttributeConstraints(y)),
+    'required': obj.required,
+    'stringAttributeConstraints': obj.stringAttributeConstraints?.map(y => toJson_UserPoolSpecInitProviderSchemaStringAttributeConstraints(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderSmsConfiguration
+ */
+export interface UserPoolSpecInitProviderSmsConfiguration {
+  /**
+   * External ID used in IAM role trust relationships. For more information about using external IDs, see How to Use an External ID When Granting Access to Your AWS Resources to a Third Party.
+   *
+   * @schema UserPoolSpecInitProviderSmsConfiguration#externalId
+   */
+  readonly externalId?: string;
+
+  /**
+   * The AWS Region to use with Amazon SNS integration. You can choose the same Region as your user pool, or a supported Legacy Amazon SNS alternate Region. Amazon Cognito resources in the Asia Pacific (Seoul) AWS Region must use your Amazon SNS configuration in the Asia Pacific (Tokyo) Region. For more information, see SMS message settings for Amazon Cognito user pools.
+   *
+   * @schema UserPoolSpecInitProviderSmsConfiguration#snsRegion
+   */
+  readonly snsRegion?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderSmsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderSmsConfiguration(obj: UserPoolSpecInitProviderSmsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'externalId': obj.externalId,
+    'snsRegion': obj.snsRegion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderSoftwareTokenMfaConfiguration
+ */
+export interface UserPoolSpecInitProviderSoftwareTokenMfaConfiguration {
+  /**
+   * Boolean whether to enable software token Multi-Factor (MFA) tokens, such as Time-based One-Time Password (TOTP). To disable software token MFA When sms_configuration is not present, the mfa_configuration argument must be set to OFF and the software_token_mfa_configuration configuration block must be fully removed.
+   *
+   * @schema UserPoolSpecInitProviderSoftwareTokenMfaConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderSoftwareTokenMfaConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderSoftwareTokenMfaConfiguration(obj: UserPoolSpecInitProviderSoftwareTokenMfaConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderUserAttributeUpdateSettings
+ */
+export interface UserPoolSpecInitProviderUserAttributeUpdateSettings {
+  /**
+   * A list of attributes requiring verification before update. If set, the provided value(s) must also be set in auto_verified_attributes. Valid values: email, phone_number.
+   *
+   * @schema UserPoolSpecInitProviderUserAttributeUpdateSettings#attributesRequireVerificationBeforeUpdate
+   */
+  readonly attributesRequireVerificationBeforeUpdate?: string[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderUserAttributeUpdateSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderUserAttributeUpdateSettings(obj: UserPoolSpecInitProviderUserAttributeUpdateSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attributesRequireVerificationBeforeUpdate': obj.attributesRequireVerificationBeforeUpdate?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderUserPoolAddOns
+ */
+export interface UserPoolSpecInitProviderUserPoolAddOns {
+  /**
+   * Mode for advanced security, must be one of OFF, AUDIT or ENFORCED.
+   *
+   * @schema UserPoolSpecInitProviderUserPoolAddOns#advancedSecurityMode
+   */
+  readonly advancedSecurityMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderUserPoolAddOns' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderUserPoolAddOns(obj: UserPoolSpecInitProviderUserPoolAddOns | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'advancedSecurityMode': obj.advancedSecurityMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderUsernameConfiguration
+ */
+export interface UserPoolSpecInitProviderUsernameConfiguration {
+  /**
+   * Whether username case sensitivity will be applied for all users in the user pool through Cognito APIs.
+   *
+   * @schema UserPoolSpecInitProviderUsernameConfiguration#caseSensitive
+   */
+  readonly caseSensitive?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderUsernameConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderUsernameConfiguration(obj: UserPoolSpecInitProviderUsernameConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'caseSensitive': obj.caseSensitive,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderVerificationMessageTemplate
+ */
+export interface UserPoolSpecInitProviderVerificationMessageTemplate {
+  /**
+   * Default email option. Must be either CONFIRM_WITH_CODE or CONFIRM_WITH_LINK. Defaults to CONFIRM_WITH_CODE.
+   *
+   * @default CONFIRM_WITH_CODE.
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#defaultEmailOption
+   */
+  readonly defaultEmailOption?: string;
+
+  /**
+   * Email message template. Must contain the {####} placeholder. Conflicts with email_verification_message argument.
+   *
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#emailMessage
+   */
+  readonly emailMessage?: string;
+
+  /**
+   * Email message template for sending a confirmation link to the user, it must contain the {##Click Here##} placeholder.
+   *
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#emailMessageByLink
+   */
+  readonly emailMessageByLink?: string;
+
+  /**
+   * Subject line for the email message template. Conflicts with email_verification_subject argument.
+   *
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#emailSubject
+   */
+  readonly emailSubject?: string;
+
+  /**
+   * Subject line for the email message template for sending a confirmation link to the user.
+   *
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#emailSubjectByLink
+   */
+  readonly emailSubjectByLink?: string;
+
+  /**
+   * SMS message template. Must contain the {####} placeholder. Conflicts with sms_verification_message argument.
+   *
+   * @schema UserPoolSpecInitProviderVerificationMessageTemplate#smsMessage
+   */
+  readonly smsMessage?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderVerificationMessageTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderVerificationMessageTemplate(obj: UserPoolSpecInitProviderVerificationMessageTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'defaultEmailOption': obj.defaultEmailOption,
+    'emailMessage': obj.emailMessage,
+    'emailMessageByLink': obj.emailMessageByLink,
+    'emailSubject': obj.emailSubject,
+    'emailSubjectByLink': obj.emailSubjectByLink,
+    'smsMessage': obj.smsMessage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema UserPoolSpecProviderConfigRefPolicy
@@ -7931,43 +8988,6 @@ export interface UserPoolSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserPoolSpecProviderConfigRefPolicy(obj: UserPoolSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UserPoolSpecProviderRefPolicy
- */
-export interface UserPoolSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserPoolSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserPoolSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserPoolSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserPoolSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserPoolSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolSpecProviderRefPolicy(obj: UserPoolSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -8069,14 +9089,14 @@ export interface UserPoolSpecForProviderAccountRecoverySettingRecoveryMechanism 
    *
    * @schema UserPoolSpecForProviderAccountRecoverySettingRecoveryMechanism#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Positive integer specifying priority of a method with 1 being the highest priority.
    *
    * @schema UserPoolSpecForProviderAccountRecoverySettingRecoveryMechanism#priority
    */
-  readonly priority: number;
+  readonly priority?: number;
 
 }
 
@@ -8147,14 +9167,14 @@ export interface UserPoolSpecForProviderLambdaConfigCustomEmailSender {
    *
    * @schema UserPoolSpecForProviderLambdaConfigCustomEmailSender#lambdaArn
    */
-  readonly lambdaArn: string;
+  readonly lambdaArn?: string;
 
   /**
    * The Lambda version represents the signature of the "request" attribute in the "event" information Amazon Cognito passes to your custom email Lambda function. The only supported value is V1_0.
    *
    * @schema UserPoolSpecForProviderLambdaConfigCustomEmailSender#lambdaVersion
    */
-  readonly lambdaVersion: string;
+  readonly lambdaVersion?: string;
 
 }
 
@@ -8182,14 +9202,14 @@ export interface UserPoolSpecForProviderLambdaConfigCustomSmsSender {
    *
    * @schema UserPoolSpecForProviderLambdaConfigCustomSmsSender#lambdaArn
    */
-  readonly lambdaArn: string;
+  readonly lambdaArn?: string;
 
   /**
    * The Lambda version represents the signature of the "request" attribute in the "event" information Amazon Cognito passes to your custom SMS Lambda function. The only supported value is V1_0.
    *
    * @schema UserPoolSpecForProviderLambdaConfigCustomSmsSender#lambdaVersion
    */
-  readonly lambdaVersion: string;
+  readonly lambdaVersion?: string;
 
 }
 
@@ -8361,6 +9381,224 @@ export function toJson_UserPoolSpecForProviderSmsConfigurationSnsCallerArnSelect
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism
+ */
+export interface UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism {
+  /**
+   * Name of the user pool.
+   *
+   * @schema UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism#name
+   */
+  readonly name?: string;
+
+  /**
+   * Positive integer specifying priority of a method with 1 being the highest priority.
+   *
+   * @schema UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism#priority
+   */
+  readonly priority?: number;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism(obj: UserPoolSpecInitProviderAccountRecoverySettingRecoveryMechanism | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'priority': obj.priority,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate
+ */
+export interface UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate {
+  /**
+   * Message template for email messages. Must contain {username} and {####} placeholders, for username and temporary password, respectively.
+   *
+   * @schema UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate#emailMessage
+   */
+  readonly emailMessage?: string;
+
+  /**
+   * Subject line for email messages.
+   *
+   * @schema UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate#emailSubject
+   */
+  readonly emailSubject?: string;
+
+  /**
+   * Message template for SMS messages. Must contain {username} and {####} placeholders, for username and temporary password, respectively.
+   *
+   * @schema UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate#smsMessage
+   */
+  readonly smsMessage?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate(obj: UserPoolSpecInitProviderAdminCreateUserConfigInviteMessageTemplate | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'emailMessage': obj.emailMessage,
+    'emailSubject': obj.emailSubject,
+    'smsMessage': obj.smsMessage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderLambdaConfigCustomEmailSender
+ */
+export interface UserPoolSpecInitProviderLambdaConfigCustomEmailSender {
+  /**
+   * The Lambda Amazon Resource Name of the Lambda function that Amazon Cognito triggers to send email notifications to users.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfigCustomEmailSender#lambdaArn
+   */
+  readonly lambdaArn?: string;
+
+  /**
+   * The Lambda version represents the signature of the "request" attribute in the "event" information Amazon Cognito passes to your custom email Lambda function. The only supported value is V1_0.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfigCustomEmailSender#lambdaVersion
+   */
+  readonly lambdaVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderLambdaConfigCustomEmailSender' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderLambdaConfigCustomEmailSender(obj: UserPoolSpecInitProviderLambdaConfigCustomEmailSender | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'lambdaArn': obj.lambdaArn,
+    'lambdaVersion': obj.lambdaVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderLambdaConfigCustomSmsSender
+ */
+export interface UserPoolSpecInitProviderLambdaConfigCustomSmsSender {
+  /**
+   * The Lambda Amazon Resource Name of the Lambda function that Amazon Cognito triggers to send SMS notifications to users.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfigCustomSmsSender#lambdaArn
+   */
+  readonly lambdaArn?: string;
+
+  /**
+   * The Lambda version represents the signature of the "request" attribute in the "event" information Amazon Cognito passes to your custom SMS Lambda function. The only supported value is V1_0.
+   *
+   * @schema UserPoolSpecInitProviderLambdaConfigCustomSmsSender#lambdaVersion
+   */
+  readonly lambdaVersion?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderLambdaConfigCustomSmsSender' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderLambdaConfigCustomSmsSender(obj: UserPoolSpecInitProviderLambdaConfigCustomSmsSender | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'lambdaArn': obj.lambdaArn,
+    'lambdaVersion': obj.lambdaVersion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderSchemaNumberAttributeConstraints
+ */
+export interface UserPoolSpecInitProviderSchemaNumberAttributeConstraints {
+  /**
+   * Maximum value of an attribute that is of the number data type.
+   *
+   * @schema UserPoolSpecInitProviderSchemaNumberAttributeConstraints#maxValue
+   */
+  readonly maxValue?: string;
+
+  /**
+   * Minimum value of an attribute that is of the number data type.
+   *
+   * @schema UserPoolSpecInitProviderSchemaNumberAttributeConstraints#minValue
+   */
+  readonly minValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderSchemaNumberAttributeConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderSchemaNumberAttributeConstraints(obj: UserPoolSpecInitProviderSchemaNumberAttributeConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxValue': obj.maxValue,
+    'minValue': obj.minValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolSpecInitProviderSchemaStringAttributeConstraints
+ */
+export interface UserPoolSpecInitProviderSchemaStringAttributeConstraints {
+  /**
+   * Maximum length of an attribute value of the string type.
+   *
+   * @schema UserPoolSpecInitProviderSchemaStringAttributeConstraints#maxLength
+   */
+  readonly maxLength?: string;
+
+  /**
+   * Minimum length of an attribute value of the string type.
+   *
+   * @schema UserPoolSpecInitProviderSchemaStringAttributeConstraints#minLength
+   */
+  readonly minLength?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolSpecInitProviderSchemaStringAttributeConstraints' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolSpecInitProviderSchemaStringAttributeConstraints(obj: UserPoolSpecInitProviderSchemaStringAttributeConstraints | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxLength': obj.maxLength,
+    'minLength': obj.minLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema UserPoolSpecProviderConfigRefPolicyResolution
@@ -8378,30 +9616,6 @@ export enum UserPoolSpecProviderConfigRefPolicyResolution {
  * @schema UserPoolSpecProviderConfigRefPolicyResolve
  */
 export enum UserPoolSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserPoolSpecProviderRefPolicyResolution
- */
-export enum UserPoolSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserPoolSpecProviderRefPolicyResolve
- */
-export enum UserPoolSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -8688,7 +9902,7 @@ export function toJson_UserPoolClientProps(obj: UserPoolClientProps | undefined)
  */
 export interface UserPoolClientSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserPoolClientSpec#deletionPolicy
    */
@@ -8700,11 +9914,18 @@ export interface UserPoolClientSpec {
   readonly forProvider: UserPoolClientSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserPoolClientSpec#managementPolicy
+   * @schema UserPoolClientSpec#initProvider
    */
-  readonly managementPolicy?: UserPoolClientSpecManagementPolicy;
+  readonly initProvider?: UserPoolClientSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserPoolClientSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserPoolClientSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8712,13 +9933,6 @@ export interface UserPoolClientSpec {
    * @schema UserPoolClientSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserPoolClientSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserPoolClientSpec#providerRef
-   */
-  readonly providerRef?: UserPoolClientSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8745,9 +9959,9 @@ export function toJson_UserPoolClientSpec(obj: UserPoolClientSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserPoolClientSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserPoolClientSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserPoolClientSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserPoolClientSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserPoolClientSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserPoolClientSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8757,7 +9971,7 @@ export function toJson_UserPoolClientSpec(obj: UserPoolClientSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserPoolClientSpecDeletionPolicy
  */
@@ -8988,17 +10202,212 @@ export function toJson_UserPoolClientSpecForProvider(obj: UserPoolClientSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserPoolClientSpecManagementPolicy
+ * @schema UserPoolClientSpecInitProvider
  */
-export enum UserPoolClientSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserPoolClientSpecInitProvider {
+  /**
+   * Time limit, between 5 minutes and 1 day, after which the access token is no longer valid and cannot be used. By default, the unit is hours. The unit can be overridden by a value in token_validity_units.access_token.
+   *
+   * @schema UserPoolClientSpecInitProvider#accessTokenValidity
+   */
+  readonly accessTokenValidity?: number;
+
+  /**
+   * List of allowed OAuth flows (code, implicit, client_credentials).
+   *
+   * @schema UserPoolClientSpecInitProvider#allowedOauthFlows
+   */
+  readonly allowedOauthFlows?: string[];
+
+  /**
+   * Whether the client is allowed to follow the OAuth protocol when interacting with Cognito user pools.
+   *
+   * @schema UserPoolClientSpecInitProvider#allowedOauthFlowsUserPoolClient
+   */
+  readonly allowedOauthFlowsUserPoolClient?: boolean;
+
+  /**
+   * List of allowed OAuth scopes (phone, email, openid, profile, and aws.cognito.signin.user.admin).
+   *
+   * @schema UserPoolClientSpecInitProvider#allowedOauthScopes
+   */
+  readonly allowedOauthScopes?: string[];
+
+  /**
+   * Configuration block for Amazon Pinpoint analytics for collecting metrics for this user pool. Detailed below.
+   *
+   * @schema UserPoolClientSpecInitProvider#analyticsConfiguration
+   */
+  readonly analyticsConfiguration?: UserPoolClientSpecInitProviderAnalyticsConfiguration[];
+
+  /**
+   * Amazon Cognito creates a session token for each API request in an authentication flow. AuthSessionValidity is the duration, in minutes, of that session token. Your user pool native user must respond to each authentication challenge before the session expires. Valid values between 3 and 15. Default value is 3.
+   *
+   * @schema UserPoolClientSpecInitProvider#authSessionValidity
+   */
+  readonly authSessionValidity?: number;
+
+  /**
+   * List of allowed callback URLs for the identity providers.
+   *
+   * @schema UserPoolClientSpecInitProvider#callbackUrls
+   */
+  readonly callbackUrls?: string[];
+
+  /**
+   * Default redirect URI. Must be in the list of callback URLs.
+   *
+   * @schema UserPoolClientSpecInitProvider#defaultRedirectUri
+   */
+  readonly defaultRedirectUri?: string;
+
+  /**
+   * Activates the propagation of additional user context data.
+   *
+   * @schema UserPoolClientSpecInitProvider#enablePropagateAdditionalUserContextData
+   */
+  readonly enablePropagateAdditionalUserContextData?: boolean;
+
+  /**
+   * Enables or disables token revocation.
+   *
+   * @schema UserPoolClientSpecInitProvider#enableTokenRevocation
+   */
+  readonly enableTokenRevocation?: boolean;
+
+  /**
+   * List of authentication flows (ADMIN_NO_SRP_AUTH, CUSTOM_AUTH_FLOW_ONLY, USER_PASSWORD_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH, ALLOW_CUSTOM_AUTH, ALLOW_USER_PASSWORD_AUTH, ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH).
+   *
+   * @schema UserPoolClientSpecInitProvider#explicitAuthFlows
+   */
+  readonly explicitAuthFlows?: string[];
+
+  /**
+   * Should an application secret be generated.
+   *
+   * @schema UserPoolClientSpecInitProvider#generateSecret
+   */
+  readonly generateSecret?: boolean;
+
+  /**
+   * Time limit, between 5 minutes and 1 day, after which the ID token is no longer valid and cannot be used. By default, the unit is hours. The unit can be overridden by a value in token_validity_units.id_token.
+   *
+   * @schema UserPoolClientSpecInitProvider#idTokenValidity
+   */
+  readonly idTokenValidity?: number;
+
+  /**
+   * List of allowed logout URLs for the identity providers.
+   *
+   * @schema UserPoolClientSpecInitProvider#logoutUrls
+   */
+  readonly logoutUrls?: string[];
+
+  /**
+   * Name of the application client.
+   *
+   * @schema UserPoolClientSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Choose which errors and responses are returned by Cognito APIs during authentication, account confirmation, and password recovery when the user does not exist in the user pool. When set to ENABLED and the user does not exist, authentication returns an error indicating either the username or password was incorrect, and account confirmation and password recovery return a response indicating a code was sent to a simulated destination. When set to LEGACY, those APIs will return a UserNotFoundException exception if the user does not exist in the user pool.
+   *
+   * @schema UserPoolClientSpecInitProvider#preventUserExistenceErrors
+   */
+  readonly preventUserExistenceErrors?: string;
+
+  /**
+   * List of user pool attributes the application client can read from.
+   *
+   * @schema UserPoolClientSpecInitProvider#readAttributes
+   */
+  readonly readAttributes?: string[];
+
+  /**
+   * Time limit, between 60 minutes and 10 years, after which the refresh token is no longer valid and cannot be used. By default, the unit is days. The unit can be overridden by a value in token_validity_units.refresh_token.
+   *
+   * @schema UserPoolClientSpecInitProvider#refreshTokenValidity
+   */
+  readonly refreshTokenValidity?: number;
+
+  /**
+   * List of provider names for the identity providers that are supported on this client. Uses the provider_name attribute of aws_cognito_identity_provider resource(s), or the equivalent string(s).
+   *
+   * @schema UserPoolClientSpecInitProvider#supportedIdentityProviders
+   */
+  readonly supportedIdentityProviders?: string[];
+
+  /**
+   * Configuration block for units in which the validity times are represented in. Detailed below.
+   *
+   * @schema UserPoolClientSpecInitProvider#tokenValidityUnits
+   */
+  readonly tokenValidityUnits?: UserPoolClientSpecInitProviderTokenValidityUnits[];
+
+  /**
+   * List of user pool attributes the application client can write to.
+   *
+   * @schema UserPoolClientSpecInitProvider#writeAttributes
+   */
+  readonly writeAttributes?: string[];
+
+}
+
+/**
+ * Converts an object of type 'UserPoolClientSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolClientSpecInitProvider(obj: UserPoolClientSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessTokenValidity': obj.accessTokenValidity,
+    'allowedOauthFlows': obj.allowedOauthFlows?.map(y => y),
+    'allowedOauthFlowsUserPoolClient': obj.allowedOauthFlowsUserPoolClient,
+    'allowedOauthScopes': obj.allowedOauthScopes?.map(y => y),
+    'analyticsConfiguration': obj.analyticsConfiguration?.map(y => toJson_UserPoolClientSpecInitProviderAnalyticsConfiguration(y)),
+    'authSessionValidity': obj.authSessionValidity,
+    'callbackUrls': obj.callbackUrls?.map(y => y),
+    'defaultRedirectUri': obj.defaultRedirectUri,
+    'enablePropagateAdditionalUserContextData': obj.enablePropagateAdditionalUserContextData,
+    'enableTokenRevocation': obj.enableTokenRevocation,
+    'explicitAuthFlows': obj.explicitAuthFlows?.map(y => y),
+    'generateSecret': obj.generateSecret,
+    'idTokenValidity': obj.idTokenValidity,
+    'logoutUrls': obj.logoutUrls?.map(y => y),
+    'name': obj.name,
+    'preventUserExistenceErrors': obj.preventUserExistenceErrors,
+    'readAttributes': obj.readAttributes?.map(y => y),
+    'refreshTokenValidity': obj.refreshTokenValidity,
+    'supportedIdentityProviders': obj.supportedIdentityProviders?.map(y => y),
+    'tokenValidityUnits': obj.tokenValidityUnits?.map(y => toJson_UserPoolClientSpecInitProviderTokenValidityUnits(y)),
+    'writeAttributes': obj.writeAttributes?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserPoolClientSpecManagementPolicies
+ */
+export enum UserPoolClientSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -9032,43 +10441,6 @@ export function toJson_UserPoolClientSpecProviderConfigRef(obj: UserPoolClientSp
   const result = {
     'name': obj.name,
     'policy': toJson_UserPoolClientSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserPoolClientSpecProviderRef
- */
-export interface UserPoolClientSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserPoolClientSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserPoolClientSpecProviderRef#policy
-   */
-  readonly policy?: UserPoolClientSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserPoolClientSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolClientSpecProviderRef(obj: UserPoolClientSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserPoolClientSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9374,6 +10746,92 @@ export function toJson_UserPoolClientSpecForProviderUserPoolIdSelector(obj: User
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema UserPoolClientSpecInitProviderAnalyticsConfiguration
+ */
+export interface UserPoolClientSpecInitProviderAnalyticsConfiguration {
+  /**
+   * Application ARN for an Amazon Pinpoint application. Conflicts with external_id and role_arn.
+   *
+   * @schema UserPoolClientSpecInitProviderAnalyticsConfiguration#applicationArn
+   */
+  readonly applicationArn?: string;
+
+  /**
+   * ID for the Analytics Configuration. Conflicts with application_arn.
+   *
+   * @schema UserPoolClientSpecInitProviderAnalyticsConfiguration#externalId
+   */
+  readonly externalId?: string;
+
+  /**
+   * If set to true, Amazon Cognito will include user data in the events it publishes to Amazon Pinpoint analytics.
+   *
+   * @schema UserPoolClientSpecInitProviderAnalyticsConfiguration#userDataShared
+   */
+  readonly userDataShared?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolClientSpecInitProviderAnalyticsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolClientSpecInitProviderAnalyticsConfiguration(obj: UserPoolClientSpecInitProviderAnalyticsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'applicationArn': obj.applicationArn,
+    'externalId': obj.externalId,
+    'userDataShared': obj.userDataShared,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema UserPoolClientSpecInitProviderTokenValidityUnits
+ */
+export interface UserPoolClientSpecInitProviderTokenValidityUnits {
+  /**
+   * Time unit in for the value in access_token_validity, defaults to hours.
+   *
+   * @schema UserPoolClientSpecInitProviderTokenValidityUnits#accessToken
+   */
+  readonly accessToken?: string;
+
+  /**
+   * Time unit in for the value in id_token_validity, defaults to hours.
+   *
+   * @schema UserPoolClientSpecInitProviderTokenValidityUnits#idToken
+   */
+  readonly idToken?: string;
+
+  /**
+   * Time unit in for the value in refresh_token_validity, defaults to days.
+   *
+   * @schema UserPoolClientSpecInitProviderTokenValidityUnits#refreshToken
+   */
+  readonly refreshToken?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolClientSpecInitProviderTokenValidityUnits' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolClientSpecInitProviderTokenValidityUnits(obj: UserPoolClientSpecInitProviderTokenValidityUnits | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accessToken': obj.accessToken,
+    'idToken': obj.idToken,
+    'refreshToken': obj.refreshToken,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema UserPoolClientSpecProviderConfigRefPolicy
@@ -9400,43 +10858,6 @@ export interface UserPoolClientSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_UserPoolClientSpecProviderConfigRefPolicy(obj: UserPoolClientSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema UserPoolClientSpecProviderRefPolicy
- */
-export interface UserPoolClientSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserPoolClientSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserPoolClientSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserPoolClientSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserPoolClientSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserPoolClientSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolClientSpecProviderRefPolicy(obj: UserPoolClientSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9785,30 +11206,6 @@ export enum UserPoolClientSpecProviderConfigRefPolicyResolution {
  * @schema UserPoolClientSpecProviderConfigRefPolicyResolve
  */
 export enum UserPoolClientSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserPoolClientSpecProviderRefPolicyResolution
- */
-export enum UserPoolClientSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserPoolClientSpecProviderRefPolicyResolve
- */
-export enum UserPoolClientSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -10265,7 +11662,7 @@ export function toJson_UserPoolDomainProps(obj: UserPoolDomainProps | undefined)
  */
 export interface UserPoolDomainSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserPoolDomainSpec#deletionPolicy
    */
@@ -10277,11 +11674,18 @@ export interface UserPoolDomainSpec {
   readonly forProvider: UserPoolDomainSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserPoolDomainSpec#managementPolicy
+   * @schema UserPoolDomainSpec#initProvider
    */
-  readonly managementPolicy?: UserPoolDomainSpecManagementPolicy;
+  readonly initProvider?: UserPoolDomainSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserPoolDomainSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserPoolDomainSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -10289,13 +11693,6 @@ export interface UserPoolDomainSpec {
    * @schema UserPoolDomainSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserPoolDomainSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserPoolDomainSpec#providerRef
-   */
-  readonly providerRef?: UserPoolDomainSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -10322,9 +11719,9 @@ export function toJson_UserPoolDomainSpec(obj: UserPoolDomainSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserPoolDomainSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserPoolDomainSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserPoolDomainSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserPoolDomainSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserPoolDomainSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserPoolDomainSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -10334,7 +11731,7 @@ export function toJson_UserPoolDomainSpec(obj: UserPoolDomainSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserPoolDomainSpecDeletionPolicy
  */
@@ -10429,17 +11826,52 @@ export function toJson_UserPoolDomainSpecForProvider(obj: UserPoolDomainSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserPoolDomainSpecManagementPolicy
+ * @schema UserPoolDomainSpecInitProvider
  */
-export enum UserPoolDomainSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserPoolDomainSpecInitProvider {
+  /**
+   * For custom domains, this is the fully-qualified domain name, such as auth.example.com. For Amazon Cognito prefix domains, this is the prefix alone, such as auth.
+   *
+   * @schema UserPoolDomainSpecInitProvider#domain
+   */
+  readonly domain?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolDomainSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolDomainSpecInitProvider(obj: UserPoolDomainSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'domain': obj.domain,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserPoolDomainSpecManagementPolicies
+ */
+export enum UserPoolDomainSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -10473,43 +11905,6 @@ export function toJson_UserPoolDomainSpecProviderConfigRef(obj: UserPoolDomainSp
   const result = {
     'name': obj.name,
     'policy': toJson_UserPoolDomainSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserPoolDomainSpecProviderRef
- */
-export interface UserPoolDomainSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserPoolDomainSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserPoolDomainSpecProviderRef#policy
-   */
-  readonly policy?: UserPoolDomainSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserPoolDomainSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolDomainSpecProviderRef(obj: UserPoolDomainSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserPoolDomainSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10800,43 +12195,6 @@ export function toJson_UserPoolDomainSpecProviderConfigRefPolicy(obj: UserPoolDo
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserPoolDomainSpecProviderRefPolicy
- */
-export interface UserPoolDomainSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserPoolDomainSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserPoolDomainSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserPoolDomainSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserPoolDomainSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserPoolDomainSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolDomainSpecProviderRefPolicy(obj: UserPoolDomainSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserPoolDomainSpecPublishConnectionDetailsToConfigRef
@@ -11084,30 +12442,6 @@ export enum UserPoolDomainSpecProviderConfigRefPolicyResolution {
  * @schema UserPoolDomainSpecProviderConfigRefPolicyResolve
  */
 export enum UserPoolDomainSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserPoolDomainSpecProviderRefPolicyResolution
- */
-export enum UserPoolDomainSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserPoolDomainSpecProviderRefPolicyResolve
- */
-export enum UserPoolDomainSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -11368,7 +12702,7 @@ export function toJson_UserPoolUiCustomizationProps(obj: UserPoolUiCustomization
  */
 export interface UserPoolUiCustomizationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema UserPoolUiCustomizationSpec#deletionPolicy
    */
@@ -11380,11 +12714,18 @@ export interface UserPoolUiCustomizationSpec {
   readonly forProvider: UserPoolUiCustomizationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema UserPoolUiCustomizationSpec#managementPolicy
+   * @schema UserPoolUiCustomizationSpec#initProvider
    */
-  readonly managementPolicy?: UserPoolUiCustomizationSpecManagementPolicy;
+  readonly initProvider?: UserPoolUiCustomizationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema UserPoolUiCustomizationSpec#managementPolicies
+   */
+  readonly managementPolicies?: UserPoolUiCustomizationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -11392,13 +12733,6 @@ export interface UserPoolUiCustomizationSpec {
    * @schema UserPoolUiCustomizationSpec#providerConfigRef
    */
   readonly providerConfigRef?: UserPoolUiCustomizationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema UserPoolUiCustomizationSpec#providerRef
-   */
-  readonly providerRef?: UserPoolUiCustomizationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -11425,9 +12759,9 @@ export function toJson_UserPoolUiCustomizationSpec(obj: UserPoolUiCustomizationS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_UserPoolUiCustomizationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_UserPoolUiCustomizationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_UserPoolUiCustomizationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_UserPoolUiCustomizationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_UserPoolUiCustomizationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_UserPoolUiCustomizationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -11437,7 +12771,7 @@ export function toJson_UserPoolUiCustomizationSpec(obj: UserPoolUiCustomizationS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema UserPoolUiCustomizationSpecDeletionPolicy
  */
@@ -11541,17 +12875,60 @@ export function toJson_UserPoolUiCustomizationSpecForProvider(obj: UserPoolUiCus
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema UserPoolUiCustomizationSpecManagementPolicy
+ * @schema UserPoolUiCustomizationSpecInitProvider
  */
-export enum UserPoolUiCustomizationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface UserPoolUiCustomizationSpecInitProvider {
+  /**
+   * The CSS values in the UI customization, provided as a String. At least one of css or image_file is required.
+   *
+   * @schema UserPoolUiCustomizationSpecInitProvider#css
+   */
+  readonly css?: string;
+
+  /**
+   * The uploaded logo image for the UI customization, provided as a base64-encoded String. Drift detection is not possible for this argument. At least one of css or image_file is required.
+   *
+   * @schema UserPoolUiCustomizationSpecInitProvider#imageFile
+   */
+  readonly imageFile?: string;
+
+}
+
+/**
+ * Converts an object of type 'UserPoolUiCustomizationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_UserPoolUiCustomizationSpecInitProvider(obj: UserPoolUiCustomizationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'css': obj.css,
+    'imageFile': obj.imageFile,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema UserPoolUiCustomizationSpecManagementPolicies
+ */
+export enum UserPoolUiCustomizationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -11585,43 +12962,6 @@ export function toJson_UserPoolUiCustomizationSpecProviderConfigRef(obj: UserPoo
   const result = {
     'name': obj.name,
     'policy': toJson_UserPoolUiCustomizationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema UserPoolUiCustomizationSpecProviderRef
- */
-export interface UserPoolUiCustomizationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema UserPoolUiCustomizationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema UserPoolUiCustomizationSpecProviderRef#policy
-   */
-  readonly policy?: UserPoolUiCustomizationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'UserPoolUiCustomizationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolUiCustomizationSpecProviderRef(obj: UserPoolUiCustomizationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_UserPoolUiCustomizationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -11912,43 +13252,6 @@ export function toJson_UserPoolUiCustomizationSpecProviderConfigRefPolicy(obj: U
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema UserPoolUiCustomizationSpecProviderRefPolicy
- */
-export interface UserPoolUiCustomizationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema UserPoolUiCustomizationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: UserPoolUiCustomizationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema UserPoolUiCustomizationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: UserPoolUiCustomizationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'UserPoolUiCustomizationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_UserPoolUiCustomizationSpecProviderRefPolicy(obj: UserPoolUiCustomizationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema UserPoolUiCustomizationSpecPublishConnectionDetailsToConfigRef
@@ -12196,30 +13499,6 @@ export enum UserPoolUiCustomizationSpecProviderConfigRefPolicyResolution {
  * @schema UserPoolUiCustomizationSpecProviderConfigRefPolicyResolve
  */
 export enum UserPoolUiCustomizationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema UserPoolUiCustomizationSpecProviderRefPolicyResolution
- */
-export enum UserPoolUiCustomizationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema UserPoolUiCustomizationSpecProviderRefPolicyResolve
- */
-export enum UserPoolUiCustomizationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

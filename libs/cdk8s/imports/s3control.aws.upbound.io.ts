@@ -99,7 +99,7 @@ export function toJson_AccessPointProps(obj: AccessPointProps | undefined): Reco
  */
 export interface AccessPointSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccessPointSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AccessPointSpec {
   readonly forProvider: AccessPointSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AccessPointSpec#managementPolicy
+   * @schema AccessPointSpec#initProvider
    */
-  readonly managementPolicy?: AccessPointSpecManagementPolicy;
+  readonly initProvider?: AccessPointSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AccessPointSpec#managementPolicies
+   */
+  readonly managementPolicies?: AccessPointSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AccessPointSpec {
    * @schema AccessPointSpec#providerConfigRef
    */
   readonly providerConfigRef?: AccessPointSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AccessPointSpec#providerRef
-   */
-  readonly providerRef?: AccessPointSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AccessPointSpec(obj: AccessPointSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccessPointSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AccessPointSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AccessPointSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AccessPointSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccessPointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AccessPointSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AccessPointSpec(obj: AccessPointSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccessPointSpecDeletionPolicy
  */
@@ -279,17 +279,92 @@ export function toJson_AccessPointSpecForProvider(obj: AccessPointSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AccessPointSpecManagementPolicy
+ * @schema AccessPointSpecInitProvider
  */
-export enum AccessPointSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AccessPointSpecInitProvider {
+  /**
+   * AWS account ID for the owner of the bucket for which you want to create an access point.
+   *
+   * @schema AccessPointSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * AWS account ID associated with the S3 bucket associated with this access point.
+   *
+   * @schema AccessPointSpecInitProvider#bucketAccountId
+   */
+  readonly bucketAccountId?: string;
+
+  /**
+   * Name you want to assign to this access point.
+   *
+   * @schema AccessPointSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Valid JSON document that specifies the policy that you want to apply to this access point. Removing policy from your configuration or setting policy to null or an empty string (i.e., policy = "") will not delete the policy since it could have been set by aws_s3control_access_point_policy. To remove the policy, set it to "{}" (an empty JSON document).
+   *
+   * @schema AccessPointSpecInitProvider#policy
+   */
+  readonly policy?: string;
+
+  /**
+   * Configuration block to manage the PublicAccessBlock configuration that you want to apply to this Amazon S3 bucket. You can enable the configuration options in any combination. Detailed below.
+   *
+   * @schema AccessPointSpecInitProvider#publicAccessBlockConfiguration
+   */
+  readonly publicAccessBlockConfiguration?: AccessPointSpecInitProviderPublicAccessBlockConfiguration[];
+
+  /**
+   * Configuration block to restrict access to this access point to requests from the specified Virtual Private Cloud (VPC). Required for S3 on Outposts. Detailed below.
+   *
+   * @schema AccessPointSpecInitProvider#vpcConfiguration
+   */
+  readonly vpcConfiguration?: any[];
+
+}
+
+/**
+ * Converts an object of type 'AccessPointSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccessPointSpecInitProvider(obj: AccessPointSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'bucketAccountId': obj.bucketAccountId,
+    'name': obj.name,
+    'policy': obj.policy,
+    'publicAccessBlockConfiguration': obj.publicAccessBlockConfiguration?.map(y => toJson_AccessPointSpecInitProviderPublicAccessBlockConfiguration(y)),
+    'vpcConfiguration': obj.vpcConfiguration?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AccessPointSpecManagementPolicies
+ */
+export enum AccessPointSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -323,43 +398,6 @@ export function toJson_AccessPointSpecProviderConfigRef(obj: AccessPointSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_AccessPointSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AccessPointSpecProviderRef
- */
-export interface AccessPointSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AccessPointSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AccessPointSpecProviderRef#policy
-   */
-  readonly policy?: AccessPointSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AccessPointSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccessPointSpecProviderRef(obj: AccessPointSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AccessPointSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -629,6 +667,61 @@ export function toJson_AccessPointSpecForProviderVpcConfiguration(obj: AccessPoi
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AccessPointSpecInitProviderPublicAccessBlockConfiguration
+ */
+export interface AccessPointSpecInitProviderPublicAccessBlockConfiguration {
+  /**
+   * Whether Amazon S3 should block public ACLs for buckets in this account. Defaults to true. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   *
+   * @default true. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   * @schema AccessPointSpecInitProviderPublicAccessBlockConfiguration#blockPublicAcls
+   */
+  readonly blockPublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should block public bucket policies for buckets in this account. Defaults to true. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   *
+   * @default true. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   * @schema AccessPointSpecInitProviderPublicAccessBlockConfiguration#blockPublicPolicy
+   */
+  readonly blockPublicPolicy?: boolean;
+
+  /**
+   * Whether Amazon S3 should ignore public ACLs for buckets in this account. Defaults to true. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   *
+   * @default true. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   * @schema AccessPointSpecInitProviderPublicAccessBlockConfiguration#ignorePublicAcls
+   */
+  readonly ignorePublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should restrict public bucket policies for buckets in this account. Defaults to true. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   *
+   * @default true. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   * @schema AccessPointSpecInitProviderPublicAccessBlockConfiguration#restrictPublicBuckets
+   */
+  readonly restrictPublicBuckets?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'AccessPointSpecInitProviderPublicAccessBlockConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccessPointSpecInitProviderPublicAccessBlockConfiguration(obj: AccessPointSpecInitProviderPublicAccessBlockConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockPublicAcls': obj.blockPublicAcls,
+    'blockPublicPolicy': obj.blockPublicPolicy,
+    'ignorePublicAcls': obj.ignorePublicAcls,
+    'restrictPublicBuckets': obj.restrictPublicBuckets,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema AccessPointSpecProviderConfigRefPolicy
@@ -655,43 +748,6 @@ export interface AccessPointSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AccessPointSpecProviderConfigRefPolicy(obj: AccessPointSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AccessPointSpecProviderRefPolicy
- */
-export interface AccessPointSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AccessPointSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AccessPointSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AccessPointSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AccessPointSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AccessPointSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccessPointSpecProviderRefPolicy(obj: AccessPointSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -958,30 +1014,6 @@ export enum AccessPointSpecProviderConfigRefPolicyResolution {
  * @schema AccessPointSpecProviderConfigRefPolicyResolve
  */
 export enum AccessPointSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AccessPointSpecProviderRefPolicyResolution
- */
-export enum AccessPointSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AccessPointSpecProviderRefPolicyResolve
- */
-export enum AccessPointSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1316,7 +1348,7 @@ export function toJson_AccessPointPolicyProps(obj: AccessPointPolicyProps | unde
  */
 export interface AccessPointPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccessPointPolicySpec#deletionPolicy
    */
@@ -1328,11 +1360,18 @@ export interface AccessPointPolicySpec {
   readonly forProvider: AccessPointPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AccessPointPolicySpec#managementPolicy
+   * @schema AccessPointPolicySpec#initProvider
    */
-  readonly managementPolicy?: AccessPointPolicySpecManagementPolicy;
+  readonly initProvider?: AccessPointPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AccessPointPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: AccessPointPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1340,13 +1379,6 @@ export interface AccessPointPolicySpec {
    * @schema AccessPointPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: AccessPointPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AccessPointPolicySpec#providerRef
-   */
-  readonly providerRef?: AccessPointPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1373,9 +1405,9 @@ export function toJson_AccessPointPolicySpec(obj: AccessPointPolicySpec | undefi
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccessPointPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AccessPointPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AccessPointPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AccessPointPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccessPointPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AccessPointPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1385,7 +1417,7 @@ export function toJson_AccessPointPolicySpec(obj: AccessPointPolicySpec | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccessPointPolicySpecDeletionPolicy
  */
@@ -1456,17 +1488,52 @@ export function toJson_AccessPointPolicySpecForProvider(obj: AccessPointPolicySp
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AccessPointPolicySpecManagementPolicy
+ * @schema AccessPointPolicySpecInitProvider
  */
-export enum AccessPointPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AccessPointPolicySpecInitProvider {
+  /**
+   * The policy that you want to apply to the specified access point.
+   *
+   * @schema AccessPointPolicySpecInitProvider#policy
+   */
+  readonly policy?: string;
+
+}
+
+/**
+ * Converts an object of type 'AccessPointPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccessPointPolicySpecInitProvider(obj: AccessPointPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'policy': obj.policy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AccessPointPolicySpecManagementPolicies
+ */
+export enum AccessPointPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1500,43 +1567,6 @@ export function toJson_AccessPointPolicySpecProviderConfigRef(obj: AccessPointPo
   const result = {
     'name': obj.name,
     'policy': toJson_AccessPointPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AccessPointPolicySpecProviderRef
- */
-export interface AccessPointPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AccessPointPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AccessPointPolicySpecProviderRef#policy
-   */
-  readonly policy?: AccessPointPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AccessPointPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccessPointPolicySpecProviderRef(obj: AccessPointPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AccessPointPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1745,43 +1775,6 @@ export function toJson_AccessPointPolicySpecProviderConfigRefPolicy(obj: AccessP
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AccessPointPolicySpecProviderRefPolicy
- */
-export interface AccessPointPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AccessPointPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AccessPointPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AccessPointPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AccessPointPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AccessPointPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccessPointPolicySpecProviderRefPolicy(obj: AccessPointPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AccessPointPolicySpecPublishConnectionDetailsToConfigRef
@@ -1955,30 +1948,6 @@ export enum AccessPointPolicySpecProviderConfigRefPolicyResolution {
  * @schema AccessPointPolicySpecProviderConfigRefPolicyResolve
  */
 export enum AccessPointPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AccessPointPolicySpecProviderRefPolicyResolution
- */
-export enum AccessPointPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AccessPointPolicySpecProviderRefPolicyResolve
- */
-export enum AccessPointPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2191,7 +2160,7 @@ export function toJson_AccountPublicAccessBlockProps(obj: AccountPublicAccessBlo
  */
 export interface AccountPublicAccessBlockSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AccountPublicAccessBlockSpec#deletionPolicy
    */
@@ -2203,11 +2172,18 @@ export interface AccountPublicAccessBlockSpec {
   readonly forProvider: AccountPublicAccessBlockSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AccountPublicAccessBlockSpec#managementPolicy
+   * @schema AccountPublicAccessBlockSpec#initProvider
    */
-  readonly managementPolicy?: AccountPublicAccessBlockSpecManagementPolicy;
+  readonly initProvider?: AccountPublicAccessBlockSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AccountPublicAccessBlockSpec#managementPolicies
+   */
+  readonly managementPolicies?: AccountPublicAccessBlockSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2215,13 +2191,6 @@ export interface AccountPublicAccessBlockSpec {
    * @schema AccountPublicAccessBlockSpec#providerConfigRef
    */
   readonly providerConfigRef?: AccountPublicAccessBlockSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AccountPublicAccessBlockSpec#providerRef
-   */
-  readonly providerRef?: AccountPublicAccessBlockSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2248,9 +2217,9 @@ export function toJson_AccountPublicAccessBlockSpec(obj: AccountPublicAccessBloc
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AccountPublicAccessBlockSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AccountPublicAccessBlockSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AccountPublicAccessBlockSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AccountPublicAccessBlockSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AccountPublicAccessBlockSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AccountPublicAccessBlockSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2260,7 +2229,7 @@ export function toJson_AccountPublicAccessBlockSpec(obj: AccountPublicAccessBloc
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AccountPublicAccessBlockSpecDeletionPolicy
  */
@@ -2343,17 +2312,88 @@ export function toJson_AccountPublicAccessBlockSpecForProvider(obj: AccountPubli
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AccountPublicAccessBlockSpecManagementPolicy
+ * @schema AccountPublicAccessBlockSpecInitProvider
  */
-export enum AccountPublicAccessBlockSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AccountPublicAccessBlockSpecInitProvider {
+  /**
+   * AWS account ID to configure.
+   *
+   * @schema AccountPublicAccessBlockSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * Whether Amazon S3 should block public ACLs for buckets in this account. Defaults to false. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   *
+   * @default false. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   * @schema AccountPublicAccessBlockSpecInitProvider#blockPublicAcls
+   */
+  readonly blockPublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should block public bucket policies for buckets in this account. Defaults to false. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   *
+   * @default false. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   * @schema AccountPublicAccessBlockSpecInitProvider#blockPublicPolicy
+   */
+  readonly blockPublicPolicy?: boolean;
+
+  /**
+   * Whether Amazon S3 should ignore public ACLs for buckets in this account. Defaults to false. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   *
+   * @default false. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   * @schema AccountPublicAccessBlockSpecInitProvider#ignorePublicAcls
+   */
+  readonly ignorePublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should restrict public bucket policies for buckets in this account. Defaults to false. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   *
+   * @default false. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   * @schema AccountPublicAccessBlockSpecInitProvider#restrictPublicBuckets
+   */
+  readonly restrictPublicBuckets?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'AccountPublicAccessBlockSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AccountPublicAccessBlockSpecInitProvider(obj: AccountPublicAccessBlockSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'blockPublicAcls': obj.blockPublicAcls,
+    'blockPublicPolicy': obj.blockPublicPolicy,
+    'ignorePublicAcls': obj.ignorePublicAcls,
+    'restrictPublicBuckets': obj.restrictPublicBuckets,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AccountPublicAccessBlockSpecManagementPolicies
+ */
+export enum AccountPublicAccessBlockSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2387,43 +2427,6 @@ export function toJson_AccountPublicAccessBlockSpecProviderConfigRef(obj: Accoun
   const result = {
     'name': obj.name,
     'policy': toJson_AccountPublicAccessBlockSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AccountPublicAccessBlockSpecProviderRef
- */
-export interface AccountPublicAccessBlockSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AccountPublicAccessBlockSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AccountPublicAccessBlockSpecProviderRef#policy
-   */
-  readonly policy?: AccountPublicAccessBlockSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AccountPublicAccessBlockSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountPublicAccessBlockSpecProviderRef(obj: AccountPublicAccessBlockSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AccountPublicAccessBlockSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2550,43 +2553,6 @@ export function toJson_AccountPublicAccessBlockSpecProviderConfigRefPolicy(obj: 
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema AccountPublicAccessBlockSpecProviderRefPolicy
- */
-export interface AccountPublicAccessBlockSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AccountPublicAccessBlockSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AccountPublicAccessBlockSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AccountPublicAccessBlockSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AccountPublicAccessBlockSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AccountPublicAccessBlockSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AccountPublicAccessBlockSpecProviderRefPolicy(obj: AccountPublicAccessBlockSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema AccountPublicAccessBlockSpecPublishConnectionDetailsToConfigRef
@@ -2686,30 +2652,6 @@ export enum AccountPublicAccessBlockSpecProviderConfigRefPolicyResolution {
  * @schema AccountPublicAccessBlockSpecProviderConfigRefPolicyResolve
  */
 export enum AccountPublicAccessBlockSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AccountPublicAccessBlockSpecProviderRefPolicyResolution
- */
-export enum AccountPublicAccessBlockSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AccountPublicAccessBlockSpecProviderRefPolicyResolve
- */
-export enum AccountPublicAccessBlockSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2874,7 +2816,7 @@ export function toJson_MultiRegionAccessPointProps(obj: MultiRegionAccessPointPr
  */
 export interface MultiRegionAccessPointSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MultiRegionAccessPointSpec#deletionPolicy
    */
@@ -2886,11 +2828,18 @@ export interface MultiRegionAccessPointSpec {
   readonly forProvider: MultiRegionAccessPointSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MultiRegionAccessPointSpec#managementPolicy
+   * @schema MultiRegionAccessPointSpec#initProvider
    */
-  readonly managementPolicy?: MultiRegionAccessPointSpecManagementPolicy;
+  readonly initProvider?: MultiRegionAccessPointSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MultiRegionAccessPointSpec#managementPolicies
+   */
+  readonly managementPolicies?: MultiRegionAccessPointSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2898,13 +2847,6 @@ export interface MultiRegionAccessPointSpec {
    * @schema MultiRegionAccessPointSpec#providerConfigRef
    */
   readonly providerConfigRef?: MultiRegionAccessPointSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MultiRegionAccessPointSpec#providerRef
-   */
-  readonly providerRef?: MultiRegionAccessPointSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2931,9 +2873,9 @@ export function toJson_MultiRegionAccessPointSpec(obj: MultiRegionAccessPointSpe
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MultiRegionAccessPointSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MultiRegionAccessPointSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MultiRegionAccessPointSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MultiRegionAccessPointSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MultiRegionAccessPointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MultiRegionAccessPointSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2943,7 +2885,7 @@ export function toJson_MultiRegionAccessPointSpec(obj: MultiRegionAccessPointSpe
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MultiRegionAccessPointSpecDeletionPolicy
  */
@@ -2998,17 +2940,60 @@ export function toJson_MultiRegionAccessPointSpecForProvider(obj: MultiRegionAcc
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MultiRegionAccessPointSpecManagementPolicy
+ * @schema MultiRegionAccessPointSpecInitProvider
  */
-export enum MultiRegionAccessPointSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MultiRegionAccessPointSpecInitProvider {
+  /**
+   * The AWS account ID for the owner of the buckets for which you want to create a Multi-Region Access Point.
+   *
+   * @schema MultiRegionAccessPointSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * A configuration block containing details about the Multi-Region Access Point. See Details Configuration Block below for more details
+   *
+   * @schema MultiRegionAccessPointSpecInitProvider#details
+   */
+  readonly details?: MultiRegionAccessPointSpecInitProviderDetails[];
+
+}
+
+/**
+ * Converts an object of type 'MultiRegionAccessPointSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiRegionAccessPointSpecInitProvider(obj: MultiRegionAccessPointSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'details': obj.details?.map(y => toJson_MultiRegionAccessPointSpecInitProviderDetails(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MultiRegionAccessPointSpecManagementPolicies
+ */
+export enum MultiRegionAccessPointSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3042,43 +3027,6 @@ export function toJson_MultiRegionAccessPointSpecProviderConfigRef(obj: MultiReg
   const result = {
     'name': obj.name,
     'policy': toJson_MultiRegionAccessPointSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MultiRegionAccessPointSpecProviderRef
- */
-export interface MultiRegionAccessPointSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MultiRegionAccessPointSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MultiRegionAccessPointSpecProviderRef#policy
-   */
-  readonly policy?: MultiRegionAccessPointSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MultiRegionAccessPointSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiRegionAccessPointSpecProviderRef(obj: MultiRegionAccessPointSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MultiRegionAccessPointSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3176,7 +3124,7 @@ export interface MultiRegionAccessPointSpecForProviderDetails {
    *
    * @schema MultiRegionAccessPointSpecForProviderDetails#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Configuration block to manage the PublicAccessBlock configuration that you want to apply to this Multi-Region Access Point. You can enable the configuration options in any combination. See Public Access Block Configuration below for more details.
@@ -3211,6 +3159,41 @@ export function toJson_MultiRegionAccessPointSpecForProviderDetails(obj: MultiRe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MultiRegionAccessPointSpecInitProviderDetails
+ */
+export interface MultiRegionAccessPointSpecInitProviderDetails {
+  /**
+   * The name of the Multi-Region Access Point.
+   *
+   * @schema MultiRegionAccessPointSpecInitProviderDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * Configuration block to manage the PublicAccessBlock configuration that you want to apply to this Multi-Region Access Point. You can enable the configuration options in any combination. See Public Access Block Configuration below for more details.
+   *
+   * @schema MultiRegionAccessPointSpecInitProviderDetails#publicAccessBlock
+   */
+  readonly publicAccessBlock?: MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock[];
+
+}
+
+/**
+ * Converts an object of type 'MultiRegionAccessPointSpecInitProviderDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiRegionAccessPointSpecInitProviderDetails(obj: MultiRegionAccessPointSpecInitProviderDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'publicAccessBlock': obj.publicAccessBlock?.map(y => toJson_MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MultiRegionAccessPointSpecProviderConfigRefPolicy
@@ -3237,43 +3220,6 @@ export interface MultiRegionAccessPointSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MultiRegionAccessPointSpecProviderConfigRefPolicy(obj: MultiRegionAccessPointSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MultiRegionAccessPointSpecProviderRefPolicy
- */
-export interface MultiRegionAccessPointSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MultiRegionAccessPointSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MultiRegionAccessPointSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MultiRegionAccessPointSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MultiRegionAccessPointSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MultiRegionAccessPointSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiRegionAccessPointSpecProviderRefPolicy(obj: MultiRegionAccessPointSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3465,6 +3411,61 @@ export function toJson_MultiRegionAccessPointSpecForProviderDetailsRegion(obj: M
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock
+ */
+export interface MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock {
+  /**
+   * Whether Amazon S3 should block public ACLs for buckets in this account. Defaults to true. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   *
+   * @default true. Enabling this setting does not affect existing policies or ACLs. When set to true causes the following behavior:
+   * @schema MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock#blockPublicAcls
+   */
+  readonly blockPublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should block public bucket policies for buckets in this account. Defaults to true. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   *
+   * @default true. Enabling this setting does not affect existing bucket policies. When set to true causes Amazon S3 to:
+   * @schema MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock#blockPublicPolicy
+   */
+  readonly blockPublicPolicy?: boolean;
+
+  /**
+   * Whether Amazon S3 should ignore public ACLs for buckets in this account. Defaults to true. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   *
+   * @default true. Enabling this setting does not affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. When set to true causes Amazon S3 to:
+   * @schema MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock#ignorePublicAcls
+   */
+  readonly ignorePublicAcls?: boolean;
+
+  /**
+   * Whether Amazon S3 should restrict public bucket policies for buckets in this account. Defaults to true. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   *
+   * @default true. Enabling this setting does not affect previously stored bucket policies, except that public and cross-account access within any public bucket policy, including non-public delegation to specific accounts, is blocked. When set to true:
+   * @schema MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock#restrictPublicBuckets
+   */
+  readonly restrictPublicBuckets?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock(obj: MultiRegionAccessPointSpecInitProviderDetailsPublicAccessBlock | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blockPublicAcls': obj.blockPublicAcls,
+    'blockPublicPolicy': obj.blockPublicPolicy,
+    'ignorePublicAcls': obj.ignorePublicAcls,
+    'restrictPublicBuckets': obj.restrictPublicBuckets,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema MultiRegionAccessPointSpecProviderConfigRefPolicyResolution
@@ -3482,30 +3483,6 @@ export enum MultiRegionAccessPointSpecProviderConfigRefPolicyResolution {
  * @schema MultiRegionAccessPointSpecProviderConfigRefPolicyResolve
  */
 export enum MultiRegionAccessPointSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MultiRegionAccessPointSpecProviderRefPolicyResolution
- */
-export enum MultiRegionAccessPointSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MultiRegionAccessPointSpecProviderRefPolicyResolve
- */
-export enum MultiRegionAccessPointSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -3874,7 +3851,7 @@ export function toJson_MultiRegionAccessPointPolicyProps(obj: MultiRegionAccessP
  */
 export interface MultiRegionAccessPointPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MultiRegionAccessPointPolicySpec#deletionPolicy
    */
@@ -3886,11 +3863,18 @@ export interface MultiRegionAccessPointPolicySpec {
   readonly forProvider: MultiRegionAccessPointPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MultiRegionAccessPointPolicySpec#managementPolicy
+   * @schema MultiRegionAccessPointPolicySpec#initProvider
    */
-  readonly managementPolicy?: MultiRegionAccessPointPolicySpecManagementPolicy;
+  readonly initProvider?: MultiRegionAccessPointPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MultiRegionAccessPointPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: MultiRegionAccessPointPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -3898,13 +3882,6 @@ export interface MultiRegionAccessPointPolicySpec {
    * @schema MultiRegionAccessPointPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: MultiRegionAccessPointPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MultiRegionAccessPointPolicySpec#providerRef
-   */
-  readonly providerRef?: MultiRegionAccessPointPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -3931,9 +3908,9 @@ export function toJson_MultiRegionAccessPointPolicySpec(obj: MultiRegionAccessPo
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MultiRegionAccessPointPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MultiRegionAccessPointPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MultiRegionAccessPointPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MultiRegionAccessPointPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MultiRegionAccessPointPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MultiRegionAccessPointPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -3943,7 +3920,7 @@ export function toJson_MultiRegionAccessPointPolicySpec(obj: MultiRegionAccessPo
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MultiRegionAccessPointPolicySpecDeletionPolicy
  */
@@ -3998,17 +3975,60 @@ export function toJson_MultiRegionAccessPointPolicySpecForProvider(obj: MultiReg
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MultiRegionAccessPointPolicySpecManagementPolicy
+ * @schema MultiRegionAccessPointPolicySpecInitProvider
  */
-export enum MultiRegionAccessPointPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MultiRegionAccessPointPolicySpecInitProvider {
+  /**
+   * The AWS account ID for the owner of the Multi-Region Access Point.
+   *
+   * @schema MultiRegionAccessPointPolicySpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * A configuration block containing details about the policy for the Multi-Region Access Point. See Details Configuration Block below for more details
+   *
+   * @schema MultiRegionAccessPointPolicySpecInitProvider#details
+   */
+  readonly details?: MultiRegionAccessPointPolicySpecInitProviderDetails[];
+
+}
+
+/**
+ * Converts an object of type 'MultiRegionAccessPointPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiRegionAccessPointPolicySpecInitProvider(obj: MultiRegionAccessPointPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'details': obj.details?.map(y => toJson_MultiRegionAccessPointPolicySpecInitProviderDetails(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MultiRegionAccessPointPolicySpecManagementPolicies
+ */
+export enum MultiRegionAccessPointPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4042,43 +4062,6 @@ export function toJson_MultiRegionAccessPointPolicySpecProviderConfigRef(obj: Mu
   const result = {
     'name': obj.name,
     'policy': toJson_MultiRegionAccessPointPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MultiRegionAccessPointPolicySpecProviderRef
- */
-export interface MultiRegionAccessPointPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MultiRegionAccessPointPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MultiRegionAccessPointPolicySpecProviderRef#policy
-   */
-  readonly policy?: MultiRegionAccessPointPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MultiRegionAccessPointPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiRegionAccessPointPolicySpecProviderRef(obj: MultiRegionAccessPointPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MultiRegionAccessPointPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4176,14 +4159,14 @@ export interface MultiRegionAccessPointPolicySpecForProviderDetails {
    *
    * @schema MultiRegionAccessPointPolicySpecForProviderDetails#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * A valid JSON document that specifies the policy that you want to associate with this Multi-Region Access Point. Once applied, the policy can be edited, but not deleted. For more information, see the documentation on Multi-Region Access Point Permissions.
    *
    * @schema MultiRegionAccessPointPolicySpecForProviderDetails#policy
    */
-  readonly policy: string;
+  readonly policy?: string;
 
 }
 
@@ -4192,6 +4175,41 @@ export interface MultiRegionAccessPointPolicySpecForProviderDetails {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MultiRegionAccessPointPolicySpecForProviderDetails(obj: MultiRegionAccessPointPolicySpecForProviderDetails | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'policy': obj.policy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MultiRegionAccessPointPolicySpecInitProviderDetails
+ */
+export interface MultiRegionAccessPointPolicySpecInitProviderDetails {
+  /**
+   * The name of the Multi-Region Access Point.
+   *
+   * @schema MultiRegionAccessPointPolicySpecInitProviderDetails#name
+   */
+  readonly name?: string;
+
+  /**
+   * A valid JSON document that specifies the policy that you want to associate with this Multi-Region Access Point. Once applied, the policy can be edited, but not deleted. For more information, see the documentation on Multi-Region Access Point Permissions.
+   *
+   * @schema MultiRegionAccessPointPolicySpecInitProviderDetails#policy
+   */
+  readonly policy?: string;
+
+}
+
+/**
+ * Converts an object of type 'MultiRegionAccessPointPolicySpecInitProviderDetails' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiRegionAccessPointPolicySpecInitProviderDetails(obj: MultiRegionAccessPointPolicySpecInitProviderDetails | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'name': obj.name,
@@ -4229,43 +4247,6 @@ export interface MultiRegionAccessPointPolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MultiRegionAccessPointPolicySpecProviderConfigRefPolicy(obj: MultiRegionAccessPointPolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MultiRegionAccessPointPolicySpecProviderRefPolicy
- */
-export interface MultiRegionAccessPointPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MultiRegionAccessPointPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MultiRegionAccessPointPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MultiRegionAccessPointPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MultiRegionAccessPointPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MultiRegionAccessPointPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiRegionAccessPointPolicySpecProviderRefPolicy(obj: MultiRegionAccessPointPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -4376,30 +4357,6 @@ export enum MultiRegionAccessPointPolicySpecProviderConfigRefPolicyResolution {
  * @schema MultiRegionAccessPointPolicySpecProviderConfigRefPolicyResolve
  */
 export enum MultiRegionAccessPointPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MultiRegionAccessPointPolicySpecProviderRefPolicyResolution
- */
-export enum MultiRegionAccessPointPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MultiRegionAccessPointPolicySpecProviderRefPolicyResolve
- */
-export enum MultiRegionAccessPointPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -4564,7 +4521,7 @@ export function toJson_ObjectLambdaAccessPointProps(obj: ObjectLambdaAccessPoint
  */
 export interface ObjectLambdaAccessPointSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ObjectLambdaAccessPointSpec#deletionPolicy
    */
@@ -4576,11 +4533,18 @@ export interface ObjectLambdaAccessPointSpec {
   readonly forProvider: ObjectLambdaAccessPointSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ObjectLambdaAccessPointSpec#managementPolicy
+   * @schema ObjectLambdaAccessPointSpec#initProvider
    */
-  readonly managementPolicy?: ObjectLambdaAccessPointSpecManagementPolicy;
+  readonly initProvider?: ObjectLambdaAccessPointSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ObjectLambdaAccessPointSpec#managementPolicies
+   */
+  readonly managementPolicies?: ObjectLambdaAccessPointSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -4588,13 +4552,6 @@ export interface ObjectLambdaAccessPointSpec {
    * @schema ObjectLambdaAccessPointSpec#providerConfigRef
    */
   readonly providerConfigRef?: ObjectLambdaAccessPointSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ObjectLambdaAccessPointSpec#providerRef
-   */
-  readonly providerRef?: ObjectLambdaAccessPointSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -4621,9 +4578,9 @@ export function toJson_ObjectLambdaAccessPointSpec(obj: ObjectLambdaAccessPointS
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ObjectLambdaAccessPointSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ObjectLambdaAccessPointSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ObjectLambdaAccessPointSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ObjectLambdaAccessPointSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ObjectLambdaAccessPointSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ObjectLambdaAccessPointSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -4633,7 +4590,7 @@ export function toJson_ObjectLambdaAccessPointSpec(obj: ObjectLambdaAccessPointS
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ObjectLambdaAccessPointSpecDeletionPolicy
  */
@@ -4696,17 +4653,68 @@ export function toJson_ObjectLambdaAccessPointSpecForProvider(obj: ObjectLambdaA
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ObjectLambdaAccessPointSpecManagementPolicy
+ * @schema ObjectLambdaAccessPointSpecInitProvider
  */
-export enum ObjectLambdaAccessPointSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ObjectLambdaAccessPointSpecInitProvider {
+  /**
+   * The AWS account ID for the owner of the bucket for which you want to create an Object Lambda Access Point.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * A configuration block containing details about the Object Lambda Access Point. See Configuration below for more details.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProvider#configuration
+   */
+  readonly configuration?: ObjectLambdaAccessPointSpecInitProviderConfiguration[];
+
+  /**
+   * The name for this Object Lambda Access Point.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProvider#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointSpecInitProvider(obj: ObjectLambdaAccessPointSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'configuration': obj.configuration?.map(y => toJson_ObjectLambdaAccessPointSpecInitProviderConfiguration(y)),
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ObjectLambdaAccessPointSpecManagementPolicies
+ */
+export enum ObjectLambdaAccessPointSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -4740,43 +4748,6 @@ export function toJson_ObjectLambdaAccessPointSpecProviderConfigRef(obj: ObjectL
   const result = {
     'name': obj.name,
     'policy': toJson_ObjectLambdaAccessPointSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ObjectLambdaAccessPointSpecProviderRef
- */
-export interface ObjectLambdaAccessPointSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ObjectLambdaAccessPointSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ObjectLambdaAccessPointSpecProviderRef#policy
-   */
-  readonly policy?: ObjectLambdaAccessPointSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ObjectLambdaAccessPointSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectLambdaAccessPointSpecProviderRef(obj: ObjectLambdaAccessPointSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ObjectLambdaAccessPointSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4909,7 +4880,7 @@ export interface ObjectLambdaAccessPointSpecForProviderConfiguration {
    *
    * @schema ObjectLambdaAccessPointSpecForProviderConfiguration#transformationConfiguration
    */
-  readonly transformationConfiguration: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfiguration[];
+  readonly transformationConfiguration?: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfiguration[];
 
 }
 
@@ -4926,6 +4897,49 @@ export function toJson_ObjectLambdaAccessPointSpecForProviderConfiguration(obj: 
     'supportingAccessPointRef': toJson_ObjectLambdaAccessPointSpecForProviderConfigurationSupportingAccessPointRef(obj.supportingAccessPointRef),
     'supportingAccessPointSelector': toJson_ObjectLambdaAccessPointSpecForProviderConfigurationSupportingAccessPointSelector(obj.supportingAccessPointSelector),
     'transformationConfiguration': obj.transformationConfiguration?.map(y => toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfiguration(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ObjectLambdaAccessPointSpecInitProviderConfiguration
+ */
+export interface ObjectLambdaAccessPointSpecInitProviderConfiguration {
+  /**
+   * Allowed features. Valid values: GetObject-Range, GetObject-PartNumber.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfiguration#allowedFeatures
+   */
+  readonly allowedFeatures?: string[];
+
+  /**
+   * Whether or not the CloudWatch metrics configuration is enabled.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfiguration#cloudWatchMetricsEnabled
+   */
+  readonly cloudWatchMetricsEnabled?: boolean;
+
+  /**
+   * List of transformation configurations for the Object Lambda Access Point. See Transformation Configuration below for more details.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfiguration#transformationConfiguration
+   */
+  readonly transformationConfiguration?: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration[];
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointSpecInitProviderConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointSpecInitProviderConfiguration(obj: ObjectLambdaAccessPointSpecInitProviderConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'allowedFeatures': obj.allowedFeatures?.map(y => y),
+    'cloudWatchMetricsEnabled': obj.cloudWatchMetricsEnabled,
+    'transformationConfiguration': obj.transformationConfiguration?.map(y => toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -4959,43 +4973,6 @@ export interface ObjectLambdaAccessPointSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ObjectLambdaAccessPointSpecProviderConfigRefPolicy(obj: ObjectLambdaAccessPointSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ObjectLambdaAccessPointSpecProviderRefPolicy
- */
-export interface ObjectLambdaAccessPointSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ObjectLambdaAccessPointSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ObjectLambdaAccessPointSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ObjectLambdaAccessPointSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ObjectLambdaAccessPointSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ObjectLambdaAccessPointSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectLambdaAccessPointSpecProviderRefPolicy(obj: ObjectLambdaAccessPointSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -5179,14 +5156,14 @@ export interface ObjectLambdaAccessPointSpecForProviderConfigurationTransformati
    *
    * @schema ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfiguration#actions
    */
-  readonly actions: string[];
+  readonly actions?: string[];
 
   /**
    * The content transformation of an Object Lambda Access Point configuration. See Content Transformation below for more details.
    *
    * @schema ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfiguration#contentTransformation
    */
-  readonly contentTransformation: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformation[];
+  readonly contentTransformation?: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformation[];
 
 }
 
@@ -5199,6 +5176,41 @@ export function toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransf
   const result = {
     'actions': obj.actions?.map(y => y),
     'contentTransformation': obj.contentTransformation?.map(y => toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformation(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration
+ */
+export interface ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration {
+  /**
+   * The actions of an Object Lambda Access Point configuration. Valid values: GetObject.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration#actions
+   */
+  readonly actions?: string[];
+
+  /**
+   * The content transformation of an Object Lambda Access Point configuration. See Content Transformation below for more details.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration#contentTransformation
+   */
+  readonly contentTransformation?: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation[];
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration(obj: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actions': obj.actions?.map(y => y),
+    'contentTransformation': obj.contentTransformation?.map(y => toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5223,30 +5235,6 @@ export enum ObjectLambdaAccessPointSpecProviderConfigRefPolicyResolution {
  * @schema ObjectLambdaAccessPointSpecProviderConfigRefPolicyResolve
  */
 export enum ObjectLambdaAccessPointSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ObjectLambdaAccessPointSpecProviderRefPolicyResolution
- */
-export enum ObjectLambdaAccessPointSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ObjectLambdaAccessPointSpecProviderRefPolicyResolve
- */
-export enum ObjectLambdaAccessPointSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -5373,7 +5361,7 @@ export interface ObjectLambdaAccessPointSpecForProviderConfigurationTransformati
    *
    * @schema ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformation#awsLambda
    */
-  readonly awsLambda: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformationAwsLambda[];
+  readonly awsLambda?: ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformationAwsLambda[];
 
 }
 
@@ -5385,6 +5373,33 @@ export function toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransf
   if (obj === undefined) { return undefined; }
   const result = {
     'awsLambda': obj.awsLambda?.map(y => toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformationAwsLambda(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation
+ */
+export interface ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation {
+  /**
+   * Configuration for an AWS Lambda function. See AWS Lambda below for more details.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation#awsLambda
+   */
+  readonly awsLambda?: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda[];
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation(obj: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformation | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'awsLambda': obj.awsLambda?.map(y => toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -5507,6 +5522,33 @@ export function toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransf
     'functionArn': obj.functionArn,
     'functionArnRef': toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformationAwsLambdaFunctionArnRef(obj.functionArnRef),
     'functionArnSelector': toJson_ObjectLambdaAccessPointSpecForProviderConfigurationTransformationConfigurationContentTransformationAwsLambdaFunctionArnSelector(obj.functionArnSelector),
+    'functionPayload': obj.functionPayload,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda
+ */
+export interface ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda {
+  /**
+   * Additional JSON that provides supplemental data to the Lambda function used to transform objects.
+   *
+   * @schema ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda#functionPayload
+   */
+  readonly functionPayload?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda(obj: ObjectLambdaAccessPointSpecInitProviderConfigurationTransformationConfigurationContentTransformationAwsLambda | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
     'functionPayload': obj.functionPayload,
   };
   // filter undefined values
@@ -5815,7 +5857,7 @@ export function toJson_ObjectLambdaAccessPointPolicyProps(obj: ObjectLambdaAcces
  */
 export interface ObjectLambdaAccessPointPolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ObjectLambdaAccessPointPolicySpec#deletionPolicy
    */
@@ -5827,11 +5869,18 @@ export interface ObjectLambdaAccessPointPolicySpec {
   readonly forProvider: ObjectLambdaAccessPointPolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ObjectLambdaAccessPointPolicySpec#managementPolicy
+   * @schema ObjectLambdaAccessPointPolicySpec#initProvider
    */
-  readonly managementPolicy?: ObjectLambdaAccessPointPolicySpecManagementPolicy;
+  readonly initProvider?: ObjectLambdaAccessPointPolicySpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ObjectLambdaAccessPointPolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: ObjectLambdaAccessPointPolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -5839,13 +5888,6 @@ export interface ObjectLambdaAccessPointPolicySpec {
    * @schema ObjectLambdaAccessPointPolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: ObjectLambdaAccessPointPolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ObjectLambdaAccessPointPolicySpec#providerRef
-   */
-  readonly providerRef?: ObjectLambdaAccessPointPolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -5872,9 +5914,9 @@ export function toJson_ObjectLambdaAccessPointPolicySpec(obj: ObjectLambdaAccess
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ObjectLambdaAccessPointPolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ObjectLambdaAccessPointPolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ObjectLambdaAccessPointPolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ObjectLambdaAccessPointPolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ObjectLambdaAccessPointPolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ObjectLambdaAccessPointPolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -5884,7 +5926,7 @@ export function toJson_ObjectLambdaAccessPointPolicySpec(obj: ObjectLambdaAccess
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ObjectLambdaAccessPointPolicySpecDeletionPolicy
  */
@@ -5963,17 +6005,60 @@ export function toJson_ObjectLambdaAccessPointPolicySpecForProvider(obj: ObjectL
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ObjectLambdaAccessPointPolicySpecManagementPolicy
+ * @schema ObjectLambdaAccessPointPolicySpecInitProvider
  */
-export enum ObjectLambdaAccessPointPolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ObjectLambdaAccessPointPolicySpecInitProvider {
+  /**
+   * The AWS account ID for the account that owns the Object Lambda Access Point.
+   *
+   * @schema ObjectLambdaAccessPointPolicySpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The Object Lambda Access Point resource policy document.
+   *
+   * @schema ObjectLambdaAccessPointPolicySpecInitProvider#policy
+   */
+  readonly policy?: string;
+
+}
+
+/**
+ * Converts an object of type 'ObjectLambdaAccessPointPolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ObjectLambdaAccessPointPolicySpecInitProvider(obj: ObjectLambdaAccessPointPolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'policy': obj.policy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ObjectLambdaAccessPointPolicySpecManagementPolicies
+ */
+export enum ObjectLambdaAccessPointPolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6007,43 +6092,6 @@ export function toJson_ObjectLambdaAccessPointPolicySpecProviderConfigRef(obj: O
   const result = {
     'name': obj.name,
     'policy': toJson_ObjectLambdaAccessPointPolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ObjectLambdaAccessPointPolicySpecProviderRef
- */
-export interface ObjectLambdaAccessPointPolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ObjectLambdaAccessPointPolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ObjectLambdaAccessPointPolicySpecProviderRef#policy
-   */
-  readonly policy?: ObjectLambdaAccessPointPolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ObjectLambdaAccessPointPolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectLambdaAccessPointPolicySpecProviderRef(obj: ObjectLambdaAccessPointPolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ObjectLambdaAccessPointPolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -6252,43 +6300,6 @@ export function toJson_ObjectLambdaAccessPointPolicySpecProviderConfigRefPolicy(
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema ObjectLambdaAccessPointPolicySpecProviderRefPolicy
- */
-export interface ObjectLambdaAccessPointPolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ObjectLambdaAccessPointPolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ObjectLambdaAccessPointPolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ObjectLambdaAccessPointPolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ObjectLambdaAccessPointPolicySpecProviderRefPolicy(obj: ObjectLambdaAccessPointPolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema ObjectLambdaAccessPointPolicySpecPublishConnectionDetailsToConfigRef
@@ -6462,30 +6473,6 @@ export enum ObjectLambdaAccessPointPolicySpecProviderConfigRefPolicyResolution {
  * @schema ObjectLambdaAccessPointPolicySpecProviderConfigRefPolicyResolve
  */
 export enum ObjectLambdaAccessPointPolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolution
- */
-export enum ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolve
- */
-export enum ObjectLambdaAccessPointPolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -6698,7 +6685,7 @@ export function toJson_StorageLensConfigurationProps(obj: StorageLensConfigurati
  */
 export interface StorageLensConfigurationSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema StorageLensConfigurationSpec#deletionPolicy
    */
@@ -6710,11 +6697,18 @@ export interface StorageLensConfigurationSpec {
   readonly forProvider: StorageLensConfigurationSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema StorageLensConfigurationSpec#managementPolicy
+   * @schema StorageLensConfigurationSpec#initProvider
    */
-  readonly managementPolicy?: StorageLensConfigurationSpecManagementPolicy;
+  readonly initProvider?: StorageLensConfigurationSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema StorageLensConfigurationSpec#managementPolicies
+   */
+  readonly managementPolicies?: StorageLensConfigurationSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -6722,13 +6716,6 @@ export interface StorageLensConfigurationSpec {
    * @schema StorageLensConfigurationSpec#providerConfigRef
    */
   readonly providerConfigRef?: StorageLensConfigurationSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema StorageLensConfigurationSpec#providerRef
-   */
-  readonly providerRef?: StorageLensConfigurationSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -6755,9 +6742,9 @@ export function toJson_StorageLensConfigurationSpec(obj: StorageLensConfiguratio
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_StorageLensConfigurationSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_StorageLensConfigurationSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_StorageLensConfigurationSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_StorageLensConfigurationSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_StorageLensConfigurationSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_StorageLensConfigurationSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -6767,7 +6754,7 @@ export function toJson_StorageLensConfigurationSpec(obj: StorageLensConfiguratio
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema StorageLensConfigurationSpecDeletionPolicy
  */
@@ -6838,17 +6825,76 @@ export function toJson_StorageLensConfigurationSpecForProvider(obj: StorageLensC
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema StorageLensConfigurationSpecManagementPolicy
+ * @schema StorageLensConfigurationSpecInitProvider
  */
-export enum StorageLensConfigurationSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface StorageLensConfigurationSpecInitProvider {
+  /**
+   * The AWS account ID for the S3 Storage Lens configuration.
+   *
+   * @schema StorageLensConfigurationSpecInitProvider#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The ID of the S3 Storage Lens configuration.
+   *
+   * @schema StorageLensConfigurationSpecInitProvider#configId
+   */
+  readonly configId?: string;
+
+  /**
+   * The S3 Storage Lens configuration. See Storage Lens Configuration below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProvider#storageLensConfiguration
+   */
+  readonly storageLensConfiguration?: StorageLensConfigurationSpecInitProviderStorageLensConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema StorageLensConfigurationSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProvider(obj: StorageLensConfigurationSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'configId': obj.configId,
+    'storageLensConfiguration': obj.storageLensConfiguration?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema StorageLensConfigurationSpecManagementPolicies
+ */
+export enum StorageLensConfigurationSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -6882,43 +6928,6 @@ export function toJson_StorageLensConfigurationSpecProviderConfigRef(obj: Storag
   const result = {
     'name': obj.name,
     'policy': toJson_StorageLensConfigurationSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema StorageLensConfigurationSpecProviderRef
- */
-export interface StorageLensConfigurationSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema StorageLensConfigurationSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema StorageLensConfigurationSpecProviderRef#policy
-   */
-  readonly policy?: StorageLensConfigurationSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'StorageLensConfigurationSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StorageLensConfigurationSpecProviderRef(obj: StorageLensConfigurationSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_StorageLensConfigurationSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -7016,7 +7025,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfiguration#accountLevel
    */
-  readonly accountLevel: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevel[];
+  readonly accountLevel?: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevel[];
 
   /**
    * The Amazon Web Services organization for the S3 Storage Lens configuration. See AWS Org below for more details.
@@ -7037,7 +7046,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfiguration#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
   /**
    * What is excluded in this configuration. Conflicts with include. See Exclude below for more details.
@@ -7075,6 +7084,73 @@ export function toJson_StorageLensConfigurationSpecForProviderStorageLensConfigu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfiguration {
+  /**
+   * level configurations of the S3 Storage Lens configuration. See Account Level below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#accountLevel
+   */
+  readonly accountLevel?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel[];
+
+  /**
+   * The Amazon Web Services organization for the S3 Storage Lens configuration. See AWS Org below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#awsOrg
+   */
+  readonly awsOrg?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg[];
+
+  /**
+   * Properties of S3 Storage Lens metrics export including the destination, schema and format. See Data Export below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#dataExport
+   */
+  readonly dataExport?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport[];
+
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * What is excluded in this configuration. Conflicts with include. See Exclude below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#exclude
+   */
+  readonly exclude?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude[];
+
+  /**
+   * What is included in this configuration. Conflicts with exclude. See Include below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfiguration#include
+   */
+  readonly include?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfiguration(obj: StorageLensConfigurationSpecInitProviderStorageLensConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountLevel': obj.accountLevel?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel(y)),
+    'awsOrg': obj.awsOrg?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg(y)),
+    'dataExport': obj.dataExport?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport(y)),
+    'enabled': obj.enabled,
+    'exclude': obj.exclude?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude(y)),
+    'include': obj.include?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema StorageLensConfigurationSpecProviderConfigRefPolicy
@@ -7101,43 +7177,6 @@ export interface StorageLensConfigurationSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_StorageLensConfigurationSpecProviderConfigRefPolicy(obj: StorageLensConfigurationSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema StorageLensConfigurationSpecProviderRefPolicy
- */
-export interface StorageLensConfigurationSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema StorageLensConfigurationSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: StorageLensConfigurationSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema StorageLensConfigurationSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: StorageLensConfigurationSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'StorageLensConfigurationSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_StorageLensConfigurationSpecProviderRefPolicy(obj: StorageLensConfigurationSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -7260,7 +7299,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevel#bucketLevel
    */
-  readonly bucketLevel: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevel[];
+  readonly bucketLevel?: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevel[];
 
   /**
    * Detailed status code metrics for S3 Storage Lens. See Detailed Status Code Metrics below for more details.
@@ -7298,7 +7337,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationAwsOrg#arn
    */
-  readonly arn: string;
+  readonly arn?: string;
 
 }
 
@@ -7422,6 +7461,197 @@ export function toJson_StorageLensConfigurationSpecForProviderStorageLensConfigu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel {
+  /**
+   * S3 Storage Lens activity metrics. See Activity Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel#activityMetrics
+   */
+  readonly activityMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics[];
+
+  /**
+   * optimization metrics for S3 Storage Lens. See Advanced Cost-Optimization Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel#advancedCostOptimizationMetrics
+   */
+  readonly advancedCostOptimizationMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics[];
+
+  /**
+   * protection metrics for S3 Storage Lens. See Advanced Data-Protection Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel#advancedDataProtectionMetrics
+   */
+  readonly advancedDataProtectionMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics[];
+
+  /**
+   * level configuration. See Bucket Level below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel#bucketLevel
+   */
+  readonly bucketLevel?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel[];
+
+  /**
+   * Detailed status code metrics for S3 Storage Lens. See Detailed Status Code Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel#detailedStatusCodeMetrics
+   */
+  readonly detailedStatusCodeMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'activityMetrics': obj.activityMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics(y)),
+    'advancedCostOptimizationMetrics': obj.advancedCostOptimizationMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics(y)),
+    'advancedDataProtectionMetrics': obj.advancedDataProtectionMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics(y)),
+    'bucketLevel': obj.bucketLevel?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel(y)),
+    'detailedStatusCodeMetrics': obj.detailedStatusCodeMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg {
+  /**
+   * The Amazon Resource Name (ARN) of the bucket.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg#arn
+   */
+  readonly arn?: string;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAwsOrg | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'arn': obj.arn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport {
+  /**
+   * Amazon CloudWatch publishing for S3 Storage Lens metrics. See Cloud Watch Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport#cloudWatchMetrics
+   */
+  readonly cloudWatchMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics[];
+
+  /**
+   * The bucket where the S3 Storage Lens metrics export will be located. See S3 Bucket Destination below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport#s3BucketDestination
+   */
+  readonly s3BucketDestination?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExport | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cloudWatchMetrics': obj.cloudWatchMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics(y)),
+    's3BucketDestination': obj.s3BucketDestination?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude {
+  /**
+   * List of S3 bucket ARNs.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude#buckets
+   */
+  readonly buckets?: string[];
+
+  /**
+   * List of AWS Regions.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude#regions
+   */
+  readonly regions?: string[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationExclude | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'buckets': obj.buckets?.map(y => y),
+    'regions': obj.regions?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude {
+  /**
+   * List of S3 bucket ARNs.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude#buckets
+   */
+  readonly buckets?: string[];
+
+  /**
+   * List of AWS Regions.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude#regions
+   */
+  readonly regions?: string[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationInclude | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'buckets': obj.buckets?.map(y => y),
+    'regions': obj.regions?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema StorageLensConfigurationSpecProviderConfigRefPolicyResolution
@@ -7439,30 +7669,6 @@ export enum StorageLensConfigurationSpecProviderConfigRefPolicyResolution {
  * @schema StorageLensConfigurationSpecProviderConfigRefPolicyResolve
  */
 export enum StorageLensConfigurationSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema StorageLensConfigurationSpecProviderRefPolicyResolution
- */
-export enum StorageLensConfigurationSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema StorageLensConfigurationSpecProviderRefPolicyResolve
- */
-export enum StorageLensConfigurationSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -7682,7 +7888,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportCloudWatchMetrics#enabled
    */
-  readonly enabled: boolean;
+  readonly enabled?: boolean;
 
 }
 
@@ -7709,7 +7915,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestination#accountId
    */
-  readonly accountId: string;
+  readonly accountId?: string;
 
   /**
    * The Amazon Resource Name (ARN) of the bucket.
@@ -7744,14 +7950,14 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestination#format
    */
-  readonly format: string;
+  readonly format?: string;
 
   /**
    * The schema version of the export file. Valid values: V_1.
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestination#outputSchemaVersion
    */
-  readonly outputSchemaVersion: string;
+  readonly outputSchemaVersion?: string;
 
   /**
    * The prefix of the destination bucket where the metrics export will be delivered.
@@ -7774,6 +7980,259 @@ export function toJson_StorageLensConfigurationSpecForProviderStorageLensConfigu
     'arnRef': toJson_StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationArnRef(obj.arnRef),
     'arnSelector': toJson_StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationArnSelector(obj.arnSelector),
     'encryption': obj.encryption?.map(y => toJson_StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption(y)),
+    'format': obj.format,
+    'outputSchemaVersion': obj.outputSchemaVersion,
+    'prefix': obj.prefix,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics {
+  /**
+   * Whether the activity metrics are enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelActivityMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedCostOptimizationMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelAdvancedDataProtectionMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel {
+  /**
+   * S3 Storage Lens activity metrics. See Activity Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel#activityMetrics
+   */
+  readonly activityMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics[];
+
+  /**
+   * optimization metrics for S3 Storage Lens. See Advanced Cost-Optimization Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel#advancedCostOptimizationMetrics
+   */
+  readonly advancedCostOptimizationMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics[];
+
+  /**
+   * protection metrics for S3 Storage Lens. See Advanced Data-Protection Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel#advancedDataProtectionMetrics
+   */
+  readonly advancedDataProtectionMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics[];
+
+  /**
+   * Detailed status code metrics for S3 Storage Lens. See Detailed Status Code Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel#detailedStatusCodeMetrics
+   */
+  readonly detailedStatusCodeMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics[];
+
+  /**
+   * level metrics for S3 Storage Lens. See Prefix Level below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel#prefixLevel
+   */
+  readonly prefixLevel?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'activityMetrics': obj.activityMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics(y)),
+    'advancedCostOptimizationMetrics': obj.advancedCostOptimizationMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics(y)),
+    'advancedDataProtectionMetrics': obj.advancedDataProtectionMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics(y)),
+    'detailedStatusCodeMetrics': obj.detailedStatusCodeMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics(y)),
+    'prefixLevel': obj.prefixLevel?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelDetailedStatusCodeMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportCloudWatchMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination {
+  /**
+   * The account ID of the owner of the S3 Storage Lens metrics export bucket.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * Encryption of the metrics exports in this bucket. See Encryption below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination#encryption
+   */
+  readonly encryption?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption[];
+
+  /**
+   * The export format. Valid values: CSV, Parquet.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination#format
+   */
+  readonly format?: string;
+
+  /**
+   * The schema version of the export file. Valid values: V_1.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination#outputSchemaVersion
+   */
+  readonly outputSchemaVersion?: string;
+
+  /**
+   * The prefix of the destination bucket where the metrics export will be delivered.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination#prefix
+   */
+  readonly prefix?: string;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'encryption': obj.encryption?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption(y)),
     'format': obj.format,
     'outputSchemaVersion': obj.outputSchemaVersion,
     'prefix': obj.prefix,
@@ -7924,7 +8383,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel#storageMetrics
    */
-  readonly storageMetrics: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics[];
+  readonly storageMetrics?: StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics[];
 
 }
 
@@ -8060,6 +8519,176 @@ export function toJson_StorageLensConfigurationSpecForProviderStorageLensConfigu
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelActivityMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedCostOptimizationMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelAdvancedDataProtectionMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelDetailedStatusCodeMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel {
+  /**
+   * level storage metrics for S3 Storage Lens. See Prefix Level Storage Metrics below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel#storageMetrics
+   */
+  readonly storageMetrics?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevel | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'storageMetrics': obj.storageMetrics?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption {
+  /**
+   * KMS encryption. See SSE KMS below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption#sseKms
+   */
+  readonly sseKms?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms[];
+
+  /**
+   * S3 encryption. An empty configuration block {} should be used.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption#sseS3
+   */
+  readonly sseS3?: any[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryption | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sseKms': obj.sseKms?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms(y)),
+    'sseS3': obj.sseS3?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics
  */
 export interface StorageLensConfigurationSpecForProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics {
@@ -8177,7 +8806,7 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
    *
    * @schema StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms#keyId
    */
-  readonly keyId: string;
+  readonly keyId?: string;
 
 }
 
@@ -8186,6 +8815,68 @@ export interface StorageLensConfigurationSpecForProviderStorageLensConfiguration
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms(obj: StorageLensConfigurationSpecForProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyId': obj.keyId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics {
+  /**
+   * Whether the S3 Storage Lens configuration is enabled.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics#enabled
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Selection criteria. See Selection Criteria below for more details.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics#selectionCriteria
+   */
+  readonly selectionCriteria?: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria[];
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetrics | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enabled': obj.enabled,
+    'selectionCriteria': obj.selectionCriteria?.map(y => toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms {
+  /**
+   * KMS key ARN.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms#keyId
+   */
+  readonly keyId?: string;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationDataExportS3BucketDestinationEncryptionSseKms | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'keyId': obj.keyId,
@@ -8285,4 +8976,47 @@ export enum StorageLensConfigurationSpecForProviderStorageLensConfigurationDataE
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria
+ */
+export interface StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria {
+  /**
+   * The delimiter of the selection criteria being used.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria#delimiter
+   */
+  readonly delimiter?: string;
+
+  /**
+   * The max depth of the selection criteria.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria#maxDepth
+   */
+  readonly maxDepth?: number;
+
+  /**
+   * The minimum number of storage bytes percentage whose metrics will be selected.
+   *
+   * @schema StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria#minStorageBytesPercentage
+   */
+  readonly minStorageBytesPercentage?: number;
+
+}
+
+/**
+ * Converts an object of type 'StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria(obj: StorageLensConfigurationSpecInitProviderStorageLensConfigurationAccountLevelBucketLevelPrefixLevelStorageMetricsSelectionCriteria | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'delimiter': obj.delimiter,
+    'maxDepth': obj.maxDepth,
+    'minStorageBytesPercentage': obj.minStorageBytesPercentage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 

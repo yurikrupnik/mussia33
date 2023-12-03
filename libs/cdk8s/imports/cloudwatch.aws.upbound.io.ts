@@ -99,7 +99,7 @@ export function toJson_CompositeAlarmProps(obj: CompositeAlarmProps | undefined)
  */
 export interface CompositeAlarmSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema CompositeAlarmSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface CompositeAlarmSpec {
   readonly forProvider: CompositeAlarmSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema CompositeAlarmSpec#managementPolicy
+   * @schema CompositeAlarmSpec#initProvider
    */
-  readonly managementPolicy?: CompositeAlarmSpecManagementPolicy;
+  readonly initProvider?: CompositeAlarmSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema CompositeAlarmSpec#managementPolicies
+   */
+  readonly managementPolicies?: CompositeAlarmSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface CompositeAlarmSpec {
    * @schema CompositeAlarmSpec#providerConfigRef
    */
   readonly providerConfigRef?: CompositeAlarmSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema CompositeAlarmSpec#providerRef
-   */
-  readonly providerRef?: CompositeAlarmSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_CompositeAlarmSpec(obj: CompositeAlarmSpec | undefined): 
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_CompositeAlarmSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_CompositeAlarmSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_CompositeAlarmSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_CompositeAlarmSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_CompositeAlarmSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_CompositeAlarmSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_CompositeAlarmSpec(obj: CompositeAlarmSpec | undefined): 
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema CompositeAlarmSpecDeletionPolicy
  */
@@ -296,17 +296,85 @@ export function toJson_CompositeAlarmSpecForProvider(obj: CompositeAlarmSpecForP
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema CompositeAlarmSpecManagementPolicy
+ * @schema CompositeAlarmSpecInitProvider
  */
-export enum CompositeAlarmSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface CompositeAlarmSpecInitProvider {
+  /**
+   * Indicates whether actions should be executed during any changes to the alarm state of the composite alarm. Defaults to true.
+   *
+   * @default true.
+   * @schema CompositeAlarmSpecInitProvider#actionsEnabled
+   */
+  readonly actionsEnabled?: boolean;
+
+  /**
+   * The description for the composite alarm.
+   *
+   * @schema CompositeAlarmSpecInitProvider#alarmDescription
+   */
+  readonly alarmDescription?: string;
+
+  /**
+   * An expression that specifies which other alarms are to be evaluated to determine this composite alarm's state. For syntax, see Creating a Composite Alarm. The maximum length is 10240 characters.
+   *
+   * @schema CompositeAlarmSpecInitProvider#alarmRule
+   */
+  readonly alarmRule?: string;
+
+  /**
+   * The set of actions to execute when this alarm transitions to the INSUFFICIENT_DATA state from any other state. Each action is specified as an ARN. Up to 5 actions are allowed.
+   *
+   * @schema CompositeAlarmSpecInitProvider#insufficientDataActions
+   */
+  readonly insufficientDataActions?: string[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema CompositeAlarmSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'CompositeAlarmSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_CompositeAlarmSpecInitProvider(obj: CompositeAlarmSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionsEnabled': obj.actionsEnabled,
+    'alarmDescription': obj.alarmDescription,
+    'alarmRule': obj.alarmRule,
+    'insufficientDataActions': obj.insufficientDataActions?.map(y => y),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema CompositeAlarmSpecManagementPolicies
+ */
+export enum CompositeAlarmSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -340,43 +408,6 @@ export function toJson_CompositeAlarmSpecProviderConfigRef(obj: CompositeAlarmSp
   const result = {
     'name': obj.name,
     'policy': toJson_CompositeAlarmSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema CompositeAlarmSpecProviderRef
- */
-export interface CompositeAlarmSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema CompositeAlarmSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema CompositeAlarmSpecProviderRef#policy
-   */
-  readonly policy?: CompositeAlarmSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'CompositeAlarmSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositeAlarmSpecProviderRef(obj: CompositeAlarmSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_CompositeAlarmSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -667,43 +698,6 @@ export function toJson_CompositeAlarmSpecProviderConfigRefPolicy(obj: CompositeA
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema CompositeAlarmSpecProviderRefPolicy
- */
-export interface CompositeAlarmSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema CompositeAlarmSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: CompositeAlarmSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema CompositeAlarmSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: CompositeAlarmSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'CompositeAlarmSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_CompositeAlarmSpecProviderRefPolicy(obj: CompositeAlarmSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema CompositeAlarmSpecPublishConnectionDetailsToConfigRef
@@ -951,30 +945,6 @@ export enum CompositeAlarmSpecProviderConfigRefPolicyResolution {
  * @schema CompositeAlarmSpecProviderConfigRefPolicyResolve
  */
 export enum CompositeAlarmSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema CompositeAlarmSpecProviderRefPolicyResolution
- */
-export enum CompositeAlarmSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema CompositeAlarmSpecProviderRefPolicyResolve
- */
-export enum CompositeAlarmSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1235,7 +1205,7 @@ export function toJson_DashboardProps(obj: DashboardProps | undefined): Record<s
  */
 export interface DashboardSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema DashboardSpec#deletionPolicy
    */
@@ -1247,11 +1217,18 @@ export interface DashboardSpec {
   readonly forProvider: DashboardSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema DashboardSpec#managementPolicy
+   * @schema DashboardSpec#initProvider
    */
-  readonly managementPolicy?: DashboardSpecManagementPolicy;
+  readonly initProvider?: DashboardSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema DashboardSpec#managementPolicies
+   */
+  readonly managementPolicies?: DashboardSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1259,13 +1236,6 @@ export interface DashboardSpec {
    * @schema DashboardSpec#providerConfigRef
    */
   readonly providerConfigRef?: DashboardSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema DashboardSpec#providerRef
-   */
-  readonly providerRef?: DashboardSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1292,9 +1262,9 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_DashboardSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_DashboardSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_DashboardSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_DashboardSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_DashboardSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_DashboardSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1304,7 +1274,7 @@ export function toJson_DashboardSpec(obj: DashboardSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema DashboardSpecDeletionPolicy
  */
@@ -1351,17 +1321,52 @@ export function toJson_DashboardSpecForProvider(obj: DashboardSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema DashboardSpecManagementPolicy
+ * @schema DashboardSpecInitProvider
  */
-export enum DashboardSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface DashboardSpecInitProvider {
+  /**
+   * The detailed information about the dashboard, including what widgets are included and their location on the dashboard. You can read more about the body structure in the documentation.
+   *
+   * @schema DashboardSpecInitProvider#dashboardBody
+   */
+  readonly dashboardBody?: string;
+
+}
+
+/**
+ * Converts an object of type 'DashboardSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_DashboardSpecInitProvider(obj: DashboardSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dashboardBody': obj.dashboardBody,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema DashboardSpecManagementPolicies
+ */
+export enum DashboardSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1395,43 +1400,6 @@ export function toJson_DashboardSpecProviderConfigRef(obj: DashboardSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_DashboardSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema DashboardSpecProviderRef
- */
-export interface DashboardSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema DashboardSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema DashboardSpecProviderRef#policy
-   */
-  readonly policy?: DashboardSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'DashboardSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DashboardSpecProviderRef(obj: DashboardSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_DashboardSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1558,43 +1526,6 @@ export function toJson_DashboardSpecProviderConfigRefPolicy(obj: DashboardSpecPr
 /* eslint-enable max-len, quote-props */
 
 /**
- * Policies for referencing.
- *
- * @schema DashboardSpecProviderRefPolicy
- */
-export interface DashboardSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema DashboardSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: DashboardSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema DashboardSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: DashboardSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'DashboardSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_DashboardSpecProviderRefPolicy(obj: DashboardSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
  * SecretStoreConfigRef specifies which secret store config should be used for this ConnectionSecret.
  *
  * @schema DashboardSpecPublishConnectionDetailsToConfigRef
@@ -1694,30 +1625,6 @@ export enum DashboardSpecProviderConfigRefPolicyResolution {
  * @schema DashboardSpecProviderConfigRefPolicyResolve
  */
 export enum DashboardSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema DashboardSpecProviderRefPolicyResolution
- */
-export enum DashboardSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema DashboardSpecProviderRefPolicyResolve
- */
-export enum DashboardSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1882,7 +1789,7 @@ export function toJson_MetricAlarmProps(obj: MetricAlarmProps | undefined): Reco
  */
 export interface MetricAlarmSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MetricAlarmSpec#deletionPolicy
    */
@@ -1894,11 +1801,18 @@ export interface MetricAlarmSpec {
   readonly forProvider: MetricAlarmSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MetricAlarmSpec#managementPolicy
+   * @schema MetricAlarmSpec#initProvider
    */
-  readonly managementPolicy?: MetricAlarmSpecManagementPolicy;
+  readonly initProvider?: MetricAlarmSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MetricAlarmSpec#managementPolicies
+   */
+  readonly managementPolicies?: MetricAlarmSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1906,13 +1820,6 @@ export interface MetricAlarmSpec {
    * @schema MetricAlarmSpec#providerConfigRef
    */
   readonly providerConfigRef?: MetricAlarmSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MetricAlarmSpec#providerRef
-   */
-  readonly providerRef?: MetricAlarmSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1939,9 +1846,9 @@ export function toJson_MetricAlarmSpec(obj: MetricAlarmSpec | undefined): Record
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MetricAlarmSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MetricAlarmSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MetricAlarmSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MetricAlarmSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MetricAlarmSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MetricAlarmSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1951,7 +1858,7 @@ export function toJson_MetricAlarmSpec(obj: MetricAlarmSpec | undefined): Record
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MetricAlarmSpecDeletionPolicy
  */
@@ -2160,17 +2067,214 @@ export function toJson_MetricAlarmSpecForProvider(obj: MetricAlarmSpecForProvide
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MetricAlarmSpecManagementPolicy
+ * @schema MetricAlarmSpecInitProvider
  */
-export enum MetricAlarmSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MetricAlarmSpecInitProvider {
+  /**
+   * Indicates whether or not actions should be executed during any changes to the alarm's state. Defaults to true.
+   *
+   * @default true.
+   * @schema MetricAlarmSpecInitProvider#actionsEnabled
+   */
+  readonly actionsEnabled?: boolean;
+
+  /**
+   * The list of actions to execute when this alarm transitions into an ALARM state from any other state. Each action is specified as an Amazon Resource Name (ARN).
+   *
+   * @schema MetricAlarmSpecInitProvider#alarmActions
+   */
+  readonly alarmActions?: string[];
+
+  /**
+   * The description for the alarm.
+   *
+   * @schema MetricAlarmSpecInitProvider#alarmDescription
+   */
+  readonly alarmDescription?: string;
+
+  /**
+   * The arithmetic operation to use when comparing the specified Statistic and Threshold. The specified Statistic value is used as the first operand. Either of the following is supported: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold. Additionally, the values  LessThanLowerOrGreaterThanUpperThreshold, LessThanLowerThreshold, and GreaterThanUpperThreshold are used only for alarms based on anomaly detection models.
+   *
+   * @schema MetricAlarmSpecInitProvider#comparisonOperator
+   */
+  readonly comparisonOperator?: string;
+
+  /**
+   * The number of datapoints that must be breaching to trigger the alarm.
+   *
+   * @schema MetricAlarmSpecInitProvider#datapointsToAlarm
+   */
+  readonly datapointsToAlarm?: number;
+
+  /**
+   * The dimensions for the alarm's associated metric.  For the list of available dimensions see the AWS documentation here.
+   *
+   * @schema MetricAlarmSpecInitProvider#dimensions
+   */
+  readonly dimensions?: { [key: string]: string };
+
+  /**
+   * Used only for alarms based on percentiles. If you specify ignore, the alarm state will not change during periods with too few data points to be statistically significant. If you specify evaluate or omit this parameter, the alarm will always be evaluated and possibly change state no matter how many data points are available. The following values are supported: ignore, and evaluate.
+   *
+   * @schema MetricAlarmSpecInitProvider#evaluateLowSampleCountPercentiles
+   */
+  readonly evaluateLowSampleCountPercentiles?: string;
+
+  /**
+   * The number of periods over which data is compared to the specified threshold.
+   *
+   * @schema MetricAlarmSpecInitProvider#evaluationPeriods
+   */
+  readonly evaluationPeriods?: number;
+
+  /**
+   * The percentile statistic for the metric associated with the alarm. Specify a value between p0.0 and p100.
+   *
+   * @schema MetricAlarmSpecInitProvider#extendedStatistic
+   */
+  readonly extendedStatistic?: string;
+
+  /**
+   * The list of actions to execute when this alarm transitions into an INSUFFICIENT_DATA state from any other state. Each action is specified as an Amazon Resource Name (ARN).
+   *
+   * @schema MetricAlarmSpecInitProvider#insufficientDataActions
+   */
+  readonly insufficientDataActions?: string[];
+
+  /**
+   * The name for the alarm's associated metric. See docs for supported metrics.
+   *
+   * @schema MetricAlarmSpecInitProvider#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * Enables you to create an alarm based on a metric math expression. You may specify at most 20.
+   *
+   * @schema MetricAlarmSpecInitProvider#metricQuery
+   */
+  readonly metricQuery?: MetricAlarmSpecInitProviderMetricQuery[];
+
+  /**
+   * The namespace for the alarm's associated metric. See docs for the list of namespaces. See docs for supported metrics.
+   *
+   * @schema MetricAlarmSpecInitProvider#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * The list of actions to execute when this alarm transitions into an OK state from any other state. Each action is specified as an Amazon Resource Name (ARN).
+   *
+   * @schema MetricAlarmSpecInitProvider#okActions
+   */
+  readonly okActions?: string[];
+
+  /**
+   * The period in seconds over which the specified statistic is applied. Valid values are 10, 30, or any multiple of 60.
+   *
+   * @schema MetricAlarmSpecInitProvider#period
+   */
+  readonly period?: number;
+
+  /**
+   * The statistic to apply to the alarm's associated metric. Either of the following is supported: SampleCount, Average, Sum, Minimum, Maximum
+   *
+   * @schema MetricAlarmSpecInitProvider#statistic
+   */
+  readonly statistic?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MetricAlarmSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The value against which the specified statistic is compared. This parameter is required for alarms based on static thresholds, but should not be used for alarms based on anomaly detection models.
+   *
+   * @schema MetricAlarmSpecInitProvider#threshold
+   */
+  readonly threshold?: number;
+
+  /**
+   * If this is an alarm based on an anomaly detection model, make this value match the ID of the ANOMALY_DETECTION_BAND function.
+   *
+   * @schema MetricAlarmSpecInitProvider#thresholdMetricId
+   */
+  readonly thresholdMetricId?: string;
+
+  /**
+   * Sets how this alarm is to handle missing data points. The following values are supported: missing, ignore, breaching and notBreaching. Defaults to missing.
+   *
+   * @default missing.
+   * @schema MetricAlarmSpecInitProvider#treatMissingData
+   */
+  readonly treatMissingData?: string;
+
+  /**
+   * The unit for the alarm's associated metric.
+   *
+   * @schema MetricAlarmSpecInitProvider#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricAlarmSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricAlarmSpecInitProvider(obj: MetricAlarmSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'actionsEnabled': obj.actionsEnabled,
+    'alarmActions': obj.alarmActions?.map(y => y),
+    'alarmDescription': obj.alarmDescription,
+    'comparisonOperator': obj.comparisonOperator,
+    'datapointsToAlarm': obj.datapointsToAlarm,
+    'dimensions': ((obj.dimensions) === undefined) ? undefined : (Object.entries(obj.dimensions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'evaluateLowSampleCountPercentiles': obj.evaluateLowSampleCountPercentiles,
+    'evaluationPeriods': obj.evaluationPeriods,
+    'extendedStatistic': obj.extendedStatistic,
+    'insufficientDataActions': obj.insufficientDataActions?.map(y => y),
+    'metricName': obj.metricName,
+    'metricQuery': obj.metricQuery?.map(y => toJson_MetricAlarmSpecInitProviderMetricQuery(y)),
+    'namespace': obj.namespace,
+    'okActions': obj.okActions?.map(y => y),
+    'period': obj.period,
+    'statistic': obj.statistic,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'threshold': obj.threshold,
+    'thresholdMetricId': obj.thresholdMetricId,
+    'treatMissingData': obj.treatMissingData,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MetricAlarmSpecManagementPolicies
+ */
+export enum MetricAlarmSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -2204,43 +2308,6 @@ export function toJson_MetricAlarmSpecProviderConfigRef(obj: MetricAlarmSpecProv
   const result = {
     'name': obj.name,
     'policy': toJson_MetricAlarmSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MetricAlarmSpecProviderRef
- */
-export interface MetricAlarmSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MetricAlarmSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MetricAlarmSpecProviderRef#policy
-   */
-  readonly policy?: MetricAlarmSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MetricAlarmSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricAlarmSpecProviderRef(obj: MetricAlarmSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MetricAlarmSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -2352,7 +2419,7 @@ export interface MetricAlarmSpecForProviderMetricQuery {
    *
    * @schema MetricAlarmSpecForProviderMetricQuery#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * A human-readable label for this metric or expression. This is especially useful if this is an expression, so that you know what the value represents.
@@ -2405,6 +2472,81 @@ export function toJson_MetricAlarmSpecForProviderMetricQuery(obj: MetricAlarmSpe
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema MetricAlarmSpecInitProviderMetricQuery
+ */
+export interface MetricAlarmSpecInitProviderMetricQuery {
+  /**
+   * The ID of the account where the metrics are located, if this is a cross-account alarm.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#accountId
+   */
+  readonly accountId?: string;
+
+  /**
+   * The math expression to be performed on the returned data, if this object is performing a math expression. This expression can use the id of the other metrics to refer to those metrics, and can also use the id of other expressions to use the result of those expressions. For more information about metric math expressions, see Metric Math Syntax and Functions in the Amazon CloudWatch User Guide.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#expression
+   */
+  readonly expression?: string;
+
+  /**
+   * A short name used to tie this object to the results in the response. If you are performing math expressions on this set of data, this name represents that data and can serve as a variable in the mathematical expression. The valid characters are letters, numbers, and underscore. The first character must be a lowercase letter.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#id
+   */
+  readonly id?: string;
+
+  /**
+   * A human-readable label for this metric or expression. This is especially useful if this is an expression, so that you know what the value represents.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#label
+   */
+  readonly label?: string;
+
+  /**
+   * The metric to be returned, along with statistics, period, and units. Use this parameter only if this object is retrieving a metric and not performing a math expression on returned data.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#metric
+   */
+  readonly metric?: MetricAlarmSpecInitProviderMetricQueryMetric[];
+
+  /**
+   * Granularity in seconds of returned data points. For metrics with regular resolution, valid values are any multiple of 60. For high-resolution metrics, valid values are 1, 5, 10, 30, or any multiple of 60.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#period
+   */
+  readonly period?: number;
+
+  /**
+   * Specify exactly one metric_query to be true to use that metric_query result as the alarm.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQuery#returnData
+   */
+  readonly returnData?: boolean;
+
+}
+
+/**
+ * Converts an object of type 'MetricAlarmSpecInitProviderMetricQuery' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricAlarmSpecInitProviderMetricQuery(obj: MetricAlarmSpecInitProviderMetricQuery | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'accountId': obj.accountId,
+    'expression': obj.expression,
+    'id': obj.id,
+    'label': obj.label,
+    'metric': obj.metric?.map(y => toJson_MetricAlarmSpecInitProviderMetricQueryMetric(y)),
+    'period': obj.period,
+    'returnData': obj.returnData,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema MetricAlarmSpecProviderConfigRefPolicy
@@ -2431,43 +2573,6 @@ export interface MetricAlarmSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetricAlarmSpecProviderConfigRefPolicy(obj: MetricAlarmSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MetricAlarmSpecProviderRefPolicy
- */
-export interface MetricAlarmSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MetricAlarmSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MetricAlarmSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MetricAlarmSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MetricAlarmSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MetricAlarmSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricAlarmSpecProviderRefPolicy(obj: MetricAlarmSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -2576,7 +2681,7 @@ export interface MetricAlarmSpecForProviderMetricQueryMetric {
    *
    * @schema MetricAlarmSpecForProviderMetricQueryMetric#metricName
    */
-  readonly metricName: string;
+  readonly metricName?: string;
 
   /**
    * The namespace for this metric. See docs for the list of namespaces. See docs for supported metrics.
@@ -2590,14 +2695,14 @@ export interface MetricAlarmSpecForProviderMetricQueryMetric {
    *
    * @schema MetricAlarmSpecForProviderMetricQueryMetric#period
    */
-  readonly period: number;
+  readonly period?: number;
 
   /**
    * The statistic to apply to this metric. See docs for supported statistics.
    *
    * @schema MetricAlarmSpecForProviderMetricQueryMetric#stat
    */
-  readonly stat: string;
+  readonly stat?: string;
 
   /**
    * The unit for this metric.
@@ -2613,6 +2718,73 @@ export interface MetricAlarmSpecForProviderMetricQueryMetric {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetricAlarmSpecForProviderMetricQueryMetric(obj: MetricAlarmSpecForProviderMetricQueryMetric | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'dimensions': ((obj.dimensions) === undefined) ? undefined : (Object.entries(obj.dimensions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'metricName': obj.metricName,
+    'namespace': obj.namespace,
+    'period': obj.period,
+    'stat': obj.stat,
+    'unit': obj.unit,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricAlarmSpecInitProviderMetricQueryMetric
+ */
+export interface MetricAlarmSpecInitProviderMetricQueryMetric {
+  /**
+   * The dimensions for this metric.  For the list of available dimensions see the AWS documentation here.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#dimensions
+   */
+  readonly dimensions?: { [key: string]: string };
+
+  /**
+   * The name for this metric. See docs for supported metrics.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * The namespace for this metric. See docs for the list of namespaces. See docs for supported metrics.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#namespace
+   */
+  readonly namespace?: string;
+
+  /**
+   * Granularity in seconds of returned data points. For metrics with regular resolution, valid values are any multiple of 60. For high-resolution metrics, valid values are 1, 5, 10, 30, or any multiple of 60.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#period
+   */
+  readonly period?: number;
+
+  /**
+   * The statistic to apply to this metric. See docs for supported statistics.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#stat
+   */
+  readonly stat?: string;
+
+  /**
+   * The unit for this metric.
+   *
+   * @schema MetricAlarmSpecInitProviderMetricQueryMetric#unit
+   */
+  readonly unit?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricAlarmSpecInitProviderMetricQueryMetric' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricAlarmSpecInitProviderMetricQueryMetric(obj: MetricAlarmSpecInitProviderMetricQueryMetric | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'dimensions': ((obj.dimensions) === undefined) ? undefined : (Object.entries(obj.dimensions).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
@@ -2645,30 +2817,6 @@ export enum MetricAlarmSpecProviderConfigRefPolicyResolution {
  * @schema MetricAlarmSpecProviderConfigRefPolicyResolve
  */
 export enum MetricAlarmSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MetricAlarmSpecProviderRefPolicyResolution
- */
-export enum MetricAlarmSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MetricAlarmSpecProviderRefPolicyResolve
- */
-export enum MetricAlarmSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -2833,7 +2981,7 @@ export function toJson_MetricStreamProps(obj: MetricStreamProps | undefined): Re
  */
 export interface MetricStreamSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MetricStreamSpec#deletionPolicy
    */
@@ -2845,11 +2993,18 @@ export interface MetricStreamSpec {
   readonly forProvider: MetricStreamSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MetricStreamSpec#managementPolicy
+   * @schema MetricStreamSpec#initProvider
    */
-  readonly managementPolicy?: MetricStreamSpecManagementPolicy;
+  readonly initProvider?: MetricStreamSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MetricStreamSpec#managementPolicies
+   */
+  readonly managementPolicies?: MetricStreamSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -2857,13 +3012,6 @@ export interface MetricStreamSpec {
    * @schema MetricStreamSpec#providerConfigRef
    */
   readonly providerConfigRef?: MetricStreamSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MetricStreamSpec#providerRef
-   */
-  readonly providerRef?: MetricStreamSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -2890,9 +3038,9 @@ export function toJson_MetricStreamSpec(obj: MetricStreamSpec | undefined): Reco
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MetricStreamSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MetricStreamSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MetricStreamSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MetricStreamSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MetricStreamSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MetricStreamSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -2902,7 +3050,7 @@ export function toJson_MetricStreamSpec(obj: MetricStreamSpec | undefined): Reco
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MetricStreamSpecDeletionPolicy
  */
@@ -3045,17 +3193,100 @@ export function toJson_MetricStreamSpecForProvider(obj: MetricStreamSpecForProvi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MetricStreamSpecManagementPolicy
+ * @schema MetricStreamSpecInitProvider
  */
-export enum MetricStreamSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MetricStreamSpecInitProvider {
+  /**
+   * List of exclusive metric filters. If you specify this parameter, the stream sends metrics from all metric namespaces except for the namespaces and the conditional metric names that you specify here. If you don't specify metric names or provide empty metric names whole metric namespace is excluded. Conflicts with include_filter.
+   *
+   * @schema MetricStreamSpecInitProvider#excludeFilter
+   */
+  readonly excludeFilter?: MetricStreamSpecInitProviderExcludeFilter[];
+
+  /**
+   * List of inclusive metric filters. If you specify this parameter, the stream sends only the conditional metric names from the metric namespaces that you specify here. If you don't specify metric names or provide empty metric names whole metric namespace is included. Conflicts with exclude_filter.
+   *
+   * @schema MetricStreamSpecInitProvider#includeFilter
+   */
+  readonly includeFilter?: MetricStreamSpecInitProviderIncludeFilter[];
+
+  /**
+   * account observability.
+   *
+   * @schema MetricStreamSpecInitProvider#includeLinkedAccountsMetrics
+   */
+  readonly includeLinkedAccountsMetrics?: boolean;
+
+  /**
+   * Friendly name of the metric stream. Conflicts with name_prefix.
+   *
+   * @schema MetricStreamSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Output format for the stream. Possible values are json and opentelemetry0.7. For more information about output formats, see Metric streams output formats.
+   *
+   * @schema MetricStreamSpecInitProvider#outputFormat
+   */
+  readonly outputFormat?: string;
+
+  /**
+   * For each entry in this array, you specify one or more metrics and the list of additional statistics to stream for those metrics. The additional statistics that you can stream depend on the stream's output_format. If the OutputFormat is json, you can stream any additional statistic that is supported by CloudWatch, listed in CloudWatch statistics definitions. If the OutputFormat is opentelemetry0.7, you can stream percentile statistics (p99 etc.). See details below.
+   *
+   * @schema MetricStreamSpecInitProvider#statisticsConfiguration
+   */
+  readonly statisticsConfiguration?: MetricStreamSpecInitProviderStatisticsConfiguration[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MetricStreamSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'MetricStreamSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricStreamSpecInitProvider(obj: MetricStreamSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'excludeFilter': obj.excludeFilter?.map(y => toJson_MetricStreamSpecInitProviderExcludeFilter(y)),
+    'includeFilter': obj.includeFilter?.map(y => toJson_MetricStreamSpecInitProviderIncludeFilter(y)),
+    'includeLinkedAccountsMetrics': obj.includeLinkedAccountsMetrics,
+    'name': obj.name,
+    'outputFormat': obj.outputFormat,
+    'statisticsConfiguration': obj.statisticsConfiguration?.map(y => toJson_MetricStreamSpecInitProviderStatisticsConfiguration(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MetricStreamSpecManagementPolicies
+ */
+export enum MetricStreamSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -3089,43 +3320,6 @@ export function toJson_MetricStreamSpecProviderConfigRef(obj: MetricStreamSpecPr
   const result = {
     'name': obj.name,
     'policy': toJson_MetricStreamSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MetricStreamSpecProviderRef
- */
-export interface MetricStreamSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MetricStreamSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MetricStreamSpecProviderRef#policy
-   */
-  readonly policy?: MetricStreamSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MetricStreamSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricStreamSpecProviderRef(obj: MetricStreamSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MetricStreamSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3230,7 +3424,7 @@ export interface MetricStreamSpecForProviderExcludeFilter {
    *
    * @schema MetricStreamSpecForProviderExcludeFilter#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
 }
 
@@ -3347,7 +3541,7 @@ export interface MetricStreamSpecForProviderIncludeFilter {
    *
    * @schema MetricStreamSpecForProviderIncludeFilter#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
 }
 
@@ -3457,14 +3651,14 @@ export interface MetricStreamSpecForProviderStatisticsConfiguration {
    *
    * @schema MetricStreamSpecForProviderStatisticsConfiguration#additionalStatistics
    */
-  readonly additionalStatistics: string[];
+  readonly additionalStatistics?: string[];
 
   /**
    * An array that defines the metrics that are to have additional statistics streamed. See details below.
    *
    * @schema MetricStreamSpecForProviderStatisticsConfiguration#includeMetric
    */
-  readonly includeMetric: MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric[];
+  readonly includeMetric?: MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric[];
 
 }
 
@@ -3477,6 +3671,111 @@ export function toJson_MetricStreamSpecForProviderStatisticsConfiguration(obj: M
   const result = {
     'additionalStatistics': obj.additionalStatistics?.map(y => y),
     'includeMetric': obj.includeMetric?.map(y => toJson_MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricStreamSpecInitProviderExcludeFilter
+ */
+export interface MetricStreamSpecInitProviderExcludeFilter {
+  /**
+   * An array that defines the metrics you want to exclude for this metric namespace
+   *
+   * @schema MetricStreamSpecInitProviderExcludeFilter#metricNames
+   */
+  readonly metricNames?: string[];
+
+  /**
+   * Name of the metric namespace in the filter.
+   *
+   * @schema MetricStreamSpecInitProviderExcludeFilter#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricStreamSpecInitProviderExcludeFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricStreamSpecInitProviderExcludeFilter(obj: MetricStreamSpecInitProviderExcludeFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metricNames': obj.metricNames?.map(y => y),
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricStreamSpecInitProviderIncludeFilter
+ */
+export interface MetricStreamSpecInitProviderIncludeFilter {
+  /**
+   * An array that defines the metrics you want to include for this metric namespace
+   *
+   * @schema MetricStreamSpecInitProviderIncludeFilter#metricNames
+   */
+  readonly metricNames?: string[];
+
+  /**
+   * Name of the metric namespace in the filter.
+   *
+   * @schema MetricStreamSpecInitProviderIncludeFilter#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricStreamSpecInitProviderIncludeFilter' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricStreamSpecInitProviderIncludeFilter(obj: MetricStreamSpecInitProviderIncludeFilter | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metricNames': obj.metricNames?.map(y => y),
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricStreamSpecInitProviderStatisticsConfiguration
+ */
+export interface MetricStreamSpecInitProviderStatisticsConfiguration {
+  /**
+   * The additional statistics to stream for the metrics listed in include_metrics.
+   *
+   * @schema MetricStreamSpecInitProviderStatisticsConfiguration#additionalStatistics
+   */
+  readonly additionalStatistics?: string[];
+
+  /**
+   * An array that defines the metrics that are to have additional statistics streamed. See details below.
+   *
+   * @schema MetricStreamSpecInitProviderStatisticsConfiguration#includeMetric
+   */
+  readonly includeMetric?: MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric[];
+
+}
+
+/**
+ * Converts an object of type 'MetricStreamSpecInitProviderStatisticsConfiguration' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricStreamSpecInitProviderStatisticsConfiguration(obj: MetricStreamSpecInitProviderStatisticsConfiguration | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'additionalStatistics': obj.additionalStatistics?.map(y => y),
+    'includeMetric': obj.includeMetric?.map(y => toJson_MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric(y)),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -3510,43 +3809,6 @@ export interface MetricStreamSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetricStreamSpecProviderConfigRefPolicy(obj: MetricStreamSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MetricStreamSpecProviderRefPolicy
- */
-export interface MetricStreamSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MetricStreamSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MetricStreamSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MetricStreamSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MetricStreamSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MetricStreamSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MetricStreamSpecProviderRefPolicy(obj: MetricStreamSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -3796,14 +4058,14 @@ export interface MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric
    *
    * @schema MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric#metricName
    */
-  readonly metricName: string;
+  readonly metricName?: string;
 
   /**
    * The namespace of the metric.
    *
    * @schema MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric#namespace
    */
-  readonly namespace: string;
+  readonly namespace?: string;
 
 }
 
@@ -3812,6 +4074,41 @@ export interface MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric(obj: MetricStreamSpecForProviderStatisticsConfigurationIncludeMetric | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'metricName': obj.metricName,
+    'namespace': obj.namespace,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric
+ */
+export interface MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric {
+  /**
+   * The name of the metric.
+   *
+   * @schema MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric#metricName
+   */
+  readonly metricName?: string;
+
+  /**
+   * The namespace of the metric.
+   *
+   * @schema MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric#namespace
+   */
+  readonly namespace?: string;
+
+}
+
+/**
+ * Converts an object of type 'MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric(obj: MetricStreamSpecInitProviderStatisticsConfigurationIncludeMetric | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'metricName': obj.metricName,
@@ -3840,30 +4137,6 @@ export enum MetricStreamSpecProviderConfigRefPolicyResolution {
  * @schema MetricStreamSpecProviderConfigRefPolicyResolve
  */
 export enum MetricStreamSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MetricStreamSpecProviderRefPolicyResolution
- */
-export enum MetricStreamSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MetricStreamSpecProviderRefPolicyResolve
- */
-export enum MetricStreamSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

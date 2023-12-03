@@ -13,21 +13,23 @@ spec:
 #    - base:
 #        apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
 #        kind: Registry
-#        metadata:
+##        metadata:
 ##          name: storage-registry
-#          namespace: crossplane-system
+##          namespace: crossplane-system
 #        spec:
-##          id: storage-registry
+#          id: storage-registry
 #          location: us-west1
 #          compositionSelector:
 #            matchLabels:
 #              provider: GCP
 #      name: Registry
 #      patches:
-##        - fromFieldPath: metadata.name
-##          toFieldPath: metadata.name
+#        - fromFieldPath: spec.id
+#          toFieldPath: spec.id
 #        - fromFieldPath: metadata.name
 #          toFieldPath: metadata.name
+#        - fromFieldPath: metadata.namespace
+#          toFieldPath: metadata.namespace
 #        - fromFieldPath: spec.id
 #          toFieldPath: metadata.annotations[crossplane.io/external-name]
 #        - fromFieldPath: spec.id

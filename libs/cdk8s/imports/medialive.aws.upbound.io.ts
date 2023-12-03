@@ -99,7 +99,7 @@ export function toJson_ChannelProps(obj: ChannelProps | undefined): Record<strin
  */
 export interface ChannelSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema ChannelSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface ChannelSpec {
   readonly forProvider: ChannelSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema ChannelSpec#managementPolicy
+   * @schema ChannelSpec#initProvider
    */
-  readonly managementPolicy?: ChannelSpecManagementPolicy;
+  readonly initProvider?: ChannelSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema ChannelSpec#managementPolicies
+   */
+  readonly managementPolicies?: ChannelSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface ChannelSpec {
    * @schema ChannelSpec#providerConfigRef
    */
   readonly providerConfigRef?: ChannelSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema ChannelSpec#providerRef
-   */
-  readonly providerRef?: ChannelSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_ChannelSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_ChannelSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_ChannelSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_ChannelSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_ChannelSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_ChannelSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_ChannelSpec(obj: ChannelSpec | undefined): Record<string,
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema ChannelSpecDeletionPolicy
  */
@@ -327,17 +327,140 @@ export function toJson_ChannelSpecForProvider(obj: ChannelSpecForProvider | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema ChannelSpecManagementPolicy
+ * @schema ChannelSpecInitProvider
  */
-export enum ChannelSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface ChannelSpecInitProvider {
+  /**
+   * Specification of CDI inputs for this channel. See CDI Input Specification for more details.
+   *
+   * @schema ChannelSpecInitProvider#cdiInputSpecification
+   */
+  readonly cdiInputSpecification?: ChannelSpecInitProviderCdiInputSpecification[];
+
+  /**
+   * Concise argument description.
+   *
+   * @schema ChannelSpecInitProvider#channelClass
+   */
+  readonly channelClass?: string;
+
+  /**
+   * Destinations for channel. See Destinations for more details.
+   *
+   * @schema ChannelSpecInitProvider#destinations
+   */
+  readonly destinations?: ChannelSpecInitProviderDestinations[];
+
+  /**
+   * Encoder settings. See Encoder Settings for more details.
+   *
+   * @schema ChannelSpecInitProvider#encoderSettings
+   */
+  readonly encoderSettings?: ChannelSpecInitProviderEncoderSettings[];
+
+  /**
+   * Input attachments for the channel. See Input Attachments for more details.
+   *
+   * @schema ChannelSpecInitProvider#inputAttachments
+   */
+  readonly inputAttachments?: ChannelSpecInitProviderInputAttachments[];
+
+  /**
+   * Specification of network and file inputs for the channel.
+   *
+   * @schema ChannelSpecInitProvider#inputSpecification
+   */
+  readonly inputSpecification?: ChannelSpecInitProviderInputSpecification[];
+
+  /**
+   * The log level to write to Cloudwatch logs.
+   *
+   * @schema ChannelSpecInitProvider#logLevel
+   */
+  readonly logLevel?: string;
+
+  /**
+   * Maintenance settings for this channel. See Maintenance for more details.
+   *
+   * @schema ChannelSpecInitProvider#maintenance
+   */
+  readonly maintenance?: ChannelSpecInitProviderMaintenance[];
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Whether to start/stop channel. Default: false
+   *
+   * @schema ChannelSpecInitProvider#startChannel
+   */
+  readonly startChannel?: boolean;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ChannelSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Settings for the VPC outputs.
+   *
+   * @schema ChannelSpecInitProvider#vpc
+   */
+  readonly vpc?: ChannelSpecInitProviderVpc[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProvider(obj: ChannelSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cdiInputSpecification': obj.cdiInputSpecification?.map(y => toJson_ChannelSpecInitProviderCdiInputSpecification(y)),
+    'channelClass': obj.channelClass,
+    'destinations': obj.destinations?.map(y => toJson_ChannelSpecInitProviderDestinations(y)),
+    'encoderSettings': obj.encoderSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettings(y)),
+    'inputAttachments': obj.inputAttachments?.map(y => toJson_ChannelSpecInitProviderInputAttachments(y)),
+    'inputSpecification': obj.inputSpecification?.map(y => toJson_ChannelSpecInitProviderInputSpecification(y)),
+    'logLevel': obj.logLevel,
+    'maintenance': obj.maintenance?.map(y => toJson_ChannelSpecInitProviderMaintenance(y)),
+    'name': obj.name,
+    'startChannel': obj.startChannel,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'vpc': obj.vpc?.map(y => toJson_ChannelSpecInitProviderVpc(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema ChannelSpecManagementPolicies
+ */
+export enum ChannelSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -371,43 +494,6 @@ export function toJson_ChannelSpecProviderConfigRef(obj: ChannelSpecProviderConf
   const result = {
     'name': obj.name,
     'policy': toJson_ChannelSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema ChannelSpecProviderRef
- */
-export interface ChannelSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema ChannelSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema ChannelSpecProviderRef#policy
-   */
-  readonly policy?: ChannelSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'ChannelSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ChannelSpecProviderRef(obj: ChannelSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_ChannelSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -505,7 +591,7 @@ export interface ChannelSpecForProviderCdiInputSpecification {
    *
    * @schema ChannelSpecForProviderCdiInputSpecification#resolution
    */
-  readonly resolution: string;
+  readonly resolution?: string;
 
 }
 
@@ -532,7 +618,7 @@ export interface ChannelSpecForProviderDestinations {
    *
    * @schema ChannelSpecForProviderDestinations#id
    */
-  readonly id: string;
+  readonly id?: string;
 
   /**
    * Destination settings for a MediaPackage output; one destination for both encoders. See Media Package Settings for more details.
@@ -597,14 +683,14 @@ export interface ChannelSpecForProviderEncoderSettings {
    *
    * @schema ChannelSpecForProviderEncoderSettings#outputGroups
    */
-  readonly outputGroups: ChannelSpecForProviderEncoderSettingsOutputGroups[];
+  readonly outputGroups?: ChannelSpecForProviderEncoderSettingsOutputGroups[];
 
   /**
    * Contains settings used to acquire and adjust timecode information from inputs. See Timecode Config for more details.
    *
    * @schema ChannelSpecForProviderEncoderSettings#timecodeConfig
    */
-  readonly timecodeConfig: ChannelSpecForProviderEncoderSettingsTimecodeConfig[];
+  readonly timecodeConfig?: ChannelSpecForProviderEncoderSettingsTimecodeConfig[];
 
   /**
    * Video Descriptions. See Video Descriptions for more details.
@@ -649,7 +735,7 @@ export interface ChannelSpecForProviderInputAttachments {
    *
    * @schema ChannelSpecForProviderInputAttachments#inputAttachmentName
    */
-  readonly inputAttachmentName: string;
+  readonly inputAttachmentName?: string;
 
   /**
    * The ID of the input.
@@ -707,21 +793,21 @@ export interface ChannelSpecForProviderInputSpecification {
   /**
    * @schema ChannelSpecForProviderInputSpecification#codec
    */
-  readonly codec: string;
+  readonly codec?: string;
 
   /**
    * - Maximum CDI input resolution.
    *
    * @schema ChannelSpecForProviderInputSpecification#inputResolution
    */
-  readonly inputResolution: string;
+  readonly inputResolution?: string;
 
   /**
    * Average bitrate in bits/second.
    *
    * @schema ChannelSpecForProviderInputSpecification#maximumBitrate
    */
-  readonly maximumBitrate: string;
+  readonly maximumBitrate?: string;
 
 }
 
@@ -750,14 +836,14 @@ export interface ChannelSpecForProviderMaintenance {
    *
    * @schema ChannelSpecForProviderMaintenance#maintenanceDay
    */
-  readonly maintenanceDay: string;
+  readonly maintenanceDay?: string;
 
   /**
    * The hour maintenance will start.
    *
    * @schema ChannelSpecForProviderMaintenance#maintenanceStartTime
    */
-  readonly maintenanceStartTime: string;
+  readonly maintenanceStartTime?: string;
 
 }
 
@@ -865,7 +951,7 @@ export interface ChannelSpecForProviderVpc {
   /**
    * @schema ChannelSpecForProviderVpc#publicAddressAllocationIds
    */
-  readonly publicAddressAllocationIds: string[];
+  readonly publicAddressAllocationIds?: string[];
 
   /**
    * @schema ChannelSpecForProviderVpc#securityGroupIds
@@ -875,7 +961,7 @@ export interface ChannelSpecForProviderVpc {
   /**
    * @schema ChannelSpecForProviderVpc#subnetIds
    */
-  readonly subnetIds: string[];
+  readonly subnetIds?: string[];
 
 }
 
@@ -884,6 +970,299 @@ export interface ChannelSpecForProviderVpc {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ChannelSpecForProviderVpc(obj: ChannelSpecForProviderVpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicAddressAllocationIds': obj.publicAddressAllocationIds?.map(y => y),
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderCdiInputSpecification
+ */
+export interface ChannelSpecInitProviderCdiInputSpecification {
+  /**
+   * - Maximum CDI input resolution.
+   *
+   * @schema ChannelSpecInitProviderCdiInputSpecification#resolution
+   */
+  readonly resolution?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderCdiInputSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderCdiInputSpecification(obj: ChannelSpecInitProviderCdiInputSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'resolution': obj.resolution,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderDestinations
+ */
+export interface ChannelSpecInitProviderDestinations {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderDestinations#id
+   */
+  readonly id?: string;
+
+  /**
+   * Destination settings for a MediaPackage output; one destination for both encoders. See Media Package Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderDestinations#mediaPackageSettings
+   */
+  readonly mediaPackageSettings?: ChannelSpecInitProviderDestinationsMediaPackageSettings[];
+
+  /**
+   * Destination settings for a Multiplex output; one destination for both encoders. See Multiplex Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderDestinations#multiplexSettings
+   */
+  readonly multiplexSettings?: ChannelSpecInitProviderDestinationsMultiplexSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderDestinations#settings
+   */
+  readonly settings?: ChannelSpecInitProviderDestinationsSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderDestinations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderDestinations(obj: ChannelSpecInitProviderDestinations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+    'mediaPackageSettings': obj.mediaPackageSettings?.map(y => toJson_ChannelSpecInitProviderDestinationsMediaPackageSettings(y)),
+    'multiplexSettings': obj.multiplexSettings?.map(y => toJson_ChannelSpecInitProviderDestinationsMultiplexSettings(y)),
+    'settings': obj.settings?.map(y => toJson_ChannelSpecInitProviderDestinationsSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettings {
+  /**
+   * Audio descriptions for the channel. See Audio Descriptions for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettings#audioDescriptions
+   */
+  readonly audioDescriptions?: ChannelSpecInitProviderEncoderSettingsAudioDescriptions[];
+
+  /**
+   * Settings for ad avail blanking. See Avail Blanking for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettings#availBlanking
+   */
+  readonly availBlanking?: ChannelSpecInitProviderEncoderSettingsAvailBlanking[];
+
+  /**
+   * Output groups for the channel. See Output Groups for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettings#outputGroups
+   */
+  readonly outputGroups?: ChannelSpecInitProviderEncoderSettingsOutputGroups[];
+
+  /**
+   * Contains settings used to acquire and adjust timecode information from inputs. See Timecode Config for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettings#timecodeConfig
+   */
+  readonly timecodeConfig?: ChannelSpecInitProviderEncoderSettingsTimecodeConfig[];
+
+  /**
+   * Video Descriptions. See Video Descriptions for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettings#videoDescriptions
+   */
+  readonly videoDescriptions?: ChannelSpecInitProviderEncoderSettingsVideoDescriptions[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettings(obj: ChannelSpecInitProviderEncoderSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioDescriptions': obj.audioDescriptions?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptions(y)),
+    'availBlanking': obj.availBlanking?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAvailBlanking(y)),
+    'outputGroups': obj.outputGroups?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroups(y)),
+    'timecodeConfig': obj.timecodeConfig?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsTimecodeConfig(y)),
+    'videoDescriptions': obj.videoDescriptions?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptions(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachments
+ */
+export interface ChannelSpecInitProviderInputAttachments {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachments#automaticInputFailoverSettings
+   */
+  readonly automaticInputFailoverSettings?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings[];
+
+  /**
+   * User-specified name for the attachment.
+   *
+   * @schema ChannelSpecInitProviderInputAttachments#inputAttachmentName
+   */
+  readonly inputAttachmentName?: string;
+
+  /**
+   * Settings of an input. See Input Settings for more details
+   *
+   * @schema ChannelSpecInitProviderInputAttachments#inputSettings
+   */
+  readonly inputSettings?: ChannelSpecInitProviderInputAttachmentsInputSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachments' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachments(obj: ChannelSpecInitProviderInputAttachments | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'automaticInputFailoverSettings': obj.automaticInputFailoverSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings(y)),
+    'inputAttachmentName': obj.inputAttachmentName,
+    'inputSettings': obj.inputSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputSpecification
+ */
+export interface ChannelSpecInitProviderInputSpecification {
+  /**
+   * @schema ChannelSpecInitProviderInputSpecification#codec
+   */
+  readonly codec?: string;
+
+  /**
+   * - Maximum CDI input resolution.
+   *
+   * @schema ChannelSpecInitProviderInputSpecification#inputResolution
+   */
+  readonly inputResolution?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderInputSpecification#maximumBitrate
+   */
+  readonly maximumBitrate?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputSpecification' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputSpecification(obj: ChannelSpecInitProviderInputSpecification | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codec': obj.codec,
+    'inputResolution': obj.inputResolution,
+    'maximumBitrate': obj.maximumBitrate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderMaintenance
+ */
+export interface ChannelSpecInitProviderMaintenance {
+  /**
+   * The day of the week to use for maintenance.
+   *
+   * @schema ChannelSpecInitProviderMaintenance#maintenanceDay
+   */
+  readonly maintenanceDay?: string;
+
+  /**
+   * The hour maintenance will start.
+   *
+   * @schema ChannelSpecInitProviderMaintenance#maintenanceStartTime
+   */
+  readonly maintenanceStartTime?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderMaintenance' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderMaintenance(obj: ChannelSpecInitProviderMaintenance | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maintenanceDay': obj.maintenanceDay,
+    'maintenanceStartTime': obj.maintenanceStartTime,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderVpc
+ */
+export interface ChannelSpecInitProviderVpc {
+  /**
+   * @schema ChannelSpecInitProviderVpc#publicAddressAllocationIds
+   */
+  readonly publicAddressAllocationIds?: string[];
+
+  /**
+   * @schema ChannelSpecInitProviderVpc#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * @schema ChannelSpecInitProviderVpc#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderVpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderVpc(obj: ChannelSpecInitProviderVpc | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'publicAddressAllocationIds': obj.publicAddressAllocationIds?.map(y => y),
@@ -922,43 +1301,6 @@ export interface ChannelSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ChannelSpecProviderConfigRefPolicy(obj: ChannelSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema ChannelSpecProviderRefPolicy
- */
-export interface ChannelSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema ChannelSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: ChannelSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema ChannelSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: ChannelSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'ChannelSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_ChannelSpecProviderRefPolicy(obj: ChannelSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1060,7 +1402,7 @@ export interface ChannelSpecForProviderDestinationsMediaPackageSettings {
    *
    * @schema ChannelSpecForProviderDestinationsMediaPackageSettings#channelId
    */
-  readonly channelId: string;
+  readonly channelId?: string;
 
 }
 
@@ -1087,14 +1429,14 @@ export interface ChannelSpecForProviderDestinationsMultiplexSettings {
    *
    * @schema ChannelSpecForProviderDestinationsMultiplexSettings#multiplexId
    */
-  readonly multiplexId: string;
+  readonly multiplexId?: string;
 
   /**
    * The program name of the Multiplex program that the encoder is providing output to.
    *
    * @schema ChannelSpecForProviderDestinationsMultiplexSettings#programName
    */
-  readonly programName: string;
+  readonly programName?: string;
 
 }
 
@@ -1180,7 +1522,7 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptions {
    *
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptions#audioSelectorName
    */
-  readonly audioSelectorName: string;
+  readonly audioSelectorName?: string;
 
   /**
    * Applies only if audioTypeControl is useConfigured. The values for audioType are defined in ISO-IEC 13818-1.
@@ -1227,7 +1569,7 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptions {
    *
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptions#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
@@ -1320,14 +1662,14 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroups {
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroups#outputGroupSettings
    */
-  readonly outputGroupSettings: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettings[];
+  readonly outputGroupSettings?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettings[];
 
   /**
    * List of outputs. See Outputs for more details.
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroups#outputs
    */
-  readonly outputs: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputs[];
+  readonly outputs?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputs[];
 
 }
 
@@ -1356,7 +1698,7 @@ export interface ChannelSpecForProviderEncoderSettingsTimecodeConfig {
    *
    * @schema ChannelSpecForProviderEncoderSettingsTimecodeConfig#source
    */
-  readonly source: string;
+  readonly source?: string;
 
   /**
    * Threshold in frames beyond which output timecode is resynchronized to the input timecode.
@@ -1405,7 +1747,7 @@ export interface ChannelSpecForProviderEncoderSettingsVideoDescriptions {
    *
    * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptions#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Indicate how to respond to the AFD values that might be in the input video.
@@ -1481,7 +1823,7 @@ export interface ChannelSpecForProviderInputAttachmentsAutomaticInputFailoverSet
    *
    * @schema ChannelSpecForProviderInputAttachmentsAutomaticInputFailoverSettings#secondaryInputId
    */
-  readonly secondaryInputId: string;
+  readonly secondaryInputId?: string;
 
 }
 
@@ -1760,6 +2102,558 @@ export function toJson_ChannelSpecForProviderRoleArnSelectorPolicy(obj: ChannelS
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ChannelSpecInitProviderDestinationsMediaPackageSettings
+ */
+export interface ChannelSpecInitProviderDestinationsMediaPackageSettings {
+  /**
+   * ID of the channel in MediaPackage that is the destination for this output group.
+   *
+   * @schema ChannelSpecInitProviderDestinationsMediaPackageSettings#channelId
+   */
+  readonly channelId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderDestinationsMediaPackageSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderDestinationsMediaPackageSettings(obj: ChannelSpecInitProviderDestinationsMediaPackageSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'channelId': obj.channelId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderDestinationsMultiplexSettings
+ */
+export interface ChannelSpecInitProviderDestinationsMultiplexSettings {
+  /**
+   * The ID of the Multiplex that the encoder is providing output to.
+   *
+   * @schema ChannelSpecInitProviderDestinationsMultiplexSettings#multiplexId
+   */
+  readonly multiplexId?: string;
+
+  /**
+   * The program name of the Multiplex program that the encoder is providing output to.
+   *
+   * @schema ChannelSpecInitProviderDestinationsMultiplexSettings#programName
+   */
+  readonly programName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderDestinationsMultiplexSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderDestinationsMultiplexSettings(obj: ChannelSpecInitProviderDestinationsMultiplexSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'multiplexId': obj.multiplexId,
+    'programName': obj.programName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderDestinationsSettings
+ */
+export interface ChannelSpecInitProviderDestinationsSettings {
+  /**
+   * Key used to extract the password from EC2 Parameter store.
+   *
+   * @schema ChannelSpecInitProviderDestinationsSettings#passwordParam
+   */
+  readonly passwordParam?: string;
+
+  /**
+   * Stream name RTMP destinations (URLs of type rtmp://)
+   *
+   * @schema ChannelSpecInitProviderDestinationsSettings#streamName
+   */
+  readonly streamName?: string;
+
+  /**
+   * A URL specifying a destination.
+   *
+   * @schema ChannelSpecInitProviderDestinationsSettings#url
+   */
+  readonly url?: string;
+
+  /**
+   * Username for destination.
+   *
+   * @schema ChannelSpecInitProviderDestinationsSettings#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderDestinationsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderDestinationsSettings(obj: ChannelSpecInitProviderDestinationsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'passwordParam': obj.passwordParam,
+    'streamName': obj.streamName,
+    'url': obj.url,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptions {
+  /**
+   * Advanced audio normalization settings. See Audio Normalization Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#audioNormalizationSettings
+   */
+  readonly audioNormalizationSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings[];
+
+  /**
+   * The name of the audio selector used as the source for this AudioDescription.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#audioSelectorName
+   */
+  readonly audioSelectorName?: string;
+
+  /**
+   * Applies only if audioTypeControl is useConfigured. The values for audioType are defined in ISO-IEC 13818-1.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#audioType
+   */
+  readonly audioType?: string;
+
+  /**
+   * Determined how audio type is determined.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#audioTypeControl
+   */
+  readonly audioTypeControl?: string;
+
+  /**
+   * Settings to configure one or more solutions that insert audio watermarks in the audio encode. See Audio Watermark Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#audioWatermarkSettings
+   */
+  readonly audioWatermarkSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings[];
+
+  /**
+   * Audio codec settings. See Audio Codec Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#codecSettings
+   */
+  readonly codecSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings[];
+
+  /**
+   * When specified this field indicates the three letter language code of the caption track to extract from the source.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#languageCodeControl
+   */
+  readonly languageCodeControl?: string;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#name
+   */
+  readonly name?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#remixSettings
+   */
+  readonly remixSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings[];
+
+  /**
+   * Stream name RTMP destinations (URLs of type rtmp://)
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptions#streamName
+   */
+  readonly streamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptions(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioNormalizationSettings': obj.audioNormalizationSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings(y)),
+    'audioSelectorName': obj.audioSelectorName,
+    'audioType': obj.audioType,
+    'audioTypeControl': obj.audioTypeControl,
+    'audioWatermarkSettings': obj.audioWatermarkSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings(y)),
+    'codecSettings': obj.codecSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings(y)),
+    'languageCode': obj.languageCode,
+    'languageCodeControl': obj.languageCodeControl,
+    'name': obj.name,
+    'remixSettings': obj.remixSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings(y)),
+    'streamName': obj.streamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAvailBlanking
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAvailBlanking {
+  /**
+   * Blanking image to be used. See Avail Blanking Image for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAvailBlanking#availBlankingImage
+   */
+  readonly availBlankingImage?: ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage[];
+
+  /**
+   * When set to enabled, causes video, audio and captions to be blanked when insertion metadata is added.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAvailBlanking#state
+   */
+  readonly state?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAvailBlanking' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAvailBlanking(obj: ChannelSpecInitProviderEncoderSettingsAvailBlanking | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availBlankingImage': obj.availBlankingImage?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage(y)),
+    'state': obj.state,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroups
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroups {
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroups#name
+   */
+  readonly name?: string;
+
+  /**
+   * Settings associated with the output group. See Output Group Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroups#outputGroupSettings
+   */
+  readonly outputGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings[];
+
+  /**
+   * List of outputs. See Outputs for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroups#outputs
+   */
+  readonly outputs?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroups' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroups(obj: ChannelSpecInitProviderEncoderSettingsOutputGroups | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'outputGroupSettings': obj.outputGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings(y)),
+    'outputs': obj.outputs?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsTimecodeConfig
+ */
+export interface ChannelSpecInitProviderEncoderSettingsTimecodeConfig {
+  /**
+   * The source for the timecode that will be associated with the events outputs.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsTimecodeConfig#source
+   */
+  readonly source?: string;
+
+  /**
+   * Threshold in frames beyond which output timecode is resynchronized to the input timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsTimecodeConfig#syncThreshold
+   */
+  readonly syncThreshold?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsTimecodeConfig' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsTimecodeConfig(obj: ChannelSpecInitProviderEncoderSettingsTimecodeConfig | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'source': obj.source,
+    'syncThreshold': obj.syncThreshold,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptions {
+  /**
+   * Audio codec settings. See Audio Codec Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#codecSettings
+   */
+  readonly codecSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings[];
+
+  /**
+   * Output video height in pixels.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#height
+   */
+  readonly height?: number;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#name
+   */
+  readonly name?: string;
+
+  /**
+   * Indicate how to respond to the AFD values that might be in the input video.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#respondToAfd
+   */
+  readonly respondToAfd?: string;
+
+  /**
+   * Behavior on how to scale.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#scalingBehavior
+   */
+  readonly scalingBehavior?: string;
+
+  /**
+   * Changes the strength of the anti-alias filter used for scaling.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#sharpness
+   */
+  readonly sharpness?: number;
+
+  /**
+   * Output video width in pixels.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptions#width
+   */
+  readonly width?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptions' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptions(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptions | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'codecSettings': obj.codecSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings(y)),
+    'height': obj.height,
+    'name': obj.name,
+    'respondToAfd': obj.respondToAfd,
+    'scalingBehavior': obj.scalingBehavior,
+    'sharpness': obj.sharpness,
+    'width': obj.width,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings#errorClearTimeMsec
+   */
+  readonly errorClearTimeMsec?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings#failoverCondition
+   */
+  readonly failoverCondition?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings#inputPreference
+   */
+  readonly inputPreference?: string;
+
+  /**
+   * The ID of the input.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings#secondaryInputId
+   */
+  readonly secondaryInputId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'errorClearTimeMsec': obj.errorClearTimeMsec,
+    'failoverCondition': obj.failoverCondition?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition(y)),
+    'inputPreference': obj.inputPreference,
+    'secondaryInputId': obj.secondaryInputId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#audioSelector
+   */
+  readonly audioSelector?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#captionSelector
+   */
+  readonly captionSelector?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector[];
+
+  /**
+   * Enable or disable the deblock filter when filtering.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#deblockFilter
+   */
+  readonly deblockFilter?: string;
+
+  /**
+   * Enable or disable the denoise filter when filtering.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#denoiseFilter
+   */
+  readonly denoiseFilter?: string;
+
+  /**
+   * Adjusts the magnitude of filtering from 1 (minimal) to 5 (strongest).
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#filterStrength
+   */
+  readonly filterStrength?: number;
+
+  /**
+   * Turns on the filter for the input.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#inputFilter
+   */
+  readonly inputFilter?: string;
+
+  /**
+   * Input settings. See Network Input Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#networkInputSettings
+   */
+  readonly networkInputSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings[];
+
+  /**
+   * PID from which to read SCTE-35 messages.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#scte35Pid
+   */
+  readonly scte35Pid?: number;
+
+  /**
+   * Specifies whether to extract applicable ancillary data from a SMPTE-2038 source in the input.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#smpte2038DataPreference
+   */
+  readonly smpte2038DataPreference?: string;
+
+  /**
+   * Loop input if it is a file.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#sourceEndBehavior
+   */
+  readonly sourceEndBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettings#videoSelector
+   */
+  readonly videoSelector?: ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioSelector': obj.audioSelector?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector(y)),
+    'captionSelector': obj.captionSelector?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector(y)),
+    'deblockFilter': obj.deblockFilter,
+    'denoiseFilter': obj.denoiseFilter,
+    'filterStrength': obj.filterStrength,
+    'inputFilter': obj.inputFilter,
+    'networkInputSettings': obj.networkInputSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings(y)),
+    'scte35Pid': obj.scte35Pid,
+    'smpte2038DataPreference': obj.smpte2038DataPreference,
+    'sourceEndBehavior': obj.sourceEndBehavior,
+    'videoSelector': obj.videoSelector?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema ChannelSpecProviderConfigRefPolicyResolution
@@ -1777,30 +2671,6 @@ export enum ChannelSpecProviderConfigRefPolicyResolution {
  * @schema ChannelSpecProviderConfigRefPolicyResolve
  */
 export enum ChannelSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema ChannelSpecProviderRefPolicyResolution
- */
-export enum ChannelSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema ChannelSpecProviderRefPolicyResolve
- */
-export enum ChannelSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -1996,7 +2866,7 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSett
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettings#channelMappings
    */
-  readonly channelMappings: ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings[];
+  readonly channelMappings?: ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings[];
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettings#channelsIn
@@ -2042,7 +2912,7 @@ export interface ChannelSpecForProviderEncoderSettingsAvailBlankingAvailBlanking
    *
    * @schema ChannelSpecForProviderEncoderSettingsAvailBlankingAvailBlankingImage#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
   /**
    * Username for destination.
@@ -2182,7 +3052,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputs {
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputs#outputSettings
    */
-  readonly outputSettings: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettings[];
+  readonly outputSettings?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettings[];
 
   /**
    * The name of the video description used as video source for the output.
@@ -2364,7 +3234,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelector#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
@@ -2406,7 +3276,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelec
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelector#name
    */
-  readonly name: string;
+  readonly name?: string;
 
   /**
    * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
@@ -2546,6 +3416,587 @@ export enum ChannelSpecForProviderRoleArnSelectorPolicyResolve {
   /** IfNotPresent */
   IF_NOT_PRESENT = "IfNotPresent",
 }
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings {
+  /**
+   * Audio normalization algorithm to use. itu17701 conforms to the CALM Act specification, itu17702 to the EBU R-128 specification.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings#algorithm
+   */
+  readonly algorithm?: string;
+
+  /**
+   * Algorithm control for the audio description.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings#algorithmControl
+   */
+  readonly algorithmControl?: string;
+
+  /**
+   * Target LKFS (loudness) to adjust volume to.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings#targetLkfs
+   */
+  readonly targetLkfs?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioNormalizationSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'algorithm': obj.algorithm,
+    'algorithmControl': obj.algorithmControl,
+    'targetLkfs': obj.targetLkfs,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings#nielsenWatermarksSettings
+   */
+  readonly nielsenWatermarksSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nielsenWatermarksSettings': obj.nielsenWatermarksSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings {
+  /**
+   * Aac Settings. See AAC Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#aacSettings
+   */
+  readonly aacSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings[];
+
+  /**
+   * Ac3 Settings. See AC3 Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#ac3Settings
+   */
+  readonly ac3Settings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings[];
+
+  /**
+   * - Eac3 Atmos Settings. See EAC3 Atmos Settings
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#eac3AtmosSettings
+   */
+  readonly eac3AtmosSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings[];
+
+  /**
+   * - Eac3 Settings. See EAC3 Settings
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#eac3Settings
+   */
+  readonly eac3Settings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#mp2Settings
+   */
+  readonly mp2Settings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#passThroughSettings
+   */
+  readonly passThroughSettings?: any[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings#wavSettings
+   */
+  readonly wavSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'aacSettings': obj.aacSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings(y)),
+    'ac3Settings': obj.ac3Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings(y)),
+    'eac3AtmosSettings': obj.eac3AtmosSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings(y)),
+    'eac3Settings': obj.eac3Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings(y)),
+    'mp2Settings': obj.mp2Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings(y)),
+    'passThroughSettings': obj.passThroughSettings?.map(y => y),
+    'wavSettings': obj.wavSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings#channelMappings
+   */
+  readonly channelMappings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings#channelsIn
+   */
+  readonly channelsIn?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings#channelsOut
+   */
+  readonly channelsOut?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'channelMappings': obj.channelMappings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings(y)),
+    'channelsIn': obj.channelsIn,
+    'channelsOut': obj.channelsOut,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage {
+  /**
+   * Key used to extract the password from EC2 Parameter store.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage#passwordParam
+   */
+  readonly passwordParam?: string;
+
+  /**
+   * Path to a file accessible to the live stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage#uri
+   */
+  readonly uri?: string;
+
+  /**
+   * Username for destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage(obj: ChannelSpecInitProviderEncoderSettingsAvailBlankingAvailBlankingImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'passwordParam': obj.passwordParam,
+    'uri': obj.uri,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings {
+  /**
+   * Archive group settings. See Archive Group Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#archiveGroupSettings
+   */
+  readonly archiveGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#frameCaptureGroupSettings
+   */
+  readonly frameCaptureGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#hlsGroupSettings
+   */
+  readonly hlsGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings[];
+
+  /**
+   * Media package group settings. See Media Package Group Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#mediaPackageGroupSettings
+   */
+  readonly mediaPackageGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#msSmoothGroupSettings
+   */
+  readonly msSmoothGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#multiplexGroupSettings
+   */
+  readonly multiplexGroupSettings?: any[];
+
+  /**
+   * RTMP group settings. See RTMP Group Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#rtmpGroupSettings
+   */
+  readonly rtmpGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings#udpGroupSettings
+   */
+  readonly udpGroupSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveGroupSettings': obj.archiveGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings(y)),
+    'frameCaptureGroupSettings': obj.frameCaptureGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings(y)),
+    'hlsGroupSettings': obj.hlsGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings(y)),
+    'mediaPackageGroupSettings': obj.mediaPackageGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings(y)),
+    'msSmoothGroupSettings': obj.msSmoothGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings(y)),
+    'multiplexGroupSettings': obj.multiplexGroupSettings?.map(y => y),
+    'rtmpGroupSettings': obj.rtmpGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings(y)),
+    'udpGroupSettings': obj.udpGroupSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs {
+  /**
+   * The names of the audio descriptions used as audio sources for the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs#audioDescriptionNames
+   */
+  readonly audioDescriptionNames?: string[];
+
+  /**
+   * The names of the caption descriptions used as caption sources for the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs#captionDescriptionNames
+   */
+  readonly captionDescriptionNames?: string[];
+
+  /**
+   * The name used to identify an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs#outputName
+   */
+  readonly outputName?: string;
+
+  /**
+   * Settings for output. See Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs#outputSettings
+   */
+  readonly outputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings[];
+
+  /**
+   * The name of the video description used as video source for the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs#videoDescriptionName
+   */
+  readonly videoDescriptionName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputs | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioDescriptionNames': obj.audioDescriptionNames?.map(y => y),
+    'captionDescriptionNames': obj.captionDescriptionNames?.map(y => y),
+    'outputName': obj.outputName,
+    'outputSettings': obj.outputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings(y)),
+    'videoDescriptionName': obj.videoDescriptionName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings {
+  /**
+   * Frame capture settings. See Frame Capture Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings#frameCaptureSettings
+   */
+  readonly frameCaptureSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings[];
+
+  /**
+   * H264 settings. See H264 Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings#h264Settings
+   */
+  readonly h264Settings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings#h265Settings
+   */
+  readonly h265Settings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'frameCaptureSettings': obj.frameCaptureSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings(y)),
+    'h264Settings': obj.h264Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings(y)),
+    'h265Settings': obj.h265Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition#failoverConditionSettings
+   */
+  readonly failoverConditionSettings?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverCondition | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'failoverConditionSettings': obj.failoverConditionSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector {
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector#name
+   */
+  readonly name?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector#selectorSettings
+   */
+  readonly selectorSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'name': obj.name,
+    'selectorSettings': obj.selectorSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector {
+  /**
+   * When specified this field indicates the three letter language code of the caption track to extract from the source.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector#name
+   */
+  readonly name?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector#selectorSettings
+   */
+  readonly selectorSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'languageCode': obj.languageCode,
+    'name': obj.name,
+    'selectorSettings': obj.selectorSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings {
+  /**
+   * Specifies HLS input settings when the uri is for a HLS manifest. See HLS Input Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings#hlsInputSettings
+   */
+  readonly hlsInputSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings[];
+
+  /**
+   * Check HTTPS server certificates.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings#serverValidation
+   */
+  readonly serverValidation?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hlsInputSettings': obj.hlsInputSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings(y)),
+    'serverValidation': obj.serverValidation,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector#colorSpace
+   */
+  readonly colorSpace?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector#colorSpaceUsage
+   */
+  readonly colorSpaceUsage?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsVideoSelector | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'colorSpace': obj.colorSpace,
+    'colorSpaceUsage': obj.colorSpaceUsage,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
 
 /**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
@@ -3111,12 +4562,12 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSett
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings#inputChannelLevels
    */
-  readonly inputChannelLevels: ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels[];
+  readonly inputChannelLevels?: ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels[];
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings#outputChannel
    */
-  readonly outputChannel: number;
+  readonly outputChannel?: number;
 
 }
 
@@ -3151,7 +4602,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination[];
 
   /**
    * Number of seconds to write to archive file before closing and starting a new one.
@@ -3187,7 +4638,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination[];
 
   /**
    * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
@@ -3274,7 +4725,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination[];
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#directoryStructure
@@ -3511,7 +4962,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination[];
 
 }
 
@@ -3564,7 +5015,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination[];
 
   /**
    * User-specified id. Ths is used in an output group or an output.
@@ -4275,7 +5726,7 @@ export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSett
    *
    * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#bitrate
    */
-  readonly bitrate: number;
+  readonly bitrate?: number;
 
   /**
    * Size of buffer in bits.
@@ -4322,14 +5773,14 @@ export interface ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSett
    *
    * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateDenominator
    */
-  readonly framerateDenominator: number;
+  readonly framerateDenominator?: number;
 
   /**
    * Framerate numerator.
    *
    * @schema ChannelSpecForProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateNumerator
    */
-  readonly framerateNumerator: number;
+  readonly framerateNumerator?: number;
 
   /**
    * Frequency of closed GOPs.
@@ -4761,27 +6212,2168 @@ export function toJson_ChannelSpecForProviderInputAttachmentsInputSettingsNetwor
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings {
+  /**
+   * Used to insert watermarks of type Nielsen CBET. See Nielsen CBET Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings#nielsenCbetSettings
+   */
+  readonly nielsenCbetSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings[];
+
+  /**
+   * Distribution types to assign to the watermarks. Options are PROGRAM_CONTENT and FINAL_DISTRIBUTOR.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings#nielsenDistributionType
+   */
+  readonly nielsenDistributionType?: string;
+
+  /**
+   * Used to insert watermarks of type Nielsen NAES, II (N2) and Nielsen NAES VI (NW). See Nielsen NAES II NW Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings#nielsenNaesIiNwSettings
+   */
+  readonly nielsenNaesIiNwSettings?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nielsenCbetSettings': obj.nielsenCbetSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings(y)),
+    'nielsenDistributionType': obj.nielsenDistributionType,
+    'nielsenNaesIiNwSettings': obj.nielsenNaesIiNwSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings {
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * Set to "broadcasterMixedAd" when input contains pre-mixed main audio + AD (narration) as a stereo pair.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#inputType
+   */
+  readonly inputType?: string;
+
+  /**
+   * AAC profile.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#profile
+   */
+  readonly profile?: string;
+
+  /**
+   * The rate control mode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#rateControlMode
+   */
+  readonly rateControlMode?: string;
+
+  /**
+   * Sets LATM/LOAS AAC output for raw containers.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#rawFormat
+   */
+  readonly rawFormat?: string;
+
+  /**
+   * Sample rate in Hz.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#sampleRate
+   */
+  readonly sampleRate?: number;
+
+  /**
+   * Use MPEG-2 AAC audio instead of MPEG-4 AAC audio for raw or MPEG-2 Transport Stream containers.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#spec
+   */
+  readonly spec?: string;
+
+  /**
+   * VBR Quality Level - Only used if rateControlMode is VBR.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings#vbrQuality
+   */
+  readonly vbrQuality?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAacSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitrate': obj.bitrate,
+    'codingMode': obj.codingMode,
+    'inputType': obj.inputType,
+    'profile': obj.profile,
+    'rateControlMode': obj.rateControlMode,
+    'rawFormat': obj.rawFormat,
+    'sampleRate': obj.sampleRate,
+    'spec': obj.spec,
+    'vbrQuality': obj.vbrQuality,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings {
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Specifies the bitstream mode (bsmod) for the emitted AC-3 stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#bitstreamMode
+   */
+  readonly bitstreamMode?: string;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * Sets the dialnorm of the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#dialnorm
+   */
+  readonly dialnorm?: number;
+
+  /**
+   * If set to filmStandard, adds dynamic range compression signaling to the output bitstream as defined in the Dolby Digital specification.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#drcProfile
+   */
+  readonly drcProfile?: string;
+
+  /**
+   * When set to enabled, applies a 120Hz lowpass filter to the LFE channel prior to encoding.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#lfeFilter
+   */
+  readonly lfeFilter?: string;
+
+  /**
+   * Metadata control.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings#metadataControl
+   */
+  readonly metadataControl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsAc3Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitrate': obj.bitrate,
+    'bitstreamMode': obj.bitstreamMode,
+    'codingMode': obj.codingMode,
+    'dialnorm': obj.dialnorm,
+    'drcProfile': obj.drcProfile,
+    'lfeFilter': obj.lfeFilter,
+    'metadataControl': obj.metadataControl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings {
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * Sets the dialnorm of the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#dialnorm
+   */
+  readonly dialnorm?: number;
+
+  /**
+   * Sets the Dolby dynamic range compression profile.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#drcLine
+   */
+  readonly drcLine?: string;
+
+  /**
+   * Sets the profile for heavy Dolby dynamic range compression.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#drcRf
+   */
+  readonly drcRf?: string;
+
+  /**
+   * Height dimensional trim.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#heightTrim
+   */
+  readonly heightTrim?: number;
+
+  /**
+   * Surround dimensional trim.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings#surroundTrim
+   */
+  readonly surroundTrim?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3AtmosSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitrate': obj.bitrate,
+    'codingMode': obj.codingMode,
+    'dialnorm': obj.dialnorm,
+    'drcLine': obj.drcLine,
+    'drcRf': obj.drcRf,
+    'heightTrim': obj.heightTrim,
+    'surroundTrim': obj.surroundTrim,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings {
+  /**
+   * Sets the attenuation control.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#attenuationControl
+   */
+  readonly attenuationControl?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Specifies the bitstream mode (bsmod) for the emitted AC-3 stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#bitstreamMode
+   */
+  readonly bitstreamMode?: string;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#dcFilter
+   */
+  readonly dcFilter?: string;
+
+  /**
+   * Sets the dialnorm of the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#dialnorm
+   */
+  readonly dialnorm?: number;
+
+  /**
+   * Sets the Dolby dynamic range compression profile.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#drcLine
+   */
+  readonly drcLine?: string;
+
+  /**
+   * Sets the profile for heavy Dolby dynamic range compression.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#drcRf
+   */
+  readonly drcRf?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#lfeControl
+   */
+  readonly lfeControl?: string;
+
+  /**
+   * When set to enabled, applies a 120Hz lowpass filter to the LFE channel prior to encoding.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#lfeFilter
+   */
+  readonly lfeFilter?: string;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#loRoCenterMixLevel
+   */
+  readonly loRoCenterMixLevel?: number;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#loRoSurroundMixLevel
+   */
+  readonly loRoSurroundMixLevel?: number;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#ltRtCenterMixLevel
+   */
+  readonly ltRtCenterMixLevel?: number;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#ltRtSurroundMixLevel
+   */
+  readonly ltRtSurroundMixLevel?: number;
+
+  /**
+   * Metadata control.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#metadataControl
+   */
+  readonly metadataControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#passthroughControl
+   */
+  readonly passthroughControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#phaseControl
+   */
+  readonly phaseControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#stereoDownmix
+   */
+  readonly stereoDownmix?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#surroundExMode
+   */
+  readonly surroundExMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings#surroundMode
+   */
+  readonly surroundMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsEac3Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attenuationControl': obj.attenuationControl,
+    'bitrate': obj.bitrate,
+    'bitstreamMode': obj.bitstreamMode,
+    'codingMode': obj.codingMode,
+    'dcFilter': obj.dcFilter,
+    'dialnorm': obj.dialnorm,
+    'drcLine': obj.drcLine,
+    'drcRf': obj.drcRf,
+    'lfeControl': obj.lfeControl,
+    'lfeFilter': obj.lfeFilter,
+    'loRoCenterMixLevel': obj.loRoCenterMixLevel,
+    'loRoSurroundMixLevel': obj.loRoSurroundMixLevel,
+    'ltRtCenterMixLevel': obj.ltRtCenterMixLevel,
+    'ltRtSurroundMixLevel': obj.ltRtSurroundMixLevel,
+    'metadataControl': obj.metadataControl,
+    'passthroughControl': obj.passthroughControl,
+    'phaseControl': obj.phaseControl,
+    'stereoDownmix': obj.stereoDownmix,
+    'surroundExMode': obj.surroundExMode,
+    'surroundMode': obj.surroundMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings {
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * Sample rate in Hz.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings#sampleRate
+   */
+  readonly sampleRate?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsMp2Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitrate': obj.bitrate,
+    'codingMode': obj.codingMode,
+    'sampleRate': obj.sampleRate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings#bitDepth
+   */
+  readonly bitDepth?: number;
+
+  /**
+   * Mono, Stereo, or 5.1 channel layout.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings#codingMode
+   */
+  readonly codingMode?: string;
+
+  /**
+   * Sample rate in Hz.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings#sampleRate
+   */
+  readonly sampleRate?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsCodecSettingsWavSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bitDepth': obj.bitDepth,
+    'codingMode': obj.codingMode,
+    'sampleRate': obj.sampleRate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings#inputChannelLevels
+   */
+  readonly inputChannelLevels?: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings#outputChannel
+   */
+  readonly outputChannel?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'inputChannelLevels': obj.inputChannelLevels?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels(y)),
+    'outputChannel': obj.outputChannel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings {
+  /**
+   * Parameters that control the interactions with the CDN. See Archive CDN Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings#archiveCdnSettings
+   */
+  readonly archiveCdnSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings[];
+
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination[];
+
+  /**
+   * Number of seconds to write to archive file before closing and starting a new one.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings#rolloverInterval
+   */
+  readonly rolloverInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveCdnSettings': obj.archiveCdnSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings(y)),
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination(y)),
+    'rolloverInterval': obj.rolloverInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings {
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings#frameCaptureCdnSettings
+   */
+  readonly frameCaptureCdnSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination(y)),
+    'frameCaptureCdnSettings': obj.frameCaptureCdnSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings {
+  /**
+   * The ad marker type for this output group.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#adMarkers
+   */
+  readonly adMarkers?: string[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#baseUrlContent
+   */
+  readonly baseUrlContent?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#baseUrlContent1
+   */
+  readonly baseUrlContent1?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#baseUrlManifest
+   */
+  readonly baseUrlManifest?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#baseUrlManifest1
+   */
+  readonly baseUrlManifest1?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#captionLanguageMappings
+   */
+  readonly captionLanguageMappings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#captionLanguageSetting
+   */
+  readonly captionLanguageSetting?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#clientCache
+   */
+  readonly clientCache?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#codecSpecification
+   */
+  readonly codecSpecification?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#constantIv
+   */
+  readonly constantIv?: string;
+
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#directoryStructure
+   */
+  readonly directoryStructure?: string;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#discontinuityTags
+   */
+  readonly discontinuityTags?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#encryptionType
+   */
+  readonly encryptionType?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#hlsCdnSettings
+   */
+  readonly hlsCdnSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#hlsId3SegmentTagging
+   */
+  readonly hlsId3SegmentTagging?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#iframeOnlyPlaylists
+   */
+  readonly iframeOnlyPlaylists?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#incompleteSegmentBehavior
+   */
+  readonly incompleteSegmentBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#indexNSegments
+   */
+  readonly indexNSegments?: number;
+
+  /**
+   * Controls the behavior of the RTMP group if input becomes unavailable.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#inputLossAction
+   */
+  readonly inputLossAction?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#ivInManifest
+   */
+  readonly ivInManifest?: string;
+
+  /**
+   * The source for the timecode that will be associated with the events outputs.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#ivSource
+   */
+  readonly ivSource?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#keepSegments
+   */
+  readonly keepSegments?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#keyFormat
+   */
+  readonly keyFormat?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#keyFormatVersions
+   */
+  readonly keyFormatVersions?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#keyProviderSettings
+   */
+  readonly keyProviderSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#manifestCompression
+   */
+  readonly manifestCompression?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#manifestDurationFormat
+   */
+  readonly manifestDurationFormat?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#minSegmentLength
+   */
+  readonly minSegmentLength?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#mode
+   */
+  readonly mode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#outputSelection
+   */
+  readonly outputSelection?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#programDateTime
+   */
+  readonly programDateTime?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#programDateTimeClock
+   */
+  readonly programDateTimeClock?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#programDateTimePeriod
+   */
+  readonly programDateTimePeriod?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#redundantManifest
+   */
+  readonly redundantManifest?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#segmentLength
+   */
+  readonly segmentLength?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#segmentsPerSubdirectory
+   */
+  readonly segmentsPerSubdirectory?: number;
+
+  /**
+   * - Maximum CDI input resolution.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#streamInfResolution
+   */
+  readonly streamInfResolution?: string;
+
+  /**
+   * Indicates ID3 frame that has the timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#timedMetadataId3Frame
+   */
+  readonly timedMetadataId3Frame?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#timedMetadataId3Period
+   */
+  readonly timedMetadataId3Period?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#timestampDeltaMilliseconds
+   */
+  readonly timestampDeltaMilliseconds?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings#tsFileMode
+   */
+  readonly tsFileMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adMarkers': obj.adMarkers?.map(y => y),
+    'baseUrlContent': obj.baseUrlContent,
+    'baseUrlContent1': obj.baseUrlContent1,
+    'baseUrlManifest': obj.baseUrlManifest,
+    'baseUrlManifest1': obj.baseUrlManifest1,
+    'captionLanguageMappings': obj.captionLanguageMappings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings(y)),
+    'captionLanguageSetting': obj.captionLanguageSetting,
+    'clientCache': obj.clientCache,
+    'codecSpecification': obj.codecSpecification,
+    'constantIv': obj.constantIv,
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination(y)),
+    'directoryStructure': obj.directoryStructure,
+    'discontinuityTags': obj.discontinuityTags,
+    'encryptionType': obj.encryptionType,
+    'hlsCdnSettings': obj.hlsCdnSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings(y)),
+    'hlsId3SegmentTagging': obj.hlsId3SegmentTagging,
+    'iframeOnlyPlaylists': obj.iframeOnlyPlaylists,
+    'incompleteSegmentBehavior': obj.incompleteSegmentBehavior,
+    'indexNSegments': obj.indexNSegments,
+    'inputLossAction': obj.inputLossAction,
+    'ivInManifest': obj.ivInManifest,
+    'ivSource': obj.ivSource,
+    'keepSegments': obj.keepSegments,
+    'keyFormat': obj.keyFormat,
+    'keyFormatVersions': obj.keyFormatVersions,
+    'keyProviderSettings': obj.keyProviderSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings(y)),
+    'manifestCompression': obj.manifestCompression,
+    'manifestDurationFormat': obj.manifestDurationFormat,
+    'minSegmentLength': obj.minSegmentLength,
+    'mode': obj.mode,
+    'outputSelection': obj.outputSelection,
+    'programDateTime': obj.programDateTime,
+    'programDateTimeClock': obj.programDateTimeClock,
+    'programDateTimePeriod': obj.programDateTimePeriod,
+    'redundantManifest': obj.redundantManifest,
+    'segmentLength': obj.segmentLength,
+    'segmentsPerSubdirectory': obj.segmentsPerSubdirectory,
+    'streamInfResolution': obj.streamInfResolution,
+    'timedMetadataId3Frame': obj.timedMetadataId3Frame,
+    'timedMetadataId3Period': obj.timedMetadataId3Period,
+    'timestampDeltaMilliseconds': obj.timestampDeltaMilliseconds,
+    'tsFileMode': obj.tsFileMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings {
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#acquisitionPointId
+   */
+  readonly acquisitionPointId?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#audioOnlyTimecodeControl
+   */
+  readonly audioOnlyTimecodeControl?: string;
+
+  /**
+   * Setting to allow self signed or verified RTMP certificates.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#certificateMode
+   */
+  readonly certificateMode?: string;
+
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination[];
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#eventId
+   */
+  readonly eventId?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#eventIdMode
+   */
+  readonly eventIdMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#eventStopBehavior
+   */
+  readonly eventStopBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#filecacheDuration
+   */
+  readonly filecacheDuration?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#fragmentLength
+   */
+  readonly fragmentLength?: number;
+
+  /**
+   * Controls the behavior of the RTMP group if input becomes unavailable.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#inputLossAction
+   */
+  readonly inputLossAction?: string;
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#segmentationMode
+   */
+  readonly segmentationMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#sendDelayMs
+   */
+  readonly sendDelayMs?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#sparseTrackType
+   */
+  readonly sparseTrackType?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#streamManifestBehavior
+   */
+  readonly streamManifestBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#timestampOffset
+   */
+  readonly timestampOffset?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings#timestampOffsetMode
+   */
+  readonly timestampOffsetMode?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'acquisitionPointId': obj.acquisitionPointId,
+    'audioOnlyTimecodeControl': obj.audioOnlyTimecodeControl,
+    'certificateMode': obj.certificateMode,
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination(y)),
+    'eventId': obj.eventId,
+    'eventIdMode': obj.eventIdMode,
+    'eventStopBehavior': obj.eventStopBehavior,
+    'filecacheDuration': obj.filecacheDuration,
+    'fragmentLength': obj.fragmentLength,
+    'inputLossAction': obj.inputLossAction,
+    'numRetries': obj.numRetries,
+    'restartDelay': obj.restartDelay,
+    'segmentationMode': obj.segmentationMode,
+    'sendDelayMs': obj.sendDelayMs,
+    'sparseTrackType': obj.sparseTrackType,
+    'streamManifestBehavior': obj.streamManifestBehavior,
+    'timestampOffset': obj.timestampOffset,
+    'timestampOffsetMode': obj.timestampOffsetMode,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings {
+  /**
+   * The ad marker type for this output group.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#adMarkers
+   */
+  readonly adMarkers?: string[];
+
+  /**
+   * Authentication scheme to use when connecting with CDN.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#authenticationScheme
+   */
+  readonly authenticationScheme?: string;
+
+  /**
+   * Controls behavior when content cache fills up.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#cacheFullBehavior
+   */
+  readonly cacheFullBehavior?: string;
+
+  /**
+   * Cache length in seconds, is used to calculate buffer size.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#cacheLength
+   */
+  readonly cacheLength?: number;
+
+  /**
+   * Controls the types of data that passes to onCaptionInfo outputs.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#captionData
+   */
+  readonly captionData?: string;
+
+  /**
+   * Controls the behavior of the RTMP group if input becomes unavailable.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#inputLossAction
+   */
+  readonly inputLossAction?: string;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsRtmpGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adMarkers': obj.adMarkers?.map(y => y),
+    'authenticationScheme': obj.authenticationScheme,
+    'cacheFullBehavior': obj.cacheFullBehavior,
+    'cacheLength': obj.cacheLength,
+    'captionData': obj.captionData,
+    'inputLossAction': obj.inputLossAction,
+    'restartDelay': obj.restartDelay,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings {
+  /**
+   * Controls the behavior of the RTMP group if input becomes unavailable.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings#inputLossAction
+   */
+  readonly inputLossAction?: string;
+
+  /**
+   * Indicates ID3 frame that has the timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings#timedMetadataId3Frame
+   */
+  readonly timedMetadataId3Frame?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings#timedMetadataId3Period
+   */
+  readonly timedMetadataId3Period?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsUdpGroupSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'inputLossAction': obj.inputLossAction,
+    'timedMetadataId3Frame': obj.timedMetadataId3Frame,
+    'timedMetadataId3Period': obj.timedMetadataId3Period,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings {
+  /**
+   * Archive output settings. See Archive Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#archiveOutputSettings
+   */
+  readonly archiveOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings[];
+
+  /**
+   * Settings for output. See Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#frameCaptureOutputSettings
+   */
+  readonly frameCaptureOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings[];
+
+  /**
+   * Settings for output. See Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#hlsOutputSettings
+   */
+  readonly hlsOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings[];
+
+  /**
+   * Media package output settings. This can be set as an empty block.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#mediaPackageOutputSettings
+   */
+  readonly mediaPackageOutputSettings?: any[];
+
+  /**
+   * Settings for output. See Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#msSmoothOutputSettings
+   */
+  readonly msSmoothOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings[];
+
+  /**
+   * Multiplex output settings. See Multiplex Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#multiplexOutputSettings
+   */
+  readonly multiplexOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings[];
+
+  /**
+   * RTMP output settings. See RTMP Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#rtmpOutputSettings
+   */
+  readonly rtmpOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings[];
+
+  /**
+   * UDP output settings. See UDP Output Settings for more details
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings#udpOutputSettings
+   */
+  readonly udpOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveOutputSettings': obj.archiveOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings(y)),
+    'frameCaptureOutputSettings': obj.frameCaptureOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings(y)),
+    'hlsOutputSettings': obj.hlsOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings(y)),
+    'mediaPackageOutputSettings': obj.mediaPackageOutputSettings?.map(y => y),
+    'msSmoothOutputSettings': obj.msSmoothOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings(y)),
+    'multiplexOutputSettings': obj.multiplexOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings(y)),
+    'rtmpOutputSettings': obj.rtmpOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings(y)),
+    'udpOutputSettings': obj.udpOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings {
+  /**
+   * The frequency at which to capture frames for inclusion in the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings#captureInterval
+   */
+  readonly captureInterval?: number;
+
+  /**
+   * Unit for the frame capture interval.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings#captureIntervalUnits
+   */
+  readonly captureIntervalUnits?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsFrameCaptureSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'captureInterval': obj.captureInterval,
+    'captureIntervalUnits': obj.captureIntervalUnits,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings {
+  /**
+   * Enables or disables adaptive quantization.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#adaptiveQuantization
+   */
+  readonly adaptiveQuantization?: string;
+
+  /**
+   * Indicates that AFD values will be written into the output stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#afdSignaling
+   */
+  readonly afdSignaling?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#bufFillPct
+   */
+  readonly bufFillPct?: number;
+
+  /**
+   * Size of buffer in bits.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#bufSize
+   */
+  readonly bufSize?: number;
+
+  /**
+   * Includes color space metadata in the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#colorMetadata
+   */
+  readonly colorMetadata?: string;
+
+  /**
+   * Entropy encoding mode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#entropyEncoding
+   */
+  readonly entropyEncoding?: string;
+
+  /**
+   * Filters to apply to an encode. See H264 Filter Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#filterSettings
+   */
+  readonly filterSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings[];
+
+  /**
+   * Four bit AFD value to write on all frames of video in the output stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#fixedAfd
+   */
+  readonly fixedAfd?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#flickerAq
+   */
+  readonly flickerAq?: string;
+
+  /**
+   * Controls whether coding is performed on a field basis or on a frame basis.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#forceFieldPictures
+   */
+  readonly forceFieldPictures?: string;
+
+  /**
+   * Indicates how the output video frame rate is specified.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#framerateControl
+   */
+  readonly framerateControl?: string;
+
+  /**
+   * Framerate denominator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#framerateDenominator
+   */
+  readonly framerateDenominator?: number;
+
+  /**
+   * Framerate numerator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#framerateNumerator
+   */
+  readonly framerateNumerator?: number;
+
+  /**
+   * GOP-B reference.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#gopBReference
+   */
+  readonly gopBReference?: string;
+
+  /**
+   * Frequency of closed GOPs.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#gopClosedCadence
+   */
+  readonly gopClosedCadence?: number;
+
+  /**
+   * Number of B-frames between reference frames.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#gopNumBFrames
+   */
+  readonly gopNumBFrames?: number;
+
+  /**
+   * GOP size in units of either frames of seconds per gop_size_units.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#gopSize
+   */
+  readonly gopSize?: number;
+
+  /**
+   * Indicates if the gop_size is specified in frames or seconds.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#gopSizeUnits
+   */
+  readonly gopSizeUnits?: string;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#level
+   */
+  readonly level?: string;
+
+  /**
+   * Amount of lookahead.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#lookAheadRateControl
+   */
+  readonly lookAheadRateControl?: string;
+
+  /**
+   * Set the maximum bitrate in order to accommodate expected spikes in the complexity of the video.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#maxBitrate
+   */
+  readonly maxBitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#minIInterval
+   */
+  readonly minIInterval?: number;
+
+  /**
+   * Number of reference frames to use.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#numRefFrames
+   */
+  readonly numRefFrames?: number;
+
+  /**
+   * Indicates how the output pixel aspect ratio is specified.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#parControl
+   */
+  readonly parControl?: string;
+
+  /**
+   * Pixel Aspect Ratio denominator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#parDenominator
+   */
+  readonly parDenominator?: number;
+
+  /**
+   * Pixel Aspect Ratio numerator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#parNumerator
+   */
+  readonly parNumerator?: number;
+
+  /**
+   * AAC profile.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#profile
+   */
+  readonly profile?: string;
+
+  /**
+   * Quality level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#qualityLevel
+   */
+  readonly qualityLevel?: string;
+
+  /**
+   * Controls the target quality for the video encode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#qvbrQualityLevel
+   */
+  readonly qvbrQualityLevel?: number;
+
+  /**
+   * The rate control mode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#rateControlMode
+   */
+  readonly rateControlMode?: string;
+
+  /**
+   * Sets the scan type of the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#scanType
+   */
+  readonly scanType?: string;
+
+  /**
+   * Scene change detection.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#sceneChangeDetect
+   */
+  readonly sceneChangeDetect?: string;
+
+  /**
+   * Number of slices per picture.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#slices
+   */
+  readonly slices?: number;
+
+  /**
+   * Softness.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#softness
+   */
+  readonly softness?: number;
+
+  /**
+   * Makes adjustments within each frame based on spatial variation of content complexity.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#spatialAq
+   */
+  readonly spatialAq?: string;
+
+  /**
+   * Subgop length.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#subgopLength
+   */
+  readonly subgopLength?: string;
+
+  /**
+   * Produces a bitstream compliant with SMPTE RP-2027.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#syntax
+   */
+  readonly syntax?: string;
+
+  /**
+   * Makes adjustments within each frame based on temporal variation of content complexity.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#temporalAq
+   */
+  readonly temporalAq?: string;
+
+  /**
+   * Determines how timecodes should be inserted into the video elementary stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings#timecodeInsertion
+   */
+  readonly timecodeInsertion?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adaptiveQuantization': obj.adaptiveQuantization,
+    'afdSignaling': obj.afdSignaling,
+    'bitrate': obj.bitrate,
+    'bufFillPct': obj.bufFillPct,
+    'bufSize': obj.bufSize,
+    'colorMetadata': obj.colorMetadata,
+    'entropyEncoding': obj.entropyEncoding,
+    'filterSettings': obj.filterSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings(y)),
+    'fixedAfd': obj.fixedAfd,
+    'flickerAq': obj.flickerAq,
+    'forceFieldPictures': obj.forceFieldPictures,
+    'framerateControl': obj.framerateControl,
+    'framerateDenominator': obj.framerateDenominator,
+    'framerateNumerator': obj.framerateNumerator,
+    'gopBReference': obj.gopBReference,
+    'gopClosedCadence': obj.gopClosedCadence,
+    'gopNumBFrames': obj.gopNumBFrames,
+    'gopSize': obj.gopSize,
+    'gopSizeUnits': obj.gopSizeUnits,
+    'level': obj.level,
+    'lookAheadRateControl': obj.lookAheadRateControl,
+    'maxBitrate': obj.maxBitrate,
+    'minIInterval': obj.minIInterval,
+    'numRefFrames': obj.numRefFrames,
+    'parControl': obj.parControl,
+    'parDenominator': obj.parDenominator,
+    'parNumerator': obj.parNumerator,
+    'profile': obj.profile,
+    'qualityLevel': obj.qualityLevel,
+    'qvbrQualityLevel': obj.qvbrQualityLevel,
+    'rateControlMode': obj.rateControlMode,
+    'scanType': obj.scanType,
+    'sceneChangeDetect': obj.sceneChangeDetect,
+    'slices': obj.slices,
+    'softness': obj.softness,
+    'spatialAq': obj.spatialAq,
+    'subgopLength': obj.subgopLength,
+    'syntax': obj.syntax,
+    'temporalAq': obj.temporalAq,
+    'timecodeInsertion': obj.timecodeInsertion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings {
+  /**
+   * Enables or disables adaptive quantization.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#adaptiveQuantization
+   */
+  readonly adaptiveQuantization?: string;
+
+  /**
+   * Indicates that AFD values will be written into the output stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#afdSignaling
+   */
+  readonly afdSignaling?: string;
+
+  /**
+   * Whether or not EML should insert an Alternative Transfer Function SEI message.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#alternativeTransferFunction
+   */
+  readonly alternativeTransferFunction?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * Size of buffer in bits.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#bufSize
+   */
+  readonly bufSize?: number;
+
+  /**
+   * Includes color space metadata in the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#colorMetadata
+   */
+  readonly colorMetadata?: string;
+
+  /**
+   * Define the color metadata for the output. H265 Color Space Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#colorSpaceSettings
+   */
+  readonly colorSpaceSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings[];
+
+  /**
+   * Filters to apply to an encode. See H264 Filter Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#filterSettings
+   */
+  readonly filterSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings[];
+
+  /**
+   * Four bit AFD value to write on all frames of video in the output stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#fixedAfd
+   */
+  readonly fixedAfd?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#flickerAq
+   */
+  readonly flickerAq?: string;
+
+  /**
+   * Framerate denominator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateDenominator
+   */
+  readonly framerateDenominator?: number;
+
+  /**
+   * Framerate numerator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#framerateNumerator
+   */
+  readonly framerateNumerator?: number;
+
+  /**
+   * Frequency of closed GOPs.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopClosedCadence
+   */
+  readonly gopClosedCadence?: number;
+
+  /**
+   * GOP size in units of either frames of seconds per gop_size_units.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopSize
+   */
+  readonly gopSize?: number;
+
+  /**
+   * Indicates if the gop_size is specified in frames or seconds.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#gopSizeUnits
+   */
+  readonly gopSizeUnits?: string;
+
+  /**
+   * H264 level.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#level
+   */
+  readonly level?: string;
+
+  /**
+   * Amount of lookahead.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#lookAheadRateControl
+   */
+  readonly lookAheadRateControl?: string;
+
+  /**
+   * Set the maximum bitrate in order to accommodate expected spikes in the complexity of the video.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#maxBitrate
+   */
+  readonly maxBitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#minIInterval
+   */
+  readonly minIInterval?: number;
+
+  /**
+   * Pixel Aspect Ratio denominator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#parDenominator
+   */
+  readonly parDenominator?: number;
+
+  /**
+   * Pixel Aspect Ratio numerator.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#parNumerator
+   */
+  readonly parNumerator?: number;
+
+  /**
+   * AAC profile.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#profile
+   */
+  readonly profile?: string;
+
+  /**
+   * Controls the target quality for the video encode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#qvbrQualityLevel
+   */
+  readonly qvbrQualityLevel?: number;
+
+  /**
+   * The rate control mode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#rateControlMode
+   */
+  readonly rateControlMode?: string;
+
+  /**
+   * Sets the scan type of the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#scanType
+   */
+  readonly scanType?: string;
+
+  /**
+   * Scene change detection.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#sceneChangeDetect
+   */
+  readonly sceneChangeDetect?: string;
+
+  /**
+   * Number of slices per picture.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#slices
+   */
+  readonly slices?: number;
+
+  /**
+   * Set the H265 tier in the output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#tier
+   */
+  readonly tier?: string;
+
+  /**
+   * Apply a burned in timecode. See H265 Timecode Burnin Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#timecodeBurninSettings
+   */
+  readonly timecodeBurninSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings[];
+
+  /**
+   * Determines how timecodes should be inserted into the video elementary stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings#timecodeInsertion
+   */
+  readonly timecodeInsertion?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'adaptiveQuantization': obj.adaptiveQuantization,
+    'afdSignaling': obj.afdSignaling,
+    'alternativeTransferFunction': obj.alternativeTransferFunction,
+    'bitrate': obj.bitrate,
+    'bufSize': obj.bufSize,
+    'colorMetadata': obj.colorMetadata,
+    'colorSpaceSettings': obj.colorSpaceSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings(y)),
+    'filterSettings': obj.filterSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings(y)),
+    'fixedAfd': obj.fixedAfd,
+    'flickerAq': obj.flickerAq,
+    'framerateDenominator': obj.framerateDenominator,
+    'framerateNumerator': obj.framerateNumerator,
+    'gopClosedCadence': obj.gopClosedCadence,
+    'gopSize': obj.gopSize,
+    'gopSizeUnits': obj.gopSizeUnits,
+    'level': obj.level,
+    'lookAheadRateControl': obj.lookAheadRateControl,
+    'maxBitrate': obj.maxBitrate,
+    'minIInterval': obj.minIInterval,
+    'parDenominator': obj.parDenominator,
+    'parNumerator': obj.parNumerator,
+    'profile': obj.profile,
+    'qvbrQualityLevel': obj.qvbrQualityLevel,
+    'rateControlMode': obj.rateControlMode,
+    'scanType': obj.scanType,
+    'sceneChangeDetect': obj.sceneChangeDetect,
+    'slices': obj.slices,
+    'tier': obj.tier,
+    'timecodeBurninSettings': obj.timecodeBurninSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings(y)),
+    'timecodeInsertion': obj.timecodeInsertion,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings#audioSilenceSettings
+   */
+  readonly audioSilenceSettings?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings#inputLossSettings
+   */
+  readonly inputLossSettings?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings#videoBlackSettings
+   */
+  readonly videoBlackSettings?: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioSilenceSettings': obj.audioSilenceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings(y)),
+    'inputLossSettings': obj.inputLossSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings(y)),
+    'videoBlackSettings': obj.videoBlackSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings#audioHlsRenditionSelection
+   */
+  readonly audioHlsRenditionSelection?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings#audioLanguageSelection
+   */
+  readonly audioLanguageSelection?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings#audioPidSelection
+   */
+  readonly audioPidSelection?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings#audioTrackSelection
+   */
+  readonly audioTrackSelection?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioHlsRenditionSelection': obj.audioHlsRenditionSelection?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection(y)),
+    'audioLanguageSelection': obj.audioLanguageSelection?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection(y)),
+    'audioPidSelection': obj.audioPidSelection?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection(y)),
+    'audioTrackSelection': obj.audioTrackSelection?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#ancillarySourceSettings
+   */
+  readonly ancillarySourceSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#dvbTdtSettings
+   */
+  readonly dvbTdtSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#embeddedSourceSettings
+   */
+  readonly embeddedSourceSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#scte20SourceSettings
+   */
+  readonly scte20SourceSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#scte27SourceSettings
+   */
+  readonly scte27SourceSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings#teletextSourceSettings
+   */
+  readonly teletextSourceSettings?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ancillarySourceSettings': obj.ancillarySourceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings(y)),
+    'dvbTdtSettings': obj.dvbTdtSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings(y)),
+    'embeddedSourceSettings': obj.embeddedSourceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings(y)),
+    'scte20SourceSettings': obj.scte20SourceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings(y)),
+    'scte27SourceSettings': obj.scte27SourceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings(y)),
+    'teletextSourceSettings': obj.teletextSourceSettings?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings {
+  /**
+   * The bitrate is specified in bits per second, as in an HLS manifest.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings#bandwidth
+   */
+  readonly bandwidth?: number;
+
+  /**
+   * Buffer segments.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings#bufferSegments
+   */
+  readonly bufferSegments?: number;
+
+  /**
+   * The number of consecutive times that attempts to read a manifest or segment must fail before the input is considered unavailable.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings#retries
+   */
+  readonly retries?: number;
+
+  /**
+   * The number of seconds between retries when an attempt to read a manifest or segment fails.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings#retryInterval
+   */
+  readonly retryInterval?: number;
+
+  /**
+   * The source for the timecode that will be associated with the events outputs.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings#scte35Source
+   */
+  readonly scte35Source?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsNetworkInputSettingsHlsInputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bandwidth': obj.bandwidth,
+    'bufferSegments': obj.bufferSegments,
+    'retries': obj.retries,
+    'retryInterval': obj.retryInterval,
+    'scte35Source': obj.scte35Source,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings
  */
 export interface ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings {
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#cbetCheckDigitString
    */
-  readonly cbetCheckDigitString: string;
+  readonly cbetCheckDigitString?: string;
 
   /**
    * Determines the method of CBET insertion mode when prior encoding is detected on the same layer.
    *
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#cbetStepaside
    */
-  readonly cbetStepaside: string;
+  readonly cbetStepaside?: string;
 
   /**
    * CBET source ID to use in the watermark.
    *
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#csid
    */
-  readonly csid: string;
+  readonly csid?: string;
 
 }
 
@@ -4808,14 +8400,14 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWate
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings#checkDigitString
    */
-  readonly checkDigitString: string;
+  readonly checkDigitString?: string;
 
   /**
    * The Nielsen Source ID to include in the watermark.
    *
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings#sid
    */
-  readonly sid: number;
+  readonly sid?: number;
 
 }
 
@@ -4841,12 +8433,12 @@ export interface ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSett
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels#gain
    */
-  readonly gain: number;
+  readonly gain?: number;
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels#inputChannel
    */
-  readonly inputChannel: number;
+  readonly inputChannel?: number;
 
 }
 
@@ -4901,7 +8493,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -4928,7 +8520,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -4980,19 +8572,19 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#captionChannel
    */
-  readonly captionChannel: number;
+  readonly captionChannel?: number;
 
   /**
    * When specified this field indicates the three letter language code of the caption track to extract from the source.
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#languageCode
    */
-  readonly languageCode: string;
+  readonly languageCode?: string;
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#languageDescription
    */
-  readonly languageDescription: string;
+  readonly languageDescription?: string;
 
 }
 
@@ -5021,7 +8613,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -5134,7 +8726,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -5161,7 +8753,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -5263,7 +8855,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings#hlsSettings
    */
-  readonly hlsSettings: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings[];
+  readonly hlsSettings?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings[];
 
   /**
    * String concatenated to the end of the destination filename. Required for multiple outputs of the same type.
@@ -5338,7 +8930,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination[];
 
 }
 
@@ -5379,7 +8971,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination[];
 
   /**
    * Number of retry attempts.
@@ -5423,14 +9015,14 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#containerSettings
    */
-  readonly containerSettings: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings[];
+  readonly containerSettings?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings[];
 
   /**
    * A director and base filename where archive files should be written. See Destination for more details.
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#destination
    */
-  readonly destination: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination[];
+  readonly destination?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination[];
 
   /**
    * Settings for output. See Output Settings for more details.
@@ -5623,7 +9215,7 @@ export interface ChannelSpecForProviderInputAttachmentsAutomaticInputFailoverSet
    *
    * @schema ChannelSpecForProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings#audioSelectorName
    */
-  readonly audioSelectorName: string;
+  readonly audioSelectorName?: string;
 
   /**
    * @schema ChannelSpecForProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings#audioSilenceThresholdMsec
@@ -5712,14 +9304,14 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection#groupId
    */
-  readonly groupId: string;
+  readonly groupId?: string;
 
   /**
    * Name of the Channel.
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection#name
    */
-  readonly name: string;
+  readonly name?: string;
 
 }
 
@@ -5747,7 +9339,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection#languageCode
    */
-  readonly languageCode: string;
+  readonly languageCode?: string;
 
   /**
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection#languageSelectionPolicy
@@ -5780,7 +9372,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection#pid
    */
-  readonly pid: number;
+  readonly pid?: number;
 
 }
 
@@ -5805,7 +9397,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
   /**
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection#track
    */
-  readonly track: ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack[];
+  readonly track?: ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack[];
 
 }
 
@@ -6012,6 +9604,1265 @@ export function toJson_ChannelSpecForProviderInputAttachmentsInputSettingsCaptio
   if (obj === undefined) { return undefined; }
   const result = {
     'outputRectangle': obj.outputRectangle?.map(y => toJson_ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle(y)),
+    'pageNumber': obj.pageNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#cbetCheckDigitString
+   */
+  readonly cbetCheckDigitString?: string;
+
+  /**
+   * Determines the method of CBET insertion mode when prior encoding is detected on the same layer.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#cbetStepaside
+   */
+  readonly cbetStepaside?: string;
+
+  /**
+   * CBET source ID to use in the watermark.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings#csid
+   */
+  readonly csid?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenCbetSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cbetCheckDigitString': obj.cbetCheckDigitString,
+    'cbetStepaside': obj.cbetStepaside,
+    'csid': obj.csid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings#checkDigitString
+   */
+  readonly checkDigitString?: string;
+
+  /**
+   * The Nielsen Source ID to include in the watermark.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings#sid
+   */
+  readonly sid?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsAudioWatermarkSettingsNielsenWatermarksSettingsNielsenNaesIiNwSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'checkDigitString': obj.checkDigitString,
+    'sid': obj.sid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels
+ */
+export interface ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels#gain
+   */
+  readonly gain?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels#inputChannel
+   */
+  readonly inputChannel?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels(obj: ChannelSpecInitProviderEncoderSettingsAudioDescriptionsRemixSettingsChannelMappingsInputChannelLevels | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'gain': obj.gain,
+    'inputChannel': obj.inputChannel,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings {
+  /**
+   * Archive S3 Settings. See Archive S3 Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings#archiveS3Settings
+   */
+  readonly archiveS3Settings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'archiveS3Settings': obj.archiveS3Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings#frameCaptureS3Settings
+   */
+  readonly frameCaptureS3Settings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'frameCaptureS3Settings': obj.frameCaptureS3Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#captionChannel
+   */
+  readonly captionChannel?: number;
+
+  /**
+   * When specified this field indicates the three letter language code of the caption track to extract from the source.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings#languageDescription
+   */
+  readonly languageDescription?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsCaptionLanguageMappings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'captionChannel': obj.captionChannel,
+    'languageCode': obj.languageCode,
+    'languageDescription': obj.languageDescription,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings#hlsAkamaiSettings
+   */
+  readonly hlsAkamaiSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings#hlsBasicPutSettings
+   */
+  readonly hlsBasicPutSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings#hlsMediaStoreSettings
+   */
+  readonly hlsMediaStoreSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings#hlsS3Settings
+   */
+  readonly hlsS3Settings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings#hlsWebdavSettings
+   */
+  readonly hlsWebdavSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'hlsAkamaiSettings': obj.hlsAkamaiSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings(y)),
+    'hlsBasicPutSettings': obj.hlsBasicPutSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings(y)),
+    'hlsMediaStoreSettings': obj.hlsMediaStoreSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings(y)),
+    'hlsS3Settings': obj.hlsS3Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings(y)),
+    'hlsWebdavSettings': obj.hlsWebdavSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings#staticKeySettings
+   */
+  readonly staticKeySettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'staticKeySettings': obj.staticKeySettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMediaPackageGroupSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsMsSmoothGroupSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings {
+  /**
+   * Settings specific to the container type of the file. See Container Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings#containerSettings
+   */
+  readonly containerSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings[];
+
+  /**
+   * Output file extension.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings#extension
+   */
+  readonly extension?: string;
+
+  /**
+   * String concatenated to the end of the destination filename. Required for multiple outputs of the same type.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings#nameModifier
+   */
+  readonly nameModifier?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'containerSettings': obj.containerSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings(y)),
+    'extension': obj.extension,
+    'nameModifier': obj.nameModifier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings {
+  /**
+   * String concatenated to the end of the destination filename. Required for multiple outputs of the same type.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings#nameModifier
+   */
+  readonly nameModifier?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsFrameCaptureOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'nameModifier': obj.nameModifier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings#h265PackagingType
+   */
+  readonly h265PackagingType?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings#hlsSettings
+   */
+  readonly hlsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings[];
+
+  /**
+   * String concatenated to the end of the destination filename. Required for multiple outputs of the same type.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings#nameModifier
+   */
+  readonly nameModifier?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings#segmentModifier
+   */
+  readonly segmentModifier?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'h265PackagingType': obj.h265PackagingType,
+    'hlsSettings': obj.hlsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings(y)),
+    'nameModifier': obj.nameModifier,
+    'segmentModifier': obj.segmentModifier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings#h265PackagingType
+   */
+  readonly h265PackagingType?: string;
+
+  /**
+   * String concatenated to the end of the destination filename. Required for multiple outputs of the same type.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings#nameModifier
+   */
+  readonly nameModifier?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMsSmoothOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'h265PackagingType': obj.h265PackagingType,
+    'nameModifier': obj.nameModifier,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings {
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings {
+  /**
+   * Setting to allow self signed or verified RTMP certificates.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#certificateMode
+   */
+  readonly certificateMode?: string;
+
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination[];
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'certificateMode': obj.certificateMode,
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination(y)),
+    'numRetries': obj.numRetries,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings {
+  /**
+   * UDP output buffering in milliseconds.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#bufferMsec
+   */
+  readonly bufferMsec?: number;
+
+  /**
+   * Settings specific to the container type of the file. See Container Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#containerSettings
+   */
+  readonly containerSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings[];
+
+  /**
+   * A director and base filename where archive files should be written. See Destination for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#destination
+   */
+  readonly destination?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination[];
+
+  /**
+   * Settings for output. See Output Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings#fecOutputSettings
+   */
+  readonly fecOutputSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'bufferMsec': obj.bufferMsec,
+    'containerSettings': obj.containerSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings(y)),
+    'destination': obj.destination?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination(y)),
+    'fecOutputSettings': obj.fecOutputSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings {
+  /**
+   * Temporal filter settings. See Temporal Filter Settings
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings#temporalFilterSettings
+   */
+  readonly temporalFilterSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'temporalFilterSettings': obj.temporalFilterSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings {
+  /**
+   * Sets the colorspace metadata to be passed through.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#colorSpacePassthroughSettings
+   */
+  readonly colorSpacePassthroughSettings?: any[];
+
+  /**
+   * Set the colorspace to Dolby Vision81.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#dolbyVision81Settings
+   */
+  readonly dolbyVision81Settings?: any[];
+
+  /**
+   * Set the colorspace to be HDR10. See H265 HDR10 Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#hdr10Settings
+   */
+  readonly hdr10Settings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings[];
+
+  /**
+   * Set the colorspace to Rec. 601.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#rec601Settings
+   */
+  readonly rec601Settings?: any[];
+
+  /**
+   * Set the colorspace to Rec. 709.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings#rec709Settings
+   */
+  readonly rec709Settings?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'colorSpacePassthroughSettings': obj.colorSpacePassthroughSettings?.map(y => y),
+    'dolbyVision81Settings': obj.dolbyVision81Settings?.map(y => y),
+    'hdr10Settings': obj.hdr10Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings(y)),
+    'rec601Settings': obj.rec601Settings?.map(y => y),
+    'rec709Settings': obj.rec709Settings?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings {
+  /**
+   * Temporal filter settings. See Temporal Filter Settings
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings#temporalFilterSettings
+   */
+  readonly temporalFilterSettings?: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'temporalFilterSettings': obj.temporalFilterSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings {
+  /**
+   * Set a prefix on the burned in timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#prefix
+   */
+  readonly prefix?: string;
+
+  /**
+   * Sets the size of the burned in timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#timecodeBurninFontSize
+   */
+  readonly timecodeBurninFontSize?: string;
+
+  /**
+   * Sets the position of the burned in timecode.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings#timecodeBurninPosition
+   */
+  readonly timecodeBurninPosition?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsTimecodeBurninSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'prefix': obj.prefix,
+    'timecodeBurninFontSize': obj.timecodeBurninFontSize,
+    'timecodeBurninPosition': obj.timecodeBurninPosition,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings {
+  /**
+   * The name of the audio selector used as the source for this AudioDescription.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings#audioSelectorName
+   */
+  readonly audioSelectorName?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings#audioSilenceThresholdMsec
+   */
+  readonly audioSilenceThresholdMsec?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsAudioSilenceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioSelectorName': obj.audioSelectorName,
+    'audioSilenceThresholdMsec': obj.audioSilenceThresholdMsec,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings#inputLossThresholdMsec
+   */
+  readonly inputLossThresholdMsec?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsInputLossSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'inputLossThresholdMsec': obj.inputLossThresholdMsec,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings#blackDetectThreshold
+   */
+  readonly blackDetectThreshold?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings#videoBlackThresholdMsec
+   */
+  readonly videoBlackThresholdMsec?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings(obj: ChannelSpecInitProviderInputAttachmentsAutomaticInputFailoverSettingsFailoverConditionFailoverConditionSettingsVideoBlackSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'blackDetectThreshold': obj.blackDetectThreshold,
+    'videoBlackThresholdMsec': obj.videoBlackThresholdMsec,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection#groupId
+   */
+  readonly groupId?: string;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection#name
+   */
+  readonly name?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioHlsRenditionSelection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'groupId': obj.groupId,
+    'name': obj.name,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection {
+  /**
+   * When specified this field indicates the three letter language code of the caption track to extract from the source.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection#languageCode
+   */
+  readonly languageCode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection#languageSelectionPolicy
+   */
+  readonly languageSelectionPolicy?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioLanguageSelection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'languageCode': obj.languageCode,
+    'languageSelectionPolicy': obj.languageSelectionPolicy,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection#pid
+   */
+  readonly pid?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioPidSelection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'pid': obj.pid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection#track
+   */
+  readonly track?: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelection | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'track': obj.track?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings#sourceAncillaryChannelNumber
+   */
+  readonly sourceAncillaryChannelNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsAncillarySourceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'sourceAncillaryChannelNumber': obj.sourceAncillaryChannelNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings#ocrLanguage
+   */
+  readonly ocrLanguage?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings#pid
+   */
+  readonly pid?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsDvbTdtSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ocrLanguage': obj.ocrLanguage,
+    'pid': obj.pid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings#convert608To708
+   */
+  readonly convert608To708?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings#scte20Detection
+   */
+  readonly scte20Detection?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings#source608ChannelNumber
+   */
+  readonly source608ChannelNumber?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings#source608TrackNumber
+   */
+  readonly source608TrackNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsEmbeddedSourceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'convert608To708': obj.convert608To708,
+    'scte20Detection': obj.scte20Detection,
+    'source608ChannelNumber': obj.source608ChannelNumber,
+    'source608TrackNumber': obj.source608TrackNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings#convert608To708
+   */
+  readonly convert608To708?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings#source608ChannelNumber
+   */
+  readonly source608ChannelNumber?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte20SourceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'convert608To708': obj.convert608To708,
+    'source608ChannelNumber': obj.source608ChannelNumber,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings#ocrLanguage
+   */
+  readonly ocrLanguage?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings#pid
+   */
+  readonly pid?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsScte27SourceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'ocrLanguage': obj.ocrLanguage,
+    'pid': obj.pid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings#outputRectangle
+   */
+  readonly outputRectangle?: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle[];
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings#pageNumber
+   */
+  readonly pageNumber?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'outputRectangle': obj.outputRectangle?.map(y => toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle(y)),
     'pageNumber': obj.pageNumber,
   };
   // filter undefined values
@@ -6338,7 +11189,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings#staticKeyValue
    */
-  readonly staticKeyValue: string;
+  readonly staticKeyValue?: string;
 
 }
 
@@ -6452,7 +11303,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -6479,7 +11330,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -6533,7 +11384,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination#destinationRefId
    */
-  readonly destinationRefId: string;
+  readonly destinationRefId?: string;
 
 }
 
@@ -6706,7 +11557,7 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelecto
   /**
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack#track
    */
-  readonly track: number;
+  readonly track?: number;
 
 }
 
@@ -6733,24 +11584,24 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelec
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#height
    */
-  readonly height: number;
+  readonly height?: number;
 
   /**
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#leftOffset
    */
-  readonly leftOffset: number;
+  readonly leftOffset?: number;
 
   /**
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#topOffset
    */
-  readonly topOffset: number;
+  readonly topOffset?: number;
 
   /**
    * Output video width in pixels.
    *
    * @schema ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#width
    */
-  readonly width: number;
+  readonly width?: number;
 
 }
 
@@ -6759,6 +11610,758 @@ export interface ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelec
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle(obj: ChannelSpecForProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'height': obj.height,
+    'leftOffset': obj.leftOffset,
+    'topOffset': obj.topOffset,
+    'width': obj.width,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings {
+  /**
+   * Specify the canned ACL to apply to each S3 request.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings#cannedAcl
+   */
+  readonly cannedAcl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsArchiveGroupSettingsArchiveCdnSettingsArchiveS3Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cannedAcl': obj.cannedAcl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings {
+  /**
+   * Specify the canned ACL to apply to each S3 request.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings#cannedAcl
+   */
+  readonly cannedAcl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsFrameCaptureGroupSettingsFrameCaptureCdnSettingsFrameCaptureS3Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cannedAcl': obj.cannedAcl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings {
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#filecacheDuration
+   */
+  readonly filecacheDuration?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#httpTransferMode
+   */
+  readonly httpTransferMode?: string;
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#salt
+   */
+  readonly salt?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings#token
+   */
+  readonly token?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsAkamaiSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'filecacheDuration': obj.filecacheDuration,
+    'httpTransferMode': obj.httpTransferMode,
+    'numRetries': obj.numRetries,
+    'restartDelay': obj.restartDelay,
+    'salt': obj.salt,
+    'token': obj.token,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings {
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings#filecacheDuration
+   */
+  readonly filecacheDuration?: number;
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsBasicPutSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'filecacheDuration': obj.filecacheDuration,
+    'numRetries': obj.numRetries,
+    'restartDelay': obj.restartDelay,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings {
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings#filecacheDuration
+   */
+  readonly filecacheDuration?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings#mediaStoreStorageClass
+   */
+  readonly mediaStoreStorageClass?: string;
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsMediaStoreSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'filecacheDuration': obj.filecacheDuration,
+    'mediaStoreStorageClass': obj.mediaStoreStorageClass,
+    'numRetries': obj.numRetries,
+    'restartDelay': obj.restartDelay,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings {
+  /**
+   * Specify the canned ACL to apply to each S3 request.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings#cannedAcl
+   */
+  readonly cannedAcl?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsS3Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cannedAcl': obj.cannedAcl,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings {
+  /**
+   * Number of seconds to wait before retrying connection to the flash media server if the connection is lost.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings#connectionRetryInterval
+   */
+  readonly connectionRetryInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings#filecacheDuration
+   */
+  readonly filecacheDuration?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings#httpTransferMode
+   */
+  readonly httpTransferMode?: string;
+
+  /**
+   * Number of retry attempts.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings#numRetries
+   */
+  readonly numRetries?: number;
+
+  /**
+   * Number of seconds to wait until a restart is initiated.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings#restartDelay
+   */
+  readonly restartDelay?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsHlsCdnSettingsHlsWebdavSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'connectionRetryInterval': obj.connectionRetryInterval,
+    'filecacheDuration': obj.filecacheDuration,
+    'httpTransferMode': obj.httpTransferMode,
+    'numRetries': obj.numRetries,
+    'restartDelay': obj.restartDelay,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings#keyProviderServer
+   */
+  readonly keyProviderServer?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings#staticKeyValue
+   */
+  readonly staticKeyValue?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'keyProviderServer': obj.keyProviderServer?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer(y)),
+    'staticKeyValue': obj.staticKeyValue,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings {
+  /**
+   * M2ts Settings. See M2ts Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings#m2tsSettings
+   */
+  readonly m2TsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings[];
+
+  /**
+   * Raw Settings. This can be set as an empty block.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings#rawSettings
+   */
+  readonly rawSettings?: any[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'm2tsSettings': obj.m2TsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings(y)),
+    'rawSettings': obj.rawSettings?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings {
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings#audioOnlyHlsSettings
+   */
+  readonly audioOnlyHlsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings#fmp4HlsSettings
+   */
+  readonly fmp4HlsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings#frameCaptureHlsSettings
+   */
+  readonly frameCaptureHlsSettings?: any[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings#standardHlsSettings
+   */
+  readonly standardHlsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioOnlyHlsSettings': obj.audioOnlyHlsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings(y)),
+    'fmp4HlsSettings': obj.fmp4HlsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings(y)),
+    'frameCaptureHlsSettings': obj.frameCaptureHlsSettings?.map(y => y),
+    'standardHlsSettings': obj.standardHlsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsMultiplexOutputSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsRtmpOutputSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings {
+  /**
+   * M2ts Settings. See M2ts Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings#m2tsSettings
+   */
+  readonly m2TsSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'm2tsSettings': obj.m2TsSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination {
+  /**
+   * Reference ID for the destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination#destinationRefId
+   */
+  readonly destinationRefId?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsDestination | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinationRefId': obj.destinationRefId,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings {
+  /**
+   * The height of the FEC protection matrix.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings#columnDepth
+   */
+  readonly columnDepth?: number;
+
+  /**
+   * Enables column only or column and row based FEC.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings#includeFec
+   */
+  readonly includeFec?: string;
+
+  /**
+   * The width of the FEC protection matrix.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings#rowLength
+   */
+  readonly rowLength?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsFecOutputSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'columnDepth': obj.columnDepth,
+    'includeFec': obj.includeFec,
+    'rowLength': obj.rowLength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings {
+  /**
+   * Post filter sharpening.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings#postFilterSharpening
+   */
+  readonly postFilterSharpening?: string;
+
+  /**
+   * Filter strength.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings#strength
+   */
+  readonly strength?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH264SettingsFilterSettingsTemporalFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'postFilterSharpening': obj.postFilterSharpening,
+    'strength': obj.strength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings {
+  /**
+   * Sets the MaxCLL value for HDR10.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings#maxCll
+   */
+  readonly maxCll?: number;
+
+  /**
+   * Sets the MaxFALL value for HDR10.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings#maxFall
+   */
+  readonly maxFall?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsColorSpaceSettingsHdr10Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maxCll': obj.maxCll,
+    'maxFall': obj.maxFall,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings {
+  /**
+   * Post filter sharpening.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings#postFilterSharpening
+   */
+  readonly postFilterSharpening?: string;
+
+  /**
+   * Filter strength.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings#strength
+   */
+  readonly strength?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings(obj: ChannelSpecInitProviderEncoderSettingsVideoDescriptionsCodecSettingsH265SettingsFilterSettingsTemporalFilterSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'postFilterSharpening': obj.postFilterSharpening,
+    'strength': obj.strength,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack {
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack#track
+   */
+  readonly track?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsAudioSelectorSelectorSettingsAudioTrackSelectionTrack | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'track': obj.track,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle
+ */
+export interface ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle {
+  /**
+   * Output video height in pixels.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#height
+   */
+  readonly height?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#leftOffset
+   */
+  readonly leftOffset?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#topOffset
+   */
+  readonly topOffset?: number;
+
+  /**
+   * Output video width in pixels.
+   *
+   * @schema ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle#width
+   */
+  readonly width?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle(obj: ChannelSpecInitProviderInputAttachmentsInputSettingsCaptionSelectorSelectorSettingsTeletextSourceSettingsOutputRectangle | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'height': obj.height,
@@ -6787,7 +12390,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSet
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
   /**
    * Username for destination.
@@ -7243,7 +12846,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings#m3u8Settings
    */
-  readonly m3U8Settings: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings[];
+  readonly m3U8Settings?: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings[];
 
 }
 
@@ -7596,6 +13199,830 @@ export function toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsO
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer {
+  /**
+   * Key used to extract the password from EC2 Parameter store.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer#passwordParam
+   */
+  readonly passwordParam?: string;
+
+  /**
+   * Path to a file accessible to the live stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer#uri
+   */
+  readonly uri?: string;
+
+  /**
+   * Username for destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputGroupSettingsHlsGroupSettingsKeyProviderSettingsStaticKeySettingsKeyProviderServer | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'passwordParam': obj.passwordParam,
+    'uri': obj.uri,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#absentInputAudioBehavior
+   */
+  readonly absentInputAudioBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#arib
+   */
+  readonly arib?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#aribCaptionsPid
+   */
+  readonly aribCaptionsPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#aribCaptionsPidControl
+   */
+  readonly aribCaptionsPidControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#audioBufferModel
+   */
+  readonly audioBufferModel?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#audioFramesPerPes
+   */
+  readonly audioFramesPerPes?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#audioPids
+   */
+  readonly audioPids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#audioStreamType
+   */
+  readonly audioStreamType?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#bufferModel
+   */
+  readonly bufferModel?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ccDescriptor
+   */
+  readonly ccDescriptor?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#dvbNitSettings
+   */
+  readonly dvbNitSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#dvbSdtSettings
+   */
+  readonly dvbSdtSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#dvbSubPids
+   */
+  readonly dvbSubPids?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#dvbTdtSettings
+   */
+  readonly dvbTdtSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings[];
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#dvbTeletextPid
+   */
+  readonly dvbTeletextPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ebif
+   */
+  readonly ebif?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ebpAudioInterval
+   */
+  readonly ebpAudioInterval?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ebpLookaheadMs
+   */
+  readonly ebpLookaheadMs?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ebpPlacement
+   */
+  readonly ebpPlacement?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#ecmPid
+   */
+  readonly ecmPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#esRateInPes
+   */
+  readonly esRateInPes?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#etvPlatformPid
+   */
+  readonly etvPlatformPid?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#etvSignalPid
+   */
+  readonly etvSignalPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#fragmentTime
+   */
+  readonly fragmentTime?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#klv
+   */
+  readonly klv?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#klvDataPids
+   */
+  readonly klvDataPids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#nielsenId3Behavior
+   */
+  readonly nielsenId3Behavior?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#nullPacketBitrate
+   */
+  readonly nullPacketBitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#patInterval
+   */
+  readonly patInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#pcrControl
+   */
+  readonly pcrControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#pcrPeriod
+   */
+  readonly pcrPeriod?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#pcrPid
+   */
+  readonly pcrPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#pmtInterval
+   */
+  readonly pmtInterval?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#pmtPid
+   */
+  readonly pmtPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#programNum
+   */
+  readonly programNum?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#rateMode
+   */
+  readonly rateMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#scte27Pids
+   */
+  readonly scte27Pids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#scte35Control
+   */
+  readonly scte35Control?: string;
+
+  /**
+   * PID from which to read SCTE-35 messages.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#scte35Pid
+   */
+  readonly scte35Pid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#segmentationMarkers
+   */
+  readonly segmentationMarkers?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#segmentationStyle
+   */
+  readonly segmentationStyle?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#segmentationTime
+   */
+  readonly segmentationTime?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#timedMetadataBehavior
+   */
+  readonly timedMetadataBehavior?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#timedMetadataPid
+   */
+  readonly timedMetadataPid?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#transportStreamId
+   */
+  readonly transportStreamId?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings#videoPid
+   */
+  readonly videoPid?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'absentInputAudioBehavior': obj.absentInputAudioBehavior,
+    'arib': obj.arib,
+    'aribCaptionsPid': obj.aribCaptionsPid,
+    'aribCaptionsPidControl': obj.aribCaptionsPidControl,
+    'audioBufferModel': obj.audioBufferModel,
+    'audioFramesPerPes': obj.audioFramesPerPes,
+    'audioPids': obj.audioPids,
+    'audioStreamType': obj.audioStreamType,
+    'bitrate': obj.bitrate,
+    'bufferModel': obj.bufferModel,
+    'ccDescriptor': obj.ccDescriptor,
+    'dvbNitSettings': obj.dvbNitSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings(y)),
+    'dvbSdtSettings': obj.dvbSdtSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings(y)),
+    'dvbSubPids': obj.dvbSubPids,
+    'dvbTdtSettings': obj.dvbTdtSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings(y)),
+    'dvbTeletextPid': obj.dvbTeletextPid,
+    'ebif': obj.ebif,
+    'ebpAudioInterval': obj.ebpAudioInterval,
+    'ebpLookaheadMs': obj.ebpLookaheadMs,
+    'ebpPlacement': obj.ebpPlacement,
+    'ecmPid': obj.ecmPid,
+    'esRateInPes': obj.esRateInPes,
+    'etvPlatformPid': obj.etvPlatformPid,
+    'etvSignalPid': obj.etvSignalPid,
+    'fragmentTime': obj.fragmentTime,
+    'klv': obj.klv,
+    'klvDataPids': obj.klvDataPids,
+    'nielsenId3Behavior': obj.nielsenId3Behavior,
+    'nullPacketBitrate': obj.nullPacketBitrate,
+    'patInterval': obj.patInterval,
+    'pcrControl': obj.pcrControl,
+    'pcrPeriod': obj.pcrPeriod,
+    'pcrPid': obj.pcrPid,
+    'pmtInterval': obj.pmtInterval,
+    'pmtPid': obj.pmtPid,
+    'programNum': obj.programNum,
+    'rateMode': obj.rateMode,
+    'scte27Pids': obj.scte27Pids,
+    'scte35Control': obj.scte35Control,
+    'scte35Pid': obj.scte35Pid,
+    'segmentationMarkers': obj.segmentationMarkers,
+    'segmentationStyle': obj.segmentationStyle,
+    'segmentationTime': obj.segmentationTime,
+    'timedMetadataBehavior': obj.timedMetadataBehavior,
+    'timedMetadataPid': obj.timedMetadataPid,
+    'transportStreamId': obj.transportStreamId,
+    'videoPid': obj.videoPid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings#audioGroupId
+   */
+  readonly audioGroupId?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings#audioOnlyImage
+   */
+  readonly audioOnlyImage?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings#audioTrackType
+   */
+  readonly audioTrackType?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings#segmentType
+   */
+  readonly segmentType?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioGroupId': obj.audioGroupId,
+    'audioOnlyImage': obj.audioOnlyImage?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage(y)),
+    'audioTrackType': obj.audioTrackType,
+    'segmentType': obj.segmentType,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings#audioRenditionSets
+   */
+  readonly audioRenditionSets?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings#nielsenId3Behavior
+   */
+  readonly nielsenId3Behavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings#timedMetadataBehavior
+   */
+  readonly timedMetadataBehavior?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsFmp4HlsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioRenditionSets': obj.audioRenditionSets,
+    'nielsenId3Behavior': obj.nielsenId3Behavior,
+    'timedMetadataBehavior': obj.timedMetadataBehavior,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings#audioRenditionSets
+   */
+  readonly audioRenditionSets?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings#m3u8Settings
+   */
+  readonly m3U8Settings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings[];
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioRenditionSets': obj.audioRenditionSets,
+    'm3u8Settings': obj.m3U8Settings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#absentInputAudioBehavior
+   */
+  readonly absentInputAudioBehavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#arib
+   */
+  readonly arib?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#aribCaptionsPid
+   */
+  readonly aribCaptionsPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#aribCaptionsPidControl
+   */
+  readonly aribCaptionsPidControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#audioBufferModel
+   */
+  readonly audioBufferModel?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#audioFramesPerPes
+   */
+  readonly audioFramesPerPes?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#audioPids
+   */
+  readonly audioPids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#audioStreamType
+   */
+  readonly audioStreamType?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#bitrate
+   */
+  readonly bitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#bufferModel
+   */
+  readonly bufferModel?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ccDescriptor
+   */
+  readonly ccDescriptor?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#dvbNitSettings
+   */
+  readonly dvbNitSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings[];
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#dvbSdtSettings
+   */
+  readonly dvbSdtSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings[];
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#dvbSubPids
+   */
+  readonly dvbSubPids?: string;
+
+  /**
+   * Destination settings for a standard output; one destination for each redundant encoder. See Settings for more details.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#dvbTdtSettings
+   */
+  readonly dvbTdtSettings?: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings[];
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#dvbTeletextPid
+   */
+  readonly dvbTeletextPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ebif
+   */
+  readonly ebif?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ebpAudioInterval
+   */
+  readonly ebpAudioInterval?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ebpLookaheadMs
+   */
+  readonly ebpLookaheadMs?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ebpPlacement
+   */
+  readonly ebpPlacement?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#ecmPid
+   */
+  readonly ecmPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#esRateInPes
+   */
+  readonly esRateInPes?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#etvPlatformPid
+   */
+  readonly etvPlatformPid?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#etvSignalPid
+   */
+  readonly etvSignalPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#fragmentTime
+   */
+  readonly fragmentTime?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#klv
+   */
+  readonly klv?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#klvDataPids
+   */
+  readonly klvDataPids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#nielsenId3Behavior
+   */
+  readonly nielsenId3Behavior?: string;
+
+  /**
+   * Average bitrate in bits/second.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#nullPacketBitrate
+   */
+  readonly nullPacketBitrate?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#patInterval
+   */
+  readonly patInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#pcrControl
+   */
+  readonly pcrControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#pcrPeriod
+   */
+  readonly pcrPeriod?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#pcrPid
+   */
+  readonly pcrPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#pmtInterval
+   */
+  readonly pmtInterval?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#pmtPid
+   */
+  readonly pmtPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#programNum
+   */
+  readonly programNum?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#rateMode
+   */
+  readonly rateMode?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#scte27Pids
+   */
+  readonly scte27Pids?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#scte35Control
+   */
+  readonly scte35Control?: string;
+
+  /**
+   * PID from which to read SCTE-35 messages.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#scte35Pid
+   */
+  readonly scte35Pid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#segmentationMarkers
+   */
+  readonly segmentationMarkers?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#segmentationStyle
+   */
+  readonly segmentationStyle?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#segmentationTime
+   */
+  readonly segmentationTime?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#timedMetadataBehavior
+   */
+  readonly timedMetadataBehavior?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#timedMetadataPid
+   */
+  readonly timedMetadataPid?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#transportStreamId
+   */
+  readonly transportStreamId?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings#videoPid
+   */
+  readonly videoPid?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'absentInputAudioBehavior': obj.absentInputAudioBehavior,
+    'arib': obj.arib,
+    'aribCaptionsPid': obj.aribCaptionsPid,
+    'aribCaptionsPidControl': obj.aribCaptionsPidControl,
+    'audioBufferModel': obj.audioBufferModel,
+    'audioFramesPerPes': obj.audioFramesPerPes,
+    'audioPids': obj.audioPids,
+    'audioStreamType': obj.audioStreamType,
+    'bitrate': obj.bitrate,
+    'bufferModel': obj.bufferModel,
+    'ccDescriptor': obj.ccDescriptor,
+    'dvbNitSettings': obj.dvbNitSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings(y)),
+    'dvbSdtSettings': obj.dvbSdtSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings(y)),
+    'dvbSubPids': obj.dvbSubPids,
+    'dvbTdtSettings': obj.dvbTdtSettings?.map(y => toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings(y)),
+    'dvbTeletextPid': obj.dvbTeletextPid,
+    'ebif': obj.ebif,
+    'ebpAudioInterval': obj.ebpAudioInterval,
+    'ebpLookaheadMs': obj.ebpLookaheadMs,
+    'ebpPlacement': obj.ebpPlacement,
+    'ecmPid': obj.ecmPid,
+    'esRateInPes': obj.esRateInPes,
+    'etvPlatformPid': obj.etvPlatformPid,
+    'etvSignalPid': obj.etvSignalPid,
+    'fragmentTime': obj.fragmentTime,
+    'klv': obj.klv,
+    'klvDataPids': obj.klvDataPids,
+    'nielsenId3Behavior': obj.nielsenId3Behavior,
+    'nullPacketBitrate': obj.nullPacketBitrate,
+    'patInterval': obj.patInterval,
+    'pcrControl': obj.pcrControl,
+    'pcrPeriod': obj.pcrPeriod,
+    'pcrPid': obj.pcrPid,
+    'pmtInterval': obj.pmtInterval,
+    'pmtPid': obj.pmtPid,
+    'programNum': obj.programNum,
+    'rateMode': obj.rateMode,
+    'scte27Pids': obj.scte27Pids,
+    'scte35Control': obj.scte35Control,
+    'scte35Pid': obj.scte35Pid,
+    'segmentationMarkers': obj.segmentationMarkers,
+    'segmentationStyle': obj.segmentationStyle,
+    'segmentationTime': obj.segmentationTime,
+    'timedMetadataBehavior': obj.timedMetadataBehavior,
+    'timedMetadataPid': obj.timedMetadataPid,
+    'transportStreamId': obj.transportStreamId,
+    'videoPid': obj.videoPid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings
  */
 export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings {
@@ -7604,14 +14031,14 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkId
    */
-  readonly networkId: number;
+  readonly networkId?: number;
 
   /**
    * Name of the Channel.
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkName
    */
-  readonly networkName: string;
+  readonly networkName?: string;
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#repInterval
@@ -7724,7 +14151,7 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage#uri
    */
-  readonly uri: string;
+  readonly uri?: string;
 
   /**
    * Username for destination.
@@ -7895,14 +14322,14 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkId
    */
-  readonly networkId: number;
+  readonly networkId?: number;
 
   /**
    * Name of the Channel.
    *
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkName
    */
-  readonly networkName: string;
+  readonly networkName?: string;
 
   /**
    * @schema ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#repInterval
@@ -7990,6 +14417,410 @@ export interface ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputS
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings(obj: ChannelSpecForProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repInterval': obj.repInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkId
+   */
+  readonly networkId?: number;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkName
+   */
+  readonly networkName?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'networkId': obj.networkId,
+    'networkName': obj.networkName,
+    'repInterval': obj.repInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#outputSdt
+   */
+  readonly outputSdt?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#serviceName
+   */
+  readonly serviceName?: string;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#serviceProviderName
+   */
+  readonly serviceProviderName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'outputSdt': obj.outputSdt,
+    'repInterval': obj.repInterval,
+    'serviceName': obj.serviceName,
+    'serviceProviderName': obj.serviceProviderName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsArchiveOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'repInterval': obj.repInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage {
+  /**
+   * Key used to extract the password from EC2 Parameter store.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage#passwordParam
+   */
+  readonly passwordParam?: string;
+
+  /**
+   * Path to a file accessible to the live stream.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage#uri
+   */
+  readonly uri?: string;
+
+  /**
+   * Username for destination.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsAudioOnlyHlsSettingsAudioOnlyImage | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'passwordParam': obj.passwordParam,
+    'uri': obj.uri,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#audioFramesPerPes
+   */
+  readonly audioFramesPerPes?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#audioPids
+   */
+  readonly audioPids?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#ecmPid
+   */
+  readonly ecmPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#nielsenId3Behavior
+   */
+  readonly nielsenId3Behavior?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#patInterval
+   */
+  readonly patInterval?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#pcrControl
+   */
+  readonly pcrControl?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#pcrPeriod
+   */
+  readonly pcrPeriod?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#pcrPid
+   */
+  readonly pcrPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#pmtInterval
+   */
+  readonly pmtInterval?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#pmtPid
+   */
+  readonly pmtPid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#programNum
+   */
+  readonly programNum?: number;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#scte35Behavior
+   */
+  readonly scte35Behavior?: string;
+
+  /**
+   * PID from which to read SCTE-35 messages.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#scte35Pid
+   */
+  readonly scte35Pid?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#timedMetadataBehavior
+   */
+  readonly timedMetadataBehavior?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#timedMetadataPid
+   */
+  readonly timedMetadataPid?: string;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#transportStreamId
+   */
+  readonly transportStreamId?: number;
+
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings#videoPid
+   */
+  readonly videoPid?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsHlsOutputSettingsHlsSettingsStandardHlsSettingsM3U8Settings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'audioFramesPerPes': obj.audioFramesPerPes,
+    'audioPids': obj.audioPids,
+    'ecmPid': obj.ecmPid,
+    'nielsenId3Behavior': obj.nielsenId3Behavior,
+    'patInterval': obj.patInterval,
+    'pcrControl': obj.pcrControl,
+    'pcrPeriod': obj.pcrPeriod,
+    'pcrPid': obj.pcrPid,
+    'pmtInterval': obj.pmtInterval,
+    'pmtPid': obj.pmtPid,
+    'programNum': obj.programNum,
+    'scte35Behavior': obj.scte35Behavior,
+    'scte35Pid': obj.scte35Pid,
+    'timedMetadataBehavior': obj.timedMetadataBehavior,
+    'timedMetadataPid': obj.timedMetadataPid,
+    'transportStreamId': obj.transportStreamId,
+    'videoPid': obj.videoPid,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings {
+  /**
+   * User-specified id. Ths is used in an output group or an output.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkId
+   */
+  readonly networkId?: number;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#networkName
+   */
+  readonly networkName?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbNitSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'networkId': obj.networkId,
+    'networkName': obj.networkName,
+    'repInterval': obj.repInterval,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#outputSdt
+   */
+  readonly outputSdt?: string;
+
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#serviceName
+   */
+  readonly serviceName?: string;
+
+  /**
+   * Name of the Channel.
+   *
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings#serviceProviderName
+   */
+  readonly serviceProviderName?: string;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbSdtSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'outputSdt': obj.outputSdt,
+    'repInterval': obj.repInterval,
+    'serviceName': obj.serviceName,
+    'serviceProviderName': obj.serviceProviderName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings
+ */
+export interface ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings {
+  /**
+   * @schema ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings#repInterval
+   */
+  readonly repInterval?: number;
+
+}
+
+/**
+ * Converts an object of type 'ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings(obj: ChannelSpecInitProviderEncoderSettingsOutputGroupsOutputsOutputSettingsUdpOutputSettingsContainerSettingsM2TsSettingsDvbTdtSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'repInterval': obj.repInterval,
@@ -8096,7 +14927,7 @@ export function toJson_InputProps(obj: InputProps | undefined): Record<string, a
  */
 export interface InputSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InputSpec#deletionPolicy
    */
@@ -8108,11 +14939,18 @@ export interface InputSpec {
   readonly forProvider: InputSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InputSpec#managementPolicy
+   * @schema InputSpec#initProvider
    */
-  readonly managementPolicy?: InputSpecManagementPolicy;
+  readonly initProvider?: InputSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InputSpec#managementPolicies
+   */
+  readonly managementPolicies?: InputSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -8120,13 +14958,6 @@ export interface InputSpec {
    * @schema InputSpec#providerConfigRef
    */
   readonly providerConfigRef?: InputSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InputSpec#providerRef
-   */
-  readonly providerRef?: InputSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -8153,9 +14984,9 @@ export function toJson_InputSpec(obj: InputSpec | undefined): Record<string, any
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InputSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InputSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InputSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InputSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InputSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InputSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -8165,7 +14996,7 @@ export function toJson_InputSpec(obj: InputSpec | undefined): Record<string, any
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InputSpecDeletionPolicy
  */
@@ -8300,17 +15131,116 @@ export function toJson_InputSpecForProvider(obj: InputSpecForProvider | undefine
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InputSpecManagementPolicy
+ * @schema InputSpecInitProvider
  */
-export enum InputSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InputSpecInitProvider {
+  /**
+   * Destination settings for PUSH type inputs. See Destinations for more details.
+   *
+   * @schema InputSpecInitProvider#destinations
+   */
+  readonly destinations?: InputSpecInitProviderDestinations[];
+
+  /**
+   * Settings for the devices. See Input Devices for more details.
+   *
+   * @schema InputSpecInitProvider#inputDevices
+   */
+  readonly inputDevices?: InputSpecInitProviderInputDevices[];
+
+  /**
+   * List of input security groups.
+   *
+   * @schema InputSpecInitProvider#inputSecurityGroups
+   */
+  readonly inputSecurityGroups?: string[];
+
+  /**
+   * A list of the MediaConnect Flows. See Media Connect Flows for more details.
+   *
+   * @schema InputSpecInitProvider#mediaConnectFlows
+   */
+  readonly mediaConnectFlows?: InputSpecInitProviderMediaConnectFlows[];
+
+  /**
+   * Name of the input.
+   *
+   * @schema InputSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * The source URLs for a PULL-type input. See Sources for more details.
+   *
+   * @schema InputSpecInitProvider#sources
+   */
+  readonly sources?: InputSpecInitProviderSources[];
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema InputSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * The different types of inputs that AWS Elemental MediaLive supports.
+   *
+   * @schema InputSpecInitProvider#type
+   */
+  readonly type?: string;
+
+  /**
+   * Settings for a private VPC Input. See VPC for more details.
+   *
+   * @schema InputSpecInitProvider#vpc
+   */
+  readonly vpc?: InputSpecInitProviderVpc[];
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProvider(obj: InputSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'destinations': obj.destinations?.map(y => toJson_InputSpecInitProviderDestinations(y)),
+    'inputDevices': obj.inputDevices?.map(y => toJson_InputSpecInitProviderInputDevices(y)),
+    'inputSecurityGroups': obj.inputSecurityGroups?.map(y => y),
+    'mediaConnectFlows': obj.mediaConnectFlows?.map(y => toJson_InputSpecInitProviderMediaConnectFlows(y)),
+    'name': obj.name,
+    'sources': obj.sources?.map(y => toJson_InputSpecInitProviderSources(y)),
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'type': obj.type,
+    'vpc': obj.vpc?.map(y => toJson_InputSpecInitProviderVpc(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InputSpecManagementPolicies
+ */
+export enum InputSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -8344,43 +15274,6 @@ export function toJson_InputSpecProviderConfigRef(obj: InputSpecProviderConfigRe
   const result = {
     'name': obj.name,
     'policy': toJson_InputSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InputSpecProviderRef
- */
-export interface InputSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InputSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InputSpecProviderRef#policy
-   */
-  readonly policy?: InputSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InputSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InputSpecProviderRef(obj: InputSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InputSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -8478,7 +15371,7 @@ export interface InputSpecForProviderDestinations {
    *
    * @schema InputSpecForProviderDestinations#streamName
    */
-  readonly streamName: string;
+  readonly streamName?: string;
 
 }
 
@@ -8505,7 +15398,7 @@ export interface InputSpecForProviderInputDevices {
    *
    * @schema InputSpecForProviderInputDevices#id
    */
-  readonly id: string;
+  readonly id?: string;
 
 }
 
@@ -8532,7 +15425,7 @@ export interface InputSpecForProviderMediaConnectFlows {
    *
    * @schema InputSpecForProviderMediaConnectFlows#flowArn
    */
-  readonly flowArn: string;
+  readonly flowArn?: string;
 
 }
 
@@ -8641,21 +15534,21 @@ export interface InputSpecForProviderSources {
    *
    * @schema InputSpecForProviderSources#passwordParam
    */
-  readonly passwordParam: string;
+  readonly passwordParam?: string;
 
   /**
    * The URL where the stream is pulled from.
    *
    * @schema InputSpecForProviderSources#url
    */
-  readonly url: string;
+  readonly url?: string;
 
   /**
    * The username for the input source.
    *
    * @schema InputSpecForProviderSources#username
    */
-  readonly username: string;
+  readonly username?: string;
 
 }
 
@@ -8691,7 +15584,7 @@ export interface InputSpecForProviderVpc {
    *
    * @schema InputSpecForProviderVpc#subnetIds
    */
-  readonly subnetIds: string[];
+  readonly subnetIds?: string[];
 
 }
 
@@ -8700,6 +15593,165 @@ export interface InputSpecForProviderVpc {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InputSpecForProviderVpc(obj: InputSpecForProviderVpc | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'securityGroupIds': obj.securityGroupIds?.map(y => y),
+    'subnetIds': obj.subnetIds?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSpecInitProviderDestinations
+ */
+export interface InputSpecInitProviderDestinations {
+  /**
+   * A unique name for the location the RTMP stream is being pushed to.
+   *
+   * @schema InputSpecInitProviderDestinations#streamName
+   */
+  readonly streamName?: string;
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProviderDestinations' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProviderDestinations(obj: InputSpecInitProviderDestinations | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'streamName': obj.streamName,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSpecInitProviderInputDevices
+ */
+export interface InputSpecInitProviderInputDevices {
+  /**
+   * The unique ID for the device.
+   *
+   * @schema InputSpecInitProviderInputDevices#id
+   */
+  readonly id?: string;
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProviderInputDevices' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProviderInputDevices(obj: InputSpecInitProviderInputDevices | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'id': obj.id,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSpecInitProviderMediaConnectFlows
+ */
+export interface InputSpecInitProviderMediaConnectFlows {
+  /**
+   * The ARN of the MediaConnect Flow
+   *
+   * @schema InputSpecInitProviderMediaConnectFlows#flowArn
+   */
+  readonly flowArn?: string;
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProviderMediaConnectFlows' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProviderMediaConnectFlows(obj: InputSpecInitProviderMediaConnectFlows | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'flowArn': obj.flowArn,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSpecInitProviderSources
+ */
+export interface InputSpecInitProviderSources {
+  /**
+   * The key used to extract the password from EC2 Parameter store.
+   *
+   * @schema InputSpecInitProviderSources#passwordParam
+   */
+  readonly passwordParam?: string;
+
+  /**
+   * The URL where the stream is pulled from.
+   *
+   * @schema InputSpecInitProviderSources#url
+   */
+  readonly url?: string;
+
+  /**
+   * The username for the input source.
+   *
+   * @schema InputSpecInitProviderSources#username
+   */
+  readonly username?: string;
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProviderSources' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProviderSources(obj: InputSpecInitProviderSources | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'passwordParam': obj.passwordParam,
+    'url': obj.url,
+    'username': obj.username,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSpecInitProviderVpc
+ */
+export interface InputSpecInitProviderVpc {
+  /**
+   * A list of up to 5 EC2 VPC security group IDs to attach to the Input.
+   *
+   * @schema InputSpecInitProviderVpc#securityGroupIds
+   */
+  readonly securityGroupIds?: string[];
+
+  /**
+   * A list of 2 VPC subnet IDs from the same VPC.
+   *
+   * @schema InputSpecInitProviderVpc#subnetIds
+   */
+  readonly subnetIds?: string[];
+
+}
+
+/**
+ * Converts an object of type 'InputSpecInitProviderVpc' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSpecInitProviderVpc(obj: InputSpecInitProviderVpc | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'securityGroupIds': obj.securityGroupIds?.map(y => y),
@@ -8737,43 +15789,6 @@ export interface InputSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InputSpecProviderConfigRefPolicy(obj: InputSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InputSpecProviderRefPolicy
- */
-export interface InputSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InputSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InputSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InputSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InputSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InputSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InputSpecProviderRefPolicy(obj: InputSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -8958,30 +15973,6 @@ export enum InputSpecProviderConfigRefPolicyResolution {
  * @schema InputSpecProviderConfigRefPolicyResolve
  */
 export enum InputSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InputSpecProviderRefPolicyResolution
- */
-export enum InputSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InputSpecProviderRefPolicyResolve
- */
-export enum InputSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -9194,7 +16185,7 @@ export function toJson_InputSecurityGroupProps(obj: InputSecurityGroupProps | un
  */
 export interface InputSecurityGroupSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema InputSecurityGroupSpec#deletionPolicy
    */
@@ -9206,11 +16197,18 @@ export interface InputSecurityGroupSpec {
   readonly forProvider: InputSecurityGroupSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema InputSecurityGroupSpec#managementPolicy
+   * @schema InputSecurityGroupSpec#initProvider
    */
-  readonly managementPolicy?: InputSecurityGroupSpecManagementPolicy;
+  readonly initProvider?: InputSecurityGroupSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema InputSecurityGroupSpec#managementPolicies
+   */
+  readonly managementPolicies?: InputSecurityGroupSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9218,13 +16216,6 @@ export interface InputSecurityGroupSpec {
    * @schema InputSecurityGroupSpec#providerConfigRef
    */
   readonly providerConfigRef?: InputSecurityGroupSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema InputSecurityGroupSpec#providerRef
-   */
-  readonly providerRef?: InputSecurityGroupSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9251,9 +16242,9 @@ export function toJson_InputSecurityGroupSpec(obj: InputSecurityGroupSpec | unde
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_InputSecurityGroupSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_InputSecurityGroupSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_InputSecurityGroupSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_InputSecurityGroupSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_InputSecurityGroupSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_InputSecurityGroupSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9263,7 +16254,7 @@ export function toJson_InputSecurityGroupSpec(obj: InputSecurityGroupSpec | unde
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema InputSecurityGroupSpecDeletionPolicy
  */
@@ -9318,17 +16309,60 @@ export function toJson_InputSecurityGroupSpecForProvider(obj: InputSecurityGroup
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema InputSecurityGroupSpecManagementPolicy
+ * @schema InputSecurityGroupSpecInitProvider
  */
-export enum InputSecurityGroupSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface InputSecurityGroupSpecInitProvider {
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema InputSecurityGroupSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+  /**
+   * Whitelist rules. See Whitelist Rules for more details.
+   *
+   * @schema InputSecurityGroupSpecInitProvider#whitelistRules
+   */
+  readonly whitelistRules?: InputSecurityGroupSpecInitProviderWhitelistRules[];
+
+}
+
+/**
+ * Converts an object of type 'InputSecurityGroupSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSecurityGroupSpecInitProvider(obj: InputSecurityGroupSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+    'whitelistRules': obj.whitelistRules?.map(y => toJson_InputSecurityGroupSpecInitProviderWhitelistRules(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema InputSecurityGroupSpecManagementPolicies
+ */
+export enum InputSecurityGroupSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -9362,43 +16396,6 @@ export function toJson_InputSecurityGroupSpecProviderConfigRef(obj: InputSecurit
   const result = {
     'name': obj.name,
     'policy': toJson_InputSecurityGroupSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema InputSecurityGroupSpecProviderRef
- */
-export interface InputSecurityGroupSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema InputSecurityGroupSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema InputSecurityGroupSpecProviderRef#policy
-   */
-  readonly policy?: InputSecurityGroupSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'InputSecurityGroupSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InputSecurityGroupSpecProviderRef(obj: InputSecurityGroupSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_InputSecurityGroupSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -9496,7 +16493,7 @@ export interface InputSecurityGroupSpecForProviderWhitelistRules {
    *
    * @schema InputSecurityGroupSpecForProviderWhitelistRules#cidr
    */
-  readonly cidr: string;
+  readonly cidr?: string;
 
 }
 
@@ -9505,6 +16502,33 @@ export interface InputSecurityGroupSpecForProviderWhitelistRules {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InputSecurityGroupSpecForProviderWhitelistRules(obj: InputSecurityGroupSpecForProviderWhitelistRules | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cidr': obj.cidr,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema InputSecurityGroupSpecInitProviderWhitelistRules
+ */
+export interface InputSecurityGroupSpecInitProviderWhitelistRules {
+  /**
+   * The IPv4 CIDR that's whitelisted.
+   *
+   * @schema InputSecurityGroupSpecInitProviderWhitelistRules#cidr
+   */
+  readonly cidr?: string;
+
+}
+
+/**
+ * Converts an object of type 'InputSecurityGroupSpecInitProviderWhitelistRules' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_InputSecurityGroupSpecInitProviderWhitelistRules(obj: InputSecurityGroupSpecInitProviderWhitelistRules | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'cidr': obj.cidr,
@@ -9541,43 +16565,6 @@ export interface InputSecurityGroupSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_InputSecurityGroupSpecProviderConfigRefPolicy(obj: InputSecurityGroupSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema InputSecurityGroupSpecProviderRefPolicy
- */
-export interface InputSecurityGroupSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema InputSecurityGroupSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: InputSecurityGroupSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema InputSecurityGroupSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: InputSecurityGroupSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'InputSecurityGroupSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_InputSecurityGroupSpecProviderRefPolicy(obj: InputSecurityGroupSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -9688,30 +16675,6 @@ export enum InputSecurityGroupSpecProviderConfigRefPolicyResolution {
  * @schema InputSecurityGroupSpecProviderConfigRefPolicyResolve
  */
 export enum InputSecurityGroupSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema InputSecurityGroupSpecProviderRefPolicyResolution
- */
-export enum InputSecurityGroupSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema InputSecurityGroupSpecProviderRefPolicyResolve
- */
-export enum InputSecurityGroupSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -9876,7 +16839,7 @@ export function toJson_MultiplexProps(obj: MultiplexProps | undefined): Record<s
  */
 export interface MultiplexSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema MultiplexSpec#deletionPolicy
    */
@@ -9888,11 +16851,18 @@ export interface MultiplexSpec {
   readonly forProvider: MultiplexSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema MultiplexSpec#managementPolicy
+   * @schema MultiplexSpec#initProvider
    */
-  readonly managementPolicy?: MultiplexSpecManagementPolicy;
+  readonly initProvider?: MultiplexSpecInitProvider;
+
+  /**
+   * THIS IS A BETA FIELD. It is on by default but can be opted out through a Crossplane feature flag. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema MultiplexSpec#managementPolicies
+   */
+  readonly managementPolicies?: MultiplexSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -9900,13 +16870,6 @@ export interface MultiplexSpec {
    * @schema MultiplexSpec#providerConfigRef
    */
   readonly providerConfigRef?: MultiplexSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema MultiplexSpec#providerRef
-   */
-  readonly providerRef?: MultiplexSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -9933,9 +16896,9 @@ export function toJson_MultiplexSpec(obj: MultiplexSpec | undefined): Record<str
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_MultiplexSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_MultiplexSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_MultiplexSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_MultiplexSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_MultiplexSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_MultiplexSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -9945,7 +16908,7 @@ export function toJson_MultiplexSpec(obj: MultiplexSpec | undefined): Record<str
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema MultiplexSpecDeletionPolicy
  */
@@ -10025,17 +16988,85 @@ export function toJson_MultiplexSpecForProvider(obj: MultiplexSpecForProvider | 
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS A BETA FIELD. It will be honored unless the Management Policies feature flag is disabled. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema MultiplexSpecManagementPolicy
+ * @schema MultiplexSpecInitProvider
  */
-export enum MultiplexSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface MultiplexSpecInitProvider {
+  /**
+   * A list of availability zones. You must specify exactly two.
+   *
+   * @schema MultiplexSpecInitProvider#availabilityZones
+   */
+  readonly availabilityZones?: string[];
+
+  /**
+   * Multiplex settings. See Multiplex Settings for more details.
+   *
+   * @schema MultiplexSpecInitProvider#multiplexSettings
+   */
+  readonly multiplexSettings?: MultiplexSpecInitProviderMultiplexSettings[];
+
+  /**
+   * name of Multiplex.
+   *
+   * @schema MultiplexSpecInitProvider#name
+   */
+  readonly name?: string;
+
+  /**
+   * Whether to start the Multiplex. Defaults to false.
+   *
+   * @default false.
+   * @schema MultiplexSpecInitProvider#startMultiplex
+   */
+  readonly startMultiplex?: boolean;
+
+  /**
+   * Key-value map of resource tags.
+   *
+   * @schema MultiplexSpecInitProvider#tags
+   */
+  readonly tags?: { [key: string]: string };
+
+}
+
+/**
+ * Converts an object of type 'MultiplexSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiplexSpecInitProvider(obj: MultiplexSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'availabilityZones': obj.availabilityZones?.map(y => y),
+    'multiplexSettings': obj.multiplexSettings?.map(y => toJson_MultiplexSpecInitProviderMultiplexSettings(y)),
+    'name': obj.name,
+    'startMultiplex': obj.startMultiplex,
+    'tags': ((obj.tags) === undefined) ? undefined : (Object.entries(obj.tags).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {})),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema MultiplexSpecManagementPolicies
+ */
+export enum MultiplexSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -10069,43 +17100,6 @@ export function toJson_MultiplexSpecProviderConfigRef(obj: MultiplexSpecProvider
   const result = {
     'name': obj.name,
     'policy': toJson_MultiplexSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema MultiplexSpecProviderRef
- */
-export interface MultiplexSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema MultiplexSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema MultiplexSpecProviderRef#policy
-   */
-  readonly policy?: MultiplexSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'MultiplexSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiplexSpecProviderRef(obj: MultiplexSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_MultiplexSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -10210,14 +17204,14 @@ export interface MultiplexSpecForProviderMultiplexSettings {
    *
    * @schema MultiplexSpecForProviderMultiplexSettings#transportStreamBitrate
    */
-  readonly transportStreamBitrate: number;
+  readonly transportStreamBitrate?: number;
 
   /**
    * Unique ID for each multiplex.
    *
    * @schema MultiplexSpecForProviderMultiplexSettings#transportStreamId
    */
-  readonly transportStreamId: number;
+  readonly transportStreamId?: number;
 
   /**
    * Transport stream reserved bit rate.
@@ -10233,6 +17227,57 @@ export interface MultiplexSpecForProviderMultiplexSettings {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MultiplexSpecForProviderMultiplexSettings(obj: MultiplexSpecForProviderMultiplexSettings | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'maximumVideoBufferDelayMilliseconds': obj.maximumVideoBufferDelayMilliseconds,
+    'transportStreamBitrate': obj.transportStreamBitrate,
+    'transportStreamId': obj.transportStreamId,
+    'transportStreamReservedBitrate': obj.transportStreamReservedBitrate,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema MultiplexSpecInitProviderMultiplexSettings
+ */
+export interface MultiplexSpecInitProviderMultiplexSettings {
+  /**
+   * Maximum video buffer delay.
+   *
+   * @schema MultiplexSpecInitProviderMultiplexSettings#maximumVideoBufferDelayMilliseconds
+   */
+  readonly maximumVideoBufferDelayMilliseconds?: number;
+
+  /**
+   * Transport stream bit rate.
+   *
+   * @schema MultiplexSpecInitProviderMultiplexSettings#transportStreamBitrate
+   */
+  readonly transportStreamBitrate?: number;
+
+  /**
+   * Unique ID for each multiplex.
+   *
+   * @schema MultiplexSpecInitProviderMultiplexSettings#transportStreamId
+   */
+  readonly transportStreamId?: number;
+
+  /**
+   * Transport stream reserved bit rate.
+   *
+   * @schema MultiplexSpecInitProviderMultiplexSettings#transportStreamReservedBitrate
+   */
+  readonly transportStreamReservedBitrate?: number;
+
+}
+
+/**
+ * Converts an object of type 'MultiplexSpecInitProviderMultiplexSettings' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_MultiplexSpecInitProviderMultiplexSettings(obj: MultiplexSpecInitProviderMultiplexSettings | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'maximumVideoBufferDelayMilliseconds': obj.maximumVideoBufferDelayMilliseconds,
@@ -10272,43 +17317,6 @@ export interface MultiplexSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_MultiplexSpecProviderConfigRefPolicy(obj: MultiplexSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema MultiplexSpecProviderRefPolicy
- */
-export interface MultiplexSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema MultiplexSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: MultiplexSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema MultiplexSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: MultiplexSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'MultiplexSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_MultiplexSpecProviderRefPolicy(obj: MultiplexSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -10419,30 +17427,6 @@ export enum MultiplexSpecProviderConfigRefPolicyResolution {
  * @schema MultiplexSpecProviderConfigRefPolicyResolve
  */
 export enum MultiplexSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema MultiplexSpecProviderRefPolicyResolution
- */
-export enum MultiplexSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema MultiplexSpecProviderRefPolicyResolve
- */
-export enum MultiplexSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

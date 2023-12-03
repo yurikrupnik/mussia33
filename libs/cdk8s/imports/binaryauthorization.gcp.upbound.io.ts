@@ -99,7 +99,7 @@ export function toJson_AttestorProps(obj: AttestorProps | undefined): Record<str
  */
 export interface AttestorSpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema AttestorSpec#deletionPolicy
    */
@@ -111,11 +111,18 @@ export interface AttestorSpec {
   readonly forProvider: AttestorSpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema AttestorSpec#managementPolicy
+   * @schema AttestorSpec#initProvider
    */
-  readonly managementPolicy?: AttestorSpecManagementPolicy;
+  readonly initProvider?: AttestorSpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema AttestorSpec#managementPolicies
+   */
+  readonly managementPolicies?: AttestorSpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -123,13 +130,6 @@ export interface AttestorSpec {
    * @schema AttestorSpec#providerConfigRef
    */
   readonly providerConfigRef?: AttestorSpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema AttestorSpec#providerRef
-   */
-  readonly providerRef?: AttestorSpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -156,9 +156,9 @@ export function toJson_AttestorSpec(obj: AttestorSpec | undefined): Record<strin
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_AttestorSpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_AttestorSpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_AttestorSpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_AttestorSpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_AttestorSpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_AttestorSpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -168,7 +168,7 @@ export function toJson_AttestorSpec(obj: AttestorSpec | undefined): Record<strin
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema AttestorSpecDeletionPolicy
  */
@@ -223,17 +223,68 @@ export function toJson_AttestorSpecForProvider(obj: AttestorSpecForProvider | un
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema AttestorSpecManagementPolicy
+ * @schema AttestorSpecInitProvider
  */
-export enum AttestorSpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface AttestorSpecInitProvider {
+  /**
+   * A Container Analysis ATTESTATION_AUTHORITY Note, created by the user. Structure is documented below.
+   *
+   * @schema AttestorSpecInitProvider#attestationAuthorityNote
+   */
+  readonly attestationAuthorityNote?: AttestorSpecInitProviderAttestationAuthorityNote[];
+
+  /**
+   * A descriptive comment. This field may be updated. The field may be displayed in chooser dialogs.
+   *
+   * @schema AttestorSpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema AttestorSpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'AttestorSpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AttestorSpecInitProvider(obj: AttestorSpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'attestationAuthorityNote': obj.attestationAuthorityNote?.map(y => toJson_AttestorSpecInitProviderAttestationAuthorityNote(y)),
+    'description': obj.description,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema AttestorSpecManagementPolicies
+ */
+export enum AttestorSpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -267,43 +318,6 @@ export function toJson_AttestorSpecProviderConfigRef(obj: AttestorSpecProviderCo
   const result = {
     'name': obj.name,
     'policy': toJson_AttestorSpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema AttestorSpecProviderRef
- */
-export interface AttestorSpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema AttestorSpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema AttestorSpecProviderRef#policy
-   */
-  readonly policy?: AttestorSpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'AttestorSpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AttestorSpecProviderRef(obj: AttestorSpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_AttestorSpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -444,6 +458,33 @@ export function toJson_AttestorSpecForProviderAttestationAuthorityNote(obj: Atte
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AttestorSpecInitProviderAttestationAuthorityNote
+ */
+export interface AttestorSpecInitProviderAttestationAuthorityNote {
+  /**
+   * Public keys that verify attestations signed by this attestor. This field may be updated. If this field is non-empty, one of the specified public keys must verify that an attestation was signed by this attestor for the image specified in the admission request. If this field is empty, this attestor always returns that no valid attestations exist. Structure is documented below.
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNote#publicKeys
+   */
+  readonly publicKeys?: AttestorSpecInitProviderAttestationAuthorityNotePublicKeys[];
+
+}
+
+/**
+ * Converts an object of type 'AttestorSpecInitProviderAttestationAuthorityNote' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AttestorSpecInitProviderAttestationAuthorityNote(obj: AttestorSpecInitProviderAttestationAuthorityNote | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicKeys': obj.publicKeys?.map(y => toJson_AttestorSpecInitProviderAttestationAuthorityNotePublicKeys(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Policies for referencing.
  *
  * @schema AttestorSpecProviderConfigRefPolicy
@@ -470,43 +511,6 @@ export interface AttestorSpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AttestorSpecProviderConfigRefPolicy(obj: AttestorSpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema AttestorSpecProviderRefPolicy
- */
-export interface AttestorSpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema AttestorSpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: AttestorSpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema AttestorSpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: AttestorSpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'AttestorSpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_AttestorSpecProviderRefPolicy(obj: AttestorSpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -733,6 +737,57 @@ export function toJson_AttestorSpecForProviderAttestationAuthorityNotePublicKeys
 /* eslint-enable max-len, quote-props */
 
 /**
+ * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeys
+ */
+export interface AttestorSpecInitProviderAttestationAuthorityNotePublicKeys {
+  /**
+   * ASCII-armored representation of a PGP public key, as the entire output by the command gpg --export --armor foo@example.com (either LF or CRLF line endings). When using this field, id should be left blank. The BinAuthz API handlers will calculate the ID and fill it in automatically. BinAuthz computes this ID as the OpenPGP RFC4880 V4 fingerprint, represented as upper-case hex. If id is provided by the caller, it will be overwritten by the API-calculated ID.
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeys#asciiArmoredPgpPublicKey
+   */
+  readonly asciiArmoredPgpPublicKey?: string;
+
+  /**
+   * A descriptive comment. This field may be updated.
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeys#comment
+   */
+  readonly comment?: string;
+
+  /**
+   * The ID of this public key. Signatures verified by BinAuthz must include the ID of the public key that can be used to verify them, and that ID must match the contents of this field exactly. Additional restrictions on this field can be imposed based on which public key type is encapsulated. See the documentation on publicKey cases below for details.
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeys#id
+   */
+  readonly id?: string;
+
+  /**
+   * A raw PKIX SubjectPublicKeyInfo format public key. NOTE: id may be explicitly provided by the caller when using this type of public key, but it MUST be a valid RFC3986 URI. If id is left blank, a default one will be computed based on the digest of the DER encoding of the public key. Structure is documented below.
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeys#pkixPublicKey
+   */
+  readonly pkixPublicKey?: AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey[];
+
+}
+
+/**
+ * Converts an object of type 'AttestorSpecInitProviderAttestationAuthorityNotePublicKeys' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AttestorSpecInitProviderAttestationAuthorityNotePublicKeys(obj: AttestorSpecInitProviderAttestationAuthorityNotePublicKeys | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'asciiArmoredPgpPublicKey': obj.asciiArmoredPgpPublicKey,
+    'comment': obj.comment,
+    'id': obj.id,
+    'pkixPublicKey': obj.pkixPublicKey?.map(y => toJson_AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey(y)),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
  * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
  *
  * @schema AttestorSpecProviderConfigRefPolicyResolution
@@ -750,30 +805,6 @@ export enum AttestorSpecProviderConfigRefPolicyResolution {
  * @schema AttestorSpecProviderConfigRefPolicyResolve
  */
 export enum AttestorSpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema AttestorSpecProviderRefPolicyResolution
- */
-export enum AttestorSpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema AttestorSpecProviderRefPolicyResolve
- */
-export enum AttestorSpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */
@@ -916,6 +947,41 @@ export interface AttestorSpecForProviderAttestationAuthorityNotePublicKeysPkixPu
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_AttestorSpecForProviderAttestationAuthorityNotePublicKeysPkixPublicKey(obj: AttestorSpecForProviderAttestationAuthorityNotePublicKeysPkixPublicKey | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'publicKeyPem': obj.publicKeyPem,
+    'signatureAlgorithm': obj.signatureAlgorithm,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey
+ */
+export interface AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey {
+  /**
+   * A PEM-encoded public key, as described in https://tools.ietf.org/html/rfc7468#section-13
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey#publicKeyPem
+   */
+  readonly publicKeyPem?: string;
+
+  /**
+   * The signature algorithm used to verify a message against a signature using this key. These signature algorithm must match the structure and any object identifiers encoded in publicKeyPem (i.e. this algorithm must match that of the public key).
+   *
+   * @schema AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey#signatureAlgorithm
+   */
+  readonly signatureAlgorithm?: string;
+
+}
+
+/**
+ * Converts an object of type 'AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey(obj: AttestorSpecInitProviderAttestationAuthorityNotePublicKeysPkixPublicKey | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'publicKeyPem': obj.publicKeyPem,
@@ -1095,7 +1161,7 @@ export function toJson_PolicyProps(obj: PolicyProps | undefined): Record<string,
  */
 export interface PolicySpec {
   /**
-   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
    *
    * @schema PolicySpec#deletionPolicy
    */
@@ -1107,11 +1173,18 @@ export interface PolicySpec {
   readonly forProvider: PolicySpecForProvider;
 
   /**
-   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
    *
-   * @schema PolicySpec#managementPolicy
+   * @schema PolicySpec#initProvider
    */
-  readonly managementPolicy?: PolicySpecManagementPolicy;
+  readonly initProvider?: PolicySpecInitProvider;
+
+  /**
+   * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicies specify the array of actions Crossplane is allowed to take on the managed and external resources. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. If both are custom, the DeletionPolicy field will be ignored. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223 and this one: https://github.com/crossplane/crossplane/blob/444267e84783136daa93568b364a5f01228cacbe/design/one-pager-ignore-changes.md
+   *
+   * @schema PolicySpec#managementPolicies
+   */
+  readonly managementPolicies?: PolicySpecManagementPolicies[];
 
   /**
    * ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.
@@ -1119,13 +1192,6 @@ export interface PolicySpec {
    * @schema PolicySpec#providerConfigRef
    */
   readonly providerConfigRef?: PolicySpecProviderConfigRef;
-
-  /**
-   * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-   *
-   * @schema PolicySpec#providerRef
-   */
-  readonly providerRef?: PolicySpecProviderRef;
 
   /**
    * PublishConnectionDetailsTo specifies the connection secret config which contains a name, metadata and a reference to secret store config to which any connection details for this managed resource should be written. Connection details frequently include the endpoint, username, and password required to connect to the managed resource.
@@ -1152,9 +1218,9 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
   const result = {
     'deletionPolicy': obj.deletionPolicy,
     'forProvider': toJson_PolicySpecForProvider(obj.forProvider),
-    'managementPolicy': obj.managementPolicy,
+    'initProvider': toJson_PolicySpecInitProvider(obj.initProvider),
+    'managementPolicies': obj.managementPolicies?.map(y => y),
     'providerConfigRef': toJson_PolicySpecProviderConfigRef(obj.providerConfigRef),
-    'providerRef': toJson_PolicySpecProviderRef(obj.providerRef),
     'publishConnectionDetailsTo': toJson_PolicySpecPublishConnectionDetailsTo(obj.publishConnectionDetailsTo),
     'writeConnectionSecretToRef': toJson_PolicySpecWriteConnectionSecretToRef(obj.writeConnectionSecretToRef),
   };
@@ -1164,7 +1230,7 @@ export function toJson_PolicySpec(obj: PolicySpec | undefined): Record<string, a
 /* eslint-enable max-len, quote-props */
 
 /**
- * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. This field is planned to be deprecated in favor of the ManagementPolicies field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
  *
  * @schema PolicySpecDeletionPolicy
  */
@@ -1243,17 +1309,92 @@ export function toJson_PolicySpecForProvider(obj: PolicySpecForProvider | undefi
 /* eslint-enable max-len, quote-props */
 
 /**
- * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. ManagementPolicy specifies the level of control Crossplane has over the managed external resource. This field is planned to replace the DeletionPolicy field in a future release. Currently, both could be set independently and non-default values would be honored if the feature flag is enabled. See the design doc for more information: https://github.com/crossplane/crossplane/blob/499895a25d1a1a0ba1604944ef98ac7a1a71f197/design/design-doc-observe-only-resources.md?plain=1#L223
+ * THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored unless the relevant Crossplane feature flag is enabled, and may be changed or removed without notice. InitProvider holds the same fields as ForProvider, with the exception of Identifier and other resource reference fields. The fields that are in InitProvider are merged into ForProvider when the resource is created. The same fields are also added to the terraform ignore_changes hook, to avoid updating them after creation. This is useful for fields that are required on creation, but we do not desire to update them after creation, for example because of an external controller is managing them, like an autoscaler.
  *
- * @schema PolicySpecManagementPolicy
+ * @schema PolicySpecInitProvider
  */
-export enum PolicySpecManagementPolicy {
-  /** FullControl */
-  FULL_CONTROL = "FullControl",
-  /** ObserveOnly */
-  OBSERVE_ONLY = "ObserveOnly",
-  /** OrphanOnDelete */
-  ORPHAN_ON_DELETE = "OrphanOnDelete",
+export interface PolicySpecInitProvider {
+  /**
+   * A whitelist of image patterns to exclude from admission rules. If an image's name matches a whitelist pattern, the image's admission requests will always be permitted regardless of your admission rules. Structure is documented below.
+   *
+   * @schema PolicySpecInitProvider#admissionWhitelistPatterns
+   */
+  readonly admissionWhitelistPatterns?: PolicySpecInitProviderAdmissionWhitelistPatterns[];
+
+  /**
+   * Per-cluster admission rules. An admission rule specifies either that all container images used in a pod creation request must be attested to by one or more attestors, that all pod creations will be allowed, or that all pod creations will be denied. There can be at most one admission rule per cluster spec.
+   *
+   * @schema PolicySpecInitProvider#clusterAdmissionRules
+   */
+  readonly clusterAdmissionRules?: PolicySpecInitProviderClusterAdmissionRules[];
+
+  /**
+   * Default admission rule for a cluster without a per-cluster admission rule. Structure is documented below.
+   *
+   * @schema PolicySpecInitProvider#defaultAdmissionRule
+   */
+  readonly defaultAdmissionRule?: PolicySpecInitProviderDefaultAdmissionRule[];
+
+  /**
+   * A descriptive comment.
+   *
+   * @schema PolicySpecInitProvider#description
+   */
+  readonly description?: string;
+
+  /**
+   * Controls the evaluation of a Google-maintained global admission policy for common system-level images. Images not covered by the global policy will be subject to the project admission policy. Possible values are: ENABLE, DISABLE.
+   *
+   * @schema PolicySpecInitProvider#globalPolicyEvaluationMode
+   */
+  readonly globalPolicyEvaluationMode?: string;
+
+  /**
+   * The ID of the project in which the resource belongs. If it is not provided, the provider project is used.
+   *
+   * @schema PolicySpecInitProvider#project
+   */
+  readonly project?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProvider' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProvider(obj: PolicySpecInitProvider | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'admissionWhitelistPatterns': obj.admissionWhitelistPatterns?.map(y => toJson_PolicySpecInitProviderAdmissionWhitelistPatterns(y)),
+    'clusterAdmissionRules': obj.clusterAdmissionRules?.map(y => toJson_PolicySpecInitProviderClusterAdmissionRules(y)),
+    'defaultAdmissionRule': obj.defaultAdmissionRule?.map(y => toJson_PolicySpecInitProviderDefaultAdmissionRule(y)),
+    'description': obj.description,
+    'globalPolicyEvaluationMode': obj.globalPolicyEvaluationMode,
+    'project': obj.project,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * A ManagementAction represents an action that the Crossplane controllers can take on an external resource.
+ *
+ * @schema PolicySpecManagementPolicies
+ */
+export enum PolicySpecManagementPolicies {
+  /** Observe */
+  OBSERVE = "Observe",
+  /** Create */
+  CREATE = "Create",
+  /** Update */
+  UPDATE = "Update",
+  /** Delete */
+  DELETE = "Delete",
+  /** LateInitialize */
+  LATE_INITIALIZE = "LateInitialize",
+  /** * */
+  VALUE_ = "*",
 }
 
 /**
@@ -1287,43 +1428,6 @@ export function toJson_PolicySpecProviderConfigRef(obj: PolicySpecProviderConfig
   const result = {
     'name': obj.name,
     'policy': toJson_PolicySpecProviderConfigRefPolicy(obj.policy),
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * ProviderReference specifies the provider that will be used to create, observe, update, and delete this managed resource. Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
- *
- * @schema PolicySpecProviderRef
- */
-export interface PolicySpecProviderRef {
-  /**
-   * Name of the referenced object.
-   *
-   * @schema PolicySpecProviderRef#name
-   */
-  readonly name: string;
-
-  /**
-   * Policies for referencing.
-   *
-   * @schema PolicySpecProviderRef#policy
-   */
-  readonly policy?: PolicySpecProviderRefPolicy;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRef' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRef(obj: PolicySpecProviderRef | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'name': obj.name,
-    'policy': toJson_PolicySpecProviderRefPolicy(obj.policy),
   };
   // filter undefined values
   return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
@@ -1421,7 +1525,7 @@ export interface PolicySpecForProviderAdmissionWhitelistPatterns {
    *
    * @schema PolicySpecForProviderAdmissionWhitelistPatterns#namePattern
    */
-  readonly namePattern: string;
+  readonly namePattern?: string;
 
 }
 
@@ -1448,21 +1552,21 @@ export interface PolicySpecForProviderClusterAdmissionRules {
    *
    * @schema PolicySpecForProviderClusterAdmissionRules#cluster
    */
-  readonly cluster: string;
+  readonly cluster?: string;
 
   /**
    * The action when a pod creation is denied by the admission rule. Possible values are: ENFORCED_BLOCK_AND_AUDIT_LOG, DRYRUN_AUDIT_LOG_ONLY.
    *
    * @schema PolicySpecForProviderClusterAdmissionRules#enforcementMode
    */
-  readonly enforcementMode: string;
+  readonly enforcementMode?: string;
 
   /**
    * How this admission rule will be evaluated. Possible values are: ALWAYS_ALLOW, REQUIRE_ATTESTATION, ALWAYS_DENY.
    *
    * @schema PolicySpecForProviderClusterAdmissionRules#evaluationMode
    */
-  readonly evaluationMode: string;
+  readonly evaluationMode?: string;
 
   /**
    * The resource names of the attestors that must attest to a container image. If the attestor is in a different project from the policy, it should be specified in the format projects/_/attestors/*. Each attestor must exist before a policy can reference it. To add an attestor to a policy the principal issuing the policy change request must be able to read the attestor resource. Note: this field must be non-empty when the evaluation_mode field specifies REQUIRE_ATTESTATION, otherwise it must be empty.
@@ -1499,14 +1603,14 @@ export interface PolicySpecForProviderDefaultAdmissionRule {
    *
    * @schema PolicySpecForProviderDefaultAdmissionRule#enforcementMode
    */
-  readonly enforcementMode: string;
+  readonly enforcementMode?: string;
 
   /**
    * How this admission rule will be evaluated. Possible values are: ALWAYS_ALLOW, REQUIRE_ATTESTATION, ALWAYS_DENY.
    *
    * @schema PolicySpecForProviderDefaultAdmissionRule#evaluationMode
    */
-  readonly evaluationMode: string;
+  readonly evaluationMode?: string;
 
   /**
    * The resource names of the attestors that must attest to a container image. If the attestor is in a different project from the policy, it should be specified in the format projects/_/attestors/*. Each attestor must exist before a policy can reference it. To add an attestor to a policy the principal issuing the policy change request must be able to read the attestor resource. Note: this field must be non-empty when the evaluation_mode field specifies REQUIRE_ATTESTATION, otherwise it must be empty.
@@ -1522,6 +1626,127 @@ export interface PolicySpecForProviderDefaultAdmissionRule {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecForProviderDefaultAdmissionRule(obj: PolicySpecForProviderDefaultAdmissionRule | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'enforcementMode': obj.enforcementMode,
+    'evaluationMode': obj.evaluationMode,
+    'requireAttestationsBy': obj.requireAttestationsBy?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderAdmissionWhitelistPatterns
+ */
+export interface PolicySpecInitProviderAdmissionWhitelistPatterns {
+  /**
+   * An image name pattern to whitelist, in the form registry/path/to/image. This supports a trailing * as a wildcard, but this is allowed only in text after the registry/ part.
+   *
+   * @schema PolicySpecInitProviderAdmissionWhitelistPatterns#namePattern
+   */
+  readonly namePattern?: string;
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderAdmissionWhitelistPatterns' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderAdmissionWhitelistPatterns(obj: PolicySpecInitProviderAdmissionWhitelistPatterns | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'namePattern': obj.namePattern,
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderClusterAdmissionRules
+ */
+export interface PolicySpecInitProviderClusterAdmissionRules {
+  /**
+   * The identifier for this object. Format specified above.
+   *
+   * @schema PolicySpecInitProviderClusterAdmissionRules#cluster
+   */
+  readonly cluster?: string;
+
+  /**
+   * The action when a pod creation is denied by the admission rule. Possible values are: ENFORCED_BLOCK_AND_AUDIT_LOG, DRYRUN_AUDIT_LOG_ONLY.
+   *
+   * @schema PolicySpecInitProviderClusterAdmissionRules#enforcementMode
+   */
+  readonly enforcementMode?: string;
+
+  /**
+   * How this admission rule will be evaluated. Possible values are: ALWAYS_ALLOW, REQUIRE_ATTESTATION, ALWAYS_DENY.
+   *
+   * @schema PolicySpecInitProviderClusterAdmissionRules#evaluationMode
+   */
+  readonly evaluationMode?: string;
+
+  /**
+   * The resource names of the attestors that must attest to a container image. If the attestor is in a different project from the policy, it should be specified in the format projects/_/attestors/*. Each attestor must exist before a policy can reference it. To add an attestor to a policy the principal issuing the policy change request must be able to read the attestor resource. Note: this field must be non-empty when the evaluation_mode field specifies REQUIRE_ATTESTATION, otherwise it must be empty.
+   *
+   * @schema PolicySpecInitProviderClusterAdmissionRules#requireAttestationsBy
+   */
+  readonly requireAttestationsBy?: string[];
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderClusterAdmissionRules' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderClusterAdmissionRules(obj: PolicySpecInitProviderClusterAdmissionRules | undefined): Record<string, any> | undefined {
+  if (obj === undefined) { return undefined; }
+  const result = {
+    'cluster': obj.cluster,
+    'enforcementMode': obj.enforcementMode,
+    'evaluationMode': obj.evaluationMode,
+    'requireAttestationsBy': obj.requireAttestationsBy?.map(y => y),
+  };
+  // filter undefined values
+  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
+}
+/* eslint-enable max-len, quote-props */
+
+/**
+ * @schema PolicySpecInitProviderDefaultAdmissionRule
+ */
+export interface PolicySpecInitProviderDefaultAdmissionRule {
+  /**
+   * The action when a pod creation is denied by the admission rule. Possible values are: ENFORCED_BLOCK_AND_AUDIT_LOG, DRYRUN_AUDIT_LOG_ONLY.
+   *
+   * @schema PolicySpecInitProviderDefaultAdmissionRule#enforcementMode
+   */
+  readonly enforcementMode?: string;
+
+  /**
+   * How this admission rule will be evaluated. Possible values are: ALWAYS_ALLOW, REQUIRE_ATTESTATION, ALWAYS_DENY.
+   *
+   * @schema PolicySpecInitProviderDefaultAdmissionRule#evaluationMode
+   */
+  readonly evaluationMode?: string;
+
+  /**
+   * The resource names of the attestors that must attest to a container image. If the attestor is in a different project from the policy, it should be specified in the format projects/_/attestors/*. Each attestor must exist before a policy can reference it. To add an attestor to a policy the principal issuing the policy change request must be able to read the attestor resource. Note: this field must be non-empty when the evaluation_mode field specifies REQUIRE_ATTESTATION, otherwise it must be empty.
+   *
+   * @schema PolicySpecInitProviderDefaultAdmissionRule#requireAttestationsBy
+   */
+  readonly requireAttestationsBy?: string[];
+
+}
+
+/**
+ * Converts an object of type 'PolicySpecInitProviderDefaultAdmissionRule' to JSON representation.
+ */
+/* eslint-disable max-len, quote-props */
+export function toJson_PolicySpecInitProviderDefaultAdmissionRule(obj: PolicySpecInitProviderDefaultAdmissionRule | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'enforcementMode': obj.enforcementMode,
@@ -1560,43 +1785,6 @@ export interface PolicySpecProviderConfigRefPolicy {
  */
 /* eslint-disable max-len, quote-props */
 export function toJson_PolicySpecProviderConfigRefPolicy(obj: PolicySpecProviderConfigRefPolicy | undefined): Record<string, any> | undefined {
-  if (obj === undefined) { return undefined; }
-  const result = {
-    'resolution': obj.resolution,
-    'resolve': obj.resolve,
-  };
-  // filter undefined values
-  return Object.entries(result).reduce((r, i) => (i[1] === undefined) ? r : ({ ...r, [i[0]]: i[1] }), {});
-}
-/* eslint-enable max-len, quote-props */
-
-/**
- * Policies for referencing.
- *
- * @schema PolicySpecProviderRefPolicy
- */
-export interface PolicySpecProviderRefPolicy {
-  /**
-   * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolution
-   */
-  readonly resolution?: PolicySpecProviderRefPolicyResolution;
-
-  /**
-   * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
-   *
-   * @schema PolicySpecProviderRefPolicy#resolve
-   */
-  readonly resolve?: PolicySpecProviderRefPolicyResolve;
-
-}
-
-/**
- * Converts an object of type 'PolicySpecProviderRefPolicy' to JSON representation.
- */
-/* eslint-disable max-len, quote-props */
-export function toJson_PolicySpecProviderRefPolicy(obj: PolicySpecProviderRefPolicy | undefined): Record<string, any> | undefined {
   if (obj === undefined) { return undefined; }
   const result = {
     'resolution': obj.resolution,
@@ -1707,30 +1895,6 @@ export enum PolicySpecProviderConfigRefPolicyResolution {
  * @schema PolicySpecProviderConfigRefPolicyResolve
  */
 export enum PolicySpecProviderConfigRefPolicyResolve {
-  /** Always */
-  ALWAYS = "Always",
-  /** IfNotPresent */
-  IF_NOT_PRESENT = "IfNotPresent",
-}
-
-/**
- * Resolution specifies whether resolution of this reference is required. The default is 'Required', which means the reconcile will fail if the reference cannot be resolved. 'Optional' means this reference will be a no-op if it cannot be resolved.
- *
- * @schema PolicySpecProviderRefPolicyResolution
- */
-export enum PolicySpecProviderRefPolicyResolution {
-  /** Required */
-  REQUIRED = "Required",
-  /** Optional */
-  OPTIONAL = "Optional",
-}
-
-/**
- * Resolve specifies when this reference should be resolved. The default is 'IfNotPresent', which will attempt to resolve the reference only when the corresponding field is not present. Use 'Always' to resolve the reference on every reconcile.
- *
- * @schema PolicySpecProviderRefPolicyResolve
- */
-export enum PolicySpecProviderRefPolicyResolve {
   /** Always */
   ALWAYS = "Always",
   /** IfNotPresent */

@@ -1,7 +1,7 @@
 apiVersion: ecr.aws.upbound.io/v1beta1
 kind: Repository
 metadata:
-  name: crossplane-multicloud-fsdf-c8c5ea0d
+  name: crossplane-multicloud-fsddf-c8899fc7
 spec:
   forProvider:
     region: ""
@@ -23,6 +23,9 @@ spec:
     kind: Project
     plural: Projects
   group: multicloud.yurikrupnik.com
+  metadata:
+    labels:
+      ad: ds
   names:
     kind: Project
     plural: projects
