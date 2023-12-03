@@ -134,6 +134,17 @@ spec:
   id: aris2
   location: me-west1
 ---
+apiVersion: multicloud.platformref.yurikrupnik.com/v1alpha1
+kind: Storage
+metadata:
+  name: storage-gcp1
+  namespace: crossplane-system
+spec:
+  id: aris1
+  location: me-west1
+  providerConfigRef:
+    name: shared
+---
 #  compositionSelector:
 #    matchLabels:
 #      provider: GCP
@@ -347,22 +358,49 @@ spec:
     tags:
       - foo
       - bar
-
-#---
+---
 #apiVersion: compute.gcp.upbound.io/v1beta1
-#kind: InstanceGroup
+#kind: InstanceGroupNamedPort
 #metadata:
 #  annotations:
-#    meta.upbound.io/example-id: compute/v1beta1/instancegroup
+#    meta.upbound.io/example-id: compute/v1beta1/instancegroupnamedport
+#    upjet.upbound.io/manual-intervention: Instance group name is generated
+#      (gke-instance-group-named-default-pool-eb15fe12-grp). Needs explicit
+#      reference
 #  labels:
-#    testing.upbound.io/example-name: instance-group
-#  name: instance-group
+#    testing.upbound.io/example-name: instance-group-named-port
+#  name: instance-group-named-port
 #spec:
 #  forProvider:
-#    description: Terraform test instance group
-##    networkSelector:
-##      matchLabels:
-##        testing.upbound.io/example-name: my-gcp-network
-#    zone: us-central1-a
-#    instances:
+#    groupSelector:
+#      matchLabels:
+#        testing.upbound.io/example-name: instance-group-named-port
+#    name: http
+#    port: 8080
+#    zone: me-west1-a
+---
+apiVersion: compute.gcp.upbound.io/v1beta1
+kind: InstanceGroup
+metadata:
+  annotations:
+    meta.upbound.io/example-id: compute/v1beta1/instancegroup
+  labels:
+    testing.upbound.io/example-name: instance-group2
+  name: instance-group2
+spec:
+  forProvider:
+    description: Shit stuff
+    network: https://www.googleapis.com/compute/v1/projects/shared-v1/global/networks/my-gcp-network-s54fh-sjmgs
+#    TODO all other ways that do not work - all of them
+#    networkRef:
+#      name: https://www.googleapis.com/compute/v1/projects/shared-v1/global/networks/my-gcp-network-s54fh-sjmgs
+#      name: my-gcp-network
+#    networkSelector:
+#      matchLabels:
+#        crossplane.io/external-name: my-gcp-network-s54fh-sjmgs
+    zone: me-west1-a
+    instances:
+#      - terraform-20231203003803550700000001
+      - https://www.googleapis.com/compute/v1/projects/shared-v1/global/instanceTemplates/terraform-20231203003803550700000001
 #      - instance-from-template
+  reclaimPolicy: Delete

@@ -52,6 +52,9 @@ spec:
             location: US
             uniformBucketLevelAccess: true
             storageClass: STANDARD
+          reclaimPolicy: Delete
+          providerConfigRef:
+            name: default
 #            tags:
 #              - key: key1
 #                value: value1
@@ -64,6 +67,8 @@ spec:
 #                value: value2
       name: Bucket
       patches:
+        - fromFieldPath: spec.providerConfigRef
+          toFieldPath: spec.providerConfigRef
         - fromFieldPath: spec.id
           toFieldPath: metadata.annotations[crossplane.io/external-name]
         - fromFieldPath: spec.id

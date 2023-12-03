@@ -27,6 +27,15 @@ spec:
             spec:
               type: object
               properties:
+                providerConfigRef:
+                  type: object
+                  description: "A reference to the ProviderConfig object that this registry will be used for."
+                  properties:
+                    name:
+                      type: string
+                      description: Name of the ProviderConfig object this ref points to.
+                  required:
+                    - name
                 id:
                   type: string
                   description: Id of the bucket that should be created.

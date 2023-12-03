@@ -18,7 +18,12 @@ spec:
         spec:
           forProvider:
             region: eu-west-1
+          reclaimPolicy: Delete
+          providerConfigRef:
+            name: default
       patches:
+        - fromFieldPath: spec.providerConfigRef
+          toFieldPath: spec.providerConfigRef
         - fromFieldPath: spec.location
           toFieldPath: spec.forProvider.region
 
