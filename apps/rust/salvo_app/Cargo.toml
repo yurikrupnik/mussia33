@@ -19,7 +19,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 validator.workspace = true
 uuid = { version = "1.6.1", features = ["serde", "v4", "js"] }
-chrono = {version = "0.4.31", features = ["serde"] }
+chrono = {version = "0.4.34", features = ["serde"] }
 jsonwebtoken = { version = "9.2.0" }
 log = { workspace = true }
 sqlx = { workspace = true }
