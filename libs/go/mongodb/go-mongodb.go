@@ -15,7 +15,7 @@ var mongoUrl string = "mongodb://localhost:27017"
 
 // todo add back for env vars
 // var mongoUrl = go_myutils.Getenv("MONGO_URI", "mongodb://localhost/mussia12")
-var dbName = go_shared.Getenv("DB_NAME", "rustApp")
+var dbName = go_shared.Getenv("DB_NAME", "test")
 
 // MongoInstance contains the Mongo client and database objects
 type MongoInstance struct {

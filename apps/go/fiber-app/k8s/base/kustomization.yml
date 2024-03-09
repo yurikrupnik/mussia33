@@ -1,8 +1,8 @@
 resources:
-#  - service-account.yaml
-#  - service.yml
-#  - deployment.yml
-  - vela-app.yaml
+  - service-account.yaml
+  - service.yml
+  - deployment.yml
+  # - vela-app.yaml
   # - ingress.yaml
 #commonLabels:
 #  demo: node-nest-app

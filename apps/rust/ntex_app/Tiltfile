@@ -1,0 +1,9 @@
+docker_build(
+  "yurikrupnik/ntex-app",
+  "../../..",
+  dockerfile="../../../rust.Dockerfile",
+  build_args={"APP_NAME":"rust_ntex_app"},
+  target="rust",
+)
+
+k8s_resource("ntex-app", port_forwards="5301:8080")

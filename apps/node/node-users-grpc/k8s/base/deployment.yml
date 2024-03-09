@@ -24,14 +24,14 @@ spec:
                 secretKeyRef:
                   key: mongo-uri
                   name: mongo-uri
-            - name: GRPC_TRACE
-              value: "all"
-            - name: GRPC_VERBOSITY
-              value: "DEBUG"
-            - name: GRPC_HOST
+#            - name: GRPC_TRACE
+#              value: "all"
+#            - name: GRPC_VERBOSITY
+#              value: "DEBUG"
+#            - name: GRPC_HOST
 #              value: "0.0.0.0:8080"
 #              value: "127.0.0.1"
-              value: "0.0.0.0"
+#              value: "0.0.0.0"
 
           volumeMounts:
             - mountPath: /app/assets

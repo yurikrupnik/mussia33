@@ -1,0 +1,25 @@
+resources:
+  - ../../base
+patches:
+  - patch: |-
+      - op: replace
+        path: "/spec/template/spec/containers/0/env/0"
+        value:
+          name: MONGO_URI
+          #    value: "mongodb://host.docker.internal"
+          value: "mongodb://mongodb-service.default.svc.cluster.local"
+      - op: replace
+        path: "/spec/template/spec/containers/0/env/1"
+        value:
+          name: DATABASE_URL
+          value: "postgres://myuser:mypassword@postgres-service.default.svc.cluster.local/mydatabase"
+      #    value: "postgres://postgres-service.default.svc.cluster.local/mydatabase"
+      #      - op: add
+      #        path: "/spec/template/spec/containers/0/env/-"
+      #        value:
+      #          name: REDIS_HOST
+      #          value: "redis-service.default.svc.cluster.local"
+      #    value: "redis://redis-service.default.svc.cluster.local"
+    #    value: "localhost:6379"
+    target:
+      kind: Deployment

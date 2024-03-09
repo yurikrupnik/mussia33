@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ntex-app
+  labels:
+    app: ntex-app
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: ntex-app
+      labels:
+        app: ntex-app
+    spec:
+      serviceAccountName: ntex-app
+      restartPolicy: Always
+      containers:
+        - name: ntex-app
+          image: yurikrupnik/ntex-app:main
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  key: mongo-uri
+                  name: mongo-uri
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: postgres-uri
+                  name: postgres
+            - name: REDIS_HOST
+              value: "redis://redis-service.default.svc.cluster.local:6379"
+            - name: RUST_BACKTRACE
+              value: "1"
+  selector:
+    matchLabels:
+      app: ntex-app

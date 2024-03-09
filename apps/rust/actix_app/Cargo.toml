@@ -22,7 +22,7 @@ utoipa = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
 validator = { workspace = true }
 ts-rs = { workspace = true }
-
+chrono = { version = "0.4", features = ["serde"] }
 # todo remove this
 plurals = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
