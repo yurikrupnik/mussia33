@@ -67,6 +67,9 @@ quote = '1.0'
 pluralizer = '0.4'
 trybuild = { version = '1.0', features = ['diff'] }
 
+[profile.dev]
+opt-level = 0
+
 [profile.release]
 lto = true
 strip = true
