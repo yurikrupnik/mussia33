@@ -1,19 +1,18 @@
-
 [package]
 name = 'rust_napi_shared'
 version = '0.1.0'
 edition = '2021'
 
 [dependencies]
-napi = { version = '2.14.1', default-features = false, features = [
-	'napi4',
+napi = { version = '2.16', default-features = false, features = [
+    'napi4',
 ] }
-napi-derive = '2.14.2'
+napi-derive = '2.16'
 
 [lib]
 crate-type = [
-	'cdylib',
+    'cdylib',
 ]
 
 [build-dependencies]
-napi-build = '2.1.0'
+napi-build = '2.1'

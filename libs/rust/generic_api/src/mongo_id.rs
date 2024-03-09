@@ -1,5 +1,5 @@
 use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use ts_rs::TS;
 use utoipa::ToSchema;
 use validator::Validate;

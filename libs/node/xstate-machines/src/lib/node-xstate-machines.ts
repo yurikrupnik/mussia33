@@ -30,7 +30,7 @@ export const toggleMachine = createMachine<ToggleMachineContext>(
           TOGGLE: {
             target: "active",
             actions: assign({
-              count: (context) => context.count + 1,
+              count: (context) => context.context.count + 1,
             }),
           },
         },
@@ -59,11 +59,11 @@ export const testMachine = createMachine<TestMachineContext>({
   },
   states: {
     inactive: {
-      entry: assign({ disabledCount: (ctx) => ctx.disabledCount + 1 }),
+      entry: assign({ disabledCount: (ctx) => ctx.context.disabledCount + 1 }),
       on: { TOGGLE: "active" },
     },
     active: {
-      entry: assign({ count: (ctx) => ctx.count + 1 }),
+      entry: assign({ count: (ctx) => ctx.context.count + 1 }),
       on: { TOGGLE: "inactive" },
     },
   },

@@ -1,0 +1,26 @@
+resources:
+  - service-account.yaml
+  - service.yml
+  - deployment.yml
+  # - ingress.yaml
+#commonLabels:
+#  demo: node-nest-app
+#  service: users
+#  my-type: server
+#namespace: users
+#  - servi
+
+#namePrefix: demo
+#nameSuffix: api
+#commonAnnotations:
+#  "consul.hashicorp.com/connect-inject": "true"
+#  "consul.hashicorp.com/connect-service": "users-client-test"
+#  "consul.hashicorp.com/connect-service-protocol": "http"
+#  "consul.hashicorp.com/service-meta-version": "v.1.1"
+#  "prometheus.io/scrape": "true"
+#  "prometheus.io/port": "9102"
+#
+#labels:
+#  - pairs:
+#      kubernetes.io/metadata.shit: lol-server
+#      kubernetes.io/metadata.app: omg-server

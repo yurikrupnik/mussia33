@@ -20,7 +20,7 @@ type Project struct {
 	Name string             `json:"name" bson:"name,omitempty" validate:"required,min=3,max=36"`
 }
 
-var db = "mussia33"
+var db = "test"
 var userCollection = "users"
 var projectsCollection = "projects"
 

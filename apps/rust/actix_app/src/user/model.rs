@@ -1,5 +1,6 @@
+use chrono::NaiveDateTime;
 use mongodb::bson::oid::ObjectId;
-use rust_generic_api::serialize_object_id;
+use rust_generic_api::{serialize_object_id, serialize_option_object_id};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{IntoParams, ToSchema};
@@ -11,9 +12,14 @@ use validator::Validate;
 #[serde(deny_unknown_fields)]
 #[ts(export)]
 pub struct User {
-    #[serde(rename(deserialize = "_id"), serialize_with = "serialize_object_id")]
+    #[serde(
+        rename(deserialize = "_id"),
+        serialize_with = "serialize_option_object_id"
+    )]
     #[ts(type = "string")]
-    pub id: ObjectId,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    // pub id: ObjectId,
+    pub id: Option<ObjectId>,
     #[schema(default = "Jon")]
     #[validate(length(min = 2))]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -22,7 +28,8 @@ pub struct User {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_name: Option<String>,
     #[schema(default = "job-doe")]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing)]
     pub password: Option<String>,
     #[schema(default = "job-doe@test.com")]
     #[validate(email(message = "Must be an email"))]
@@ -34,6 +41,9 @@ pub struct User {
     pub provider: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub role: Option<String>,
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // #[ts(type = "string")]
+    // pub updated_at: Option<NaiveDateTime>,
 }
 
 // #[derive(Clone, ToSchema, Debug, PartialEq, Eq, Deserialize, Serialize, Validate, TS)]

@@ -4,27 +4,8 @@ resources:
   - service.yml
   - deployment.yml
   - ingress.yaml
-#commonLabels:
-#  demo: web-host
-#  service: web-host
-#  my-type: static
-#namespace: users
-#  - servi
+
 configMapGenerator:
   - name: nginx-config
     files:
       - default.conf.template
-#namePrefix: demo
-#nameSuffix: api
-#commonAnnotations:
-#  "consul.hashicorp.com/connect-inject": "true"
-#  "consul.hashicorp.com/connect-service": "users-client-test"
-#  "consul.hashicorp.com/connect-service-protocol": "http"
-#  "consul.hashicorp.com/service-meta-version": "v.1.1"
-#  "prometheus.io/scrape": "true"
-#  "prometheus.io/port": "9102"
-#
-#labels:
-#  - pairs:
-#      kubernetes.io/metadata.shit: lol-server
-#      kubernetes.io/metadata.app: omg-server

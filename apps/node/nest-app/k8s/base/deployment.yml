@@ -19,12 +19,18 @@ spec:
           image: yurikrupnik/node-nest-app:main
           imagePullPolicy: IfNotPresent
           resources:
+#            requests:
+#              memory: "128Mi"
+#              cpu: "500m"
+#            limits:
+#              memory: "256Mi"
+#              cpu: "1000m"
             requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
               memory: "128Mi"
               cpu: "500m"
-            limits:
-              memory: "256Mi"
-              cpu: "1000m"
           env:
             - name: MONGO_URI
               valueFrom:
@@ -33,12 +39,12 @@ spec:
                   name: mongo-uri
             - name: REDIS_HOST
               value: "redis-service.default.svc.cluster.local"
-            - name: GRPC_TRACE
-              value: "all"
-            - name: GRPC_VERBOSITY
-              value: "DEBUG"
-            - name: GRPC_HOST
-              value: "0.0.0.0"
+#            - name: GRPC_TRACE
+#              value: "all"
+#            - name: GRPC_VERBOSITY
+#              value: "DEBUG"
+#            - name: GRPC_HOST
+#              value: "0.0.0.0"
 #              value: "127.0.0.1"
 #            - name: PORT
 #              value: "5000"
