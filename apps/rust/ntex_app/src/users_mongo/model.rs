@@ -1,27 +1,15 @@
 use crate::shared::mongo::{
-    query_param_processing::QueryParamProcessing,
-    // serialize::serialize_option_object_id,
+    query_param_processing::QueryParamProcessing, serialize::serialize_object_id,
 };
 use chrono::NaiveDateTime;
 use mongodb::bson::oid::ObjectId;
-use redis::{FromRedisValue, ToRedisArgs};
+// use redis::{FromRedisValue, ToRedisArgs};
 use rust_proc_macros::DbResource;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::{IntoParams, ToSchema};
 use validator::Validate;
-fn serialize_object_id<T>(oid: &ObjectId, s: T) -> Result<T::Ok, T::Error>
-where
-    T: serde::Serializer,
-{
-    s.serialize_str(&oid.to_hex())
-}
-// fn serialize_object_id<S>(obj_id: &ObjectId, serializer: S) -> Result<S::Ok, S::Error>
-// where
-//     S: serde::Serializer,
-// {
-//     serializer.serialize_str(&obj_id.to_hex())
-// }
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserRedis {
     pub email: Option<String>,

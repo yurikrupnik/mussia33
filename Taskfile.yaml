@@ -21,10 +21,23 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  # Package
+  package-generate:
+    desc: Generates package files.
+    cmds:
+      - timoni build dot-kubernetes timoni > package/all.yaml
+      - head -n -1 package/all.yaml > package/all.yaml.tmp
+      - mv package/all.yaml.tmp package/all.yaml
+  package-apply:
+    desc: Applies Compositions and Composite Resource Definition.
+    cmds:
+      - cmd: kubectl apply --filename package/definition.yaml && sleep 1
+      - cmd: kubectl apply --filename package/all.yaml
   wrk:
     cmds:
       - wrk -t8 -c256 -d30s http://127.0.0.1:5201/api/users
       - wrk -t8 -c256 -d30s http://127.0.0.1:5040/api/users
+  #      - wrk -t8 -c256 -d30s http://
 
   tilt:up:
     cmds:

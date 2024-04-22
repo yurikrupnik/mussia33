@@ -23,9 +23,9 @@ jsonwebtoken = { version = "9.2" }
 #argonautica = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[package.metadata.scripts]
-shit = "docker images"
-sql = "psql -h localhost -p 5432 -d mydatabase -U myuser -W mypassword"
+#[package.metadata.scripts]
+#shit = "docker images"
+#sql = "psql -h localhost -p 5432 -d mydatabase -U myuser -W mypassword"
 
 #[profile.dev.package.sqlx-macros]
 #opt-level = 3

@@ -1,7 +1,7 @@
 local_resource('pnpm', cmd='pnpm install', deps=['package.json'], labels=['pnpm'])
 # local_resource('compose', cmd='task compose:up', deps=['scripts/compose.yaml'], labels=['task'])
 # local_resource('protoc', cmd='task protoc', deps=['_porot/'], labels=['task'])
-
+allow_k8s_contexts('gke_devops-386509_me-west1_test1')
 #k8s_yaml(local('helm template --set key1=val1,key2=val2 ./charts/main-chart'))
 #watch_file('/charts/main-chart')
 

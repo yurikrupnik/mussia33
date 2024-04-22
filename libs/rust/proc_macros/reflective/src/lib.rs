@@ -56,6 +56,7 @@ fn impl_reflective_macro(ast: DeriveInput) -> TokenStream {
     let field_access = field_idents.iter().map(|ident| {
         quote! {
             self.#ident.to_string()
+            // self.#ident.
         }
     });
 

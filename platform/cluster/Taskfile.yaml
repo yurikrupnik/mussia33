@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 vars:
   CLUSTER_TYPE: kind
   INGRESS_TYPE: ingress
@@ -9,28 +9,34 @@ tasks:
     aliases:
       - create
     dir: platform/cluster
-#    preconditions:
-#      - echo default CLUSTER_TYPE: {{.CLUSTER_TYPE}}
-#      - ctlptl create cluster -h
+    preconditions:
+      - bat cluster.yaml
+    #      - test cluster.yaml
+    #      - echo default CLUSTER_TYPE: {{.CLUSTER_TYPE}}
+    #      - ctlptl create cluster -h
+    #
     cmds:
-      - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
-#      - kind create cluster --config cluster.yaml
-#      - task: istio
+      #      - ctlptl create cluster {{.CLUSTER_TYPE}} --registry=ctlptl-registry
+      - kind create cluster --name aris --config cluster.yaml
+  #      - task: istio
   kind-local-cluster:down:
     desc: Delete Kind Cluster.
     summary: Delete Kind Cluster.
     aliases:
       - delete
     cmds:
-      - ctlptl delete cluster {{.CLUSTER_TYPE}}
-#      - kind delete cluster
-
+      - ctlptl delete cluster --name aris
+  #      - kind delete cluster
+  sda:
+    desc: Run sda.
+    cmds:
+      - echo "sda"
   ingress:
     cmds:
       - kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
       - kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
 
-# TODO finish testing
+  # TODO finish testing
   apigateway:
     cmds:
       - kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v0.7.1/standard-install.yaml

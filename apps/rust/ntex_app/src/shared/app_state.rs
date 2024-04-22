@@ -12,8 +12,6 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(pool: PgPool, db: Database, redis: Pool<RedisConnectionManager>) -> Self {
-        // pub fn new(db: Database, redis: Pool<RedisConnectionManager>) -> Self {
-        // Self { pool, db, redis }
         Self { pool, db, redis }
     }
 }

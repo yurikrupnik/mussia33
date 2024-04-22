@@ -5,12 +5,13 @@ use mongodb::{
         oid::{Error, ObjectId},
     },
     results::DeleteResult,
-    Client, Collection,
+    Client, Collection, Database,
 };
 use serde::{de::DeserializeOwned, Serialize};
 
 pub struct MongoRepo<T> {
     col: Collection<T>,
+    db: Database,
 }
 
 impl<T> MongoRepo<T>
@@ -20,8 +21,10 @@ where
     pub async fn init(db_name: &str, col_name: &str) -> Self {
         let uri = std::env::var("MONGO_URI").unwrap_or_else(|_| "mongodb://localhost:27017".into());
         let client = Client::with_uri_str(uri).await.expect("failed to connect");
+        let db = client.database(db_name);
         let col = client.database(db_name).collection(col_name);
-        Self { col }
+        // let col = client.database(db_name).collection(col_name);
+        Self { col, db }
     }
     pub async fn create(&self, item: T) -> Result<Option<T>, Error> {
         let item = self
@@ -31,11 +34,17 @@ where
             .expect("Error creating item");
         // let new_id = item.inserted_id.as_str().unwrap();
         let obj_id = item.inserted_id.as_object_id().unwrap();
-        let filter = doc! {"_id": obj_id};
+        // let obj_id = item.inserted_id.as_str();
+        let _filter = doc! {"_id": obj_id.to_hex().as_str()};
         // let result = self.find_by_id(new_id).await.expect("Error finding item");
         // todo reuse find_by_id
-        let result = self.col.find_one(filter, None).await.expect("As");
-        Ok(result)
+        let result = MongoRepo::find_by_id(self, obj_id.to_hex().as_str()).await;
+        match result {
+            Ok(d) => Ok(d),
+            Err(e) => Err(e),
+        }
+        // let result = self.col.find_one(filter, None).await.expect("As");
+        // Ok(result)
     }
     pub async fn delete(&self, id: &str) -> Result<DeleteResult, Error> {
         let obj_id = ObjectId::parse_str(id).unwrap();

@@ -49,6 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .iter()
         .any(|x| x.as_str().map(|s| s.contains(app)).unwrap_or(false));
 
+    // expect!(!has_apps, "No members contain the string 'apps'");
     if !has_apps {
         // Print an error in red
         eprintln!("{}", "No members contain the string 'apps'".red());
@@ -64,4 +65,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         format!("Filtered TOML file saved as '{}'", path).blue()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    // use std::fs::remove_file;
+
+    #[test]
+    fn test_args_parsing() {
+        let args = vec!["program", "--app", "my_app", "--path", "/tmp/Cargo.toml"];
+        let args = Args::parse_from(args);
+        assert_eq!(args.app, "my_app");
+        assert_eq!(args.path, "/tmp/Cargo.toml");
+    }
+    #[test]
+    fn test_toml_filtering() {
+        // Setup - Create a temporary file and write a sample Cargo.toml content to it
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let cargo_toml_path = tmp_dir.path().join("Cargo.toml");
+        let sample_toml = r#"
+        [workspace]
+        members = [
+            "libs/my_lib",
+            "apps/my_app",
+            "services/my_service",
+        ]
+    "#;
+        std::fs::write(&cargo_toml_path, sample_toml).unwrap();
+
+        // Execute the filtering logic here (you may need to adjust the code to be testable)
+
+        // Assert that the filtering works as expected
+        // You can read back the modified TOML file and check if the filtering logic is correct
+    }
+    #[test]
+    fn test_error_handling_missing_file() {
+        // Simulate the case where the Cargo.toml does not exist or cannot be read
+        // Ensure the program produces the correct error message or behavior
+    }
 }

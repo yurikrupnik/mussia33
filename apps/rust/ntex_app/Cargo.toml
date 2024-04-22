@@ -5,6 +5,7 @@ edition = "2021"
 
 
 [dependencies]
+async-trait = "0.1"
 rust_proc_macros = { workspace = true }
 rust_servers_shared = { workspace = true }
 ntex = { version = "1.0", features = ["tokio"] }

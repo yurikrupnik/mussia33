@@ -1,3 +1,4 @@
+mod project;
 mod shared;
 mod users;
 mod users_mongo;
@@ -8,11 +9,14 @@ use bb8_redis::redis::AsyncCommands;
 use bb8_redis::RedisConnectionManager;
 use mongodb::Client;
 use ntex::web::{self, HttpResponse, Responder};
+use project::config::{generic_project_routes, project_routes};
+use project::model::{NewProject, Project, UpdateProject};
 use rust_servers_shared::{get_port, postgres::create_pool};
 use shared::app_state::AppState;
 use shared::redis::{publish::publish_message, subscribe::subscribe_to_channel};
 use std::net::Ipv4Addr;
 use users::config::user_routes;
+
 use users_mongo::config::user_routes as user_routes_mongo;
 use utoipa::OpenApi;
 // use utoipa_rapidoc::RapiDoc;
@@ -48,9 +52,8 @@ async fn main() -> std::io::Result<()> {
     let client = Client::with_uri_str(uri).await.expect("failed to connect");
     let db = client.database("aris");
 
-    let redis_uri = std::env::var("REDIS_HOST").unwrap_or_else(|_| "localhost:6379".into());
+    let redis_uri = std::env::var("REDIS_HOST").unwrap_or_else(|_| "redis://localhost".into());
     let manager = RedisConnectionManager::new(redis_uri).unwrap();
-    // let manager = RedisConnectionManager::new("redis://localhost").unwrap();
     let redis_pool = Pool::builder().build(manager).await.unwrap();
 
     let u = std::env::var("DATABASE_URL")
@@ -89,6 +92,8 @@ async fn main() -> std::io::Result<()> {
             .state(state.clone())
             .service(hello)
             .configure(user_routes)
+            .configure(project_routes)
+            // .configure(generic_project_routes::<Project, NewProject>)
             .configure(user_routes_mongo)
         // .default_service()
     })

@@ -6,6 +6,11 @@ vars:
   GREETING: Hello, World!
 
 tasks:
+  linkerd-install:
+    cmds:
+      - linkerd check --pre
+      - linkerd install | kubectl apply -f -
+      - linkerd check
   up:
     cmds:
       - docker-compose up -d

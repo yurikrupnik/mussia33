@@ -1,0 +1,45 @@
+apiVersion: apps.kruise.io/v1alpha1
+kind: BroadcastJob
+metadata:
+  name: broadcastjob-ttl
+spec:
+  template:
+    spec:
+      containers:
+        - name: alpine
+          image: alpine
+          command: [ "ls", "-a" ]
+        - name: golang-fmt
+          image: golang
+          command: [ "go", "fmt" ]
+        - name: golang-test
+          image: golang
+          command: [ "go", "test" ]
+        - name: golang-build
+          image: golang
+          command: [ "go", "build" ]
+        - name: pi
+          image: perl
+          command: [ "perl", "-Mbignum=bpi", "-wle", "print bpi(2000)" ]
+      restartPolicy: Never
+  completionPolicy:
+    type: Always
+    ttlSecondsAfterFinished: 30
+#---
+#apiVersion: apps.kruise.io/v1alpha1
+#kind: BroadcastJob
+#metadata:
+#  name: broadcastjob-restart-limit
+#spec:
+#  template:
+#    spec:
+#      containers:
+#        - name: sleep
+#          image: busybox
+#          command: [ "cat", "/path/not/exist" ]
+#      restartPolicy: Never
+#  completionPolicy:
+#    type: Never
+#  failurePolicy:
+#    type: FailFast
+#    restartLimit: 3

@@ -1,11 +1,14 @@
 use super::model::{NewUser, QueryParams, UpdateProfile, User};
 use crate::shared::mongo::filter_and_options::construct_find_options_and_filter;
+use crate::shared::mongo::service::{
+    create_item, create_query_id, create_response, drop_collection, ResponseErrors,
+};
 use crate::shared::redis::users::get_users_redis;
 use crate::shared::validation::validate_request_body;
 use crate::AppState;
 use bb8_redis::redis::AsyncCommands;
 use futures::TryStreamExt;
-use mongodb::bson::{doc, from_document, oid::ObjectId, to_document, Bson, Document};
+use mongodb::bson::{doc, from_document, oid::ObjectId, to_document, Document};
 use mongodb::options::{FindOneAndUpdateOptions, ReturnDocument};
 use mongodb::Collection;
 use ntex::web::types::Query;
@@ -30,45 +33,44 @@ pub async fn delete_user(app_state: State<AppState>, id: Path<String>) -> impl R
     if result.deleted_count == 1 {
         HttpResponse::Ok().json(&"successfully deleted!")
     } else {
-        HttpResponse::NotFound().json(&format!("product with specified ID {obj_id} not found!"))
+        HttpResponse::NotFound().json(&format!("item with specified ID {obj_id} not found!"))
     }
 }
 
 /// Drop users collection
 pub async fn drop(app_state: State<AppState>) -> impl Responder {
     let db = &app_state.db;
-    let collection: Collection<Document> = db.collection(User::COLLECTION);
-    collection.drop(None).await.unwrap();
-    HttpResponse::Ok().body("successfully deleted!")
+    drop_collection::<User>(db).await
 }
 
 /// Create `User` by `NewUser`
 pub async fn create_user(body: Json<NewUser>, app_state: State<AppState>) -> impl Responder {
     let body = body.into_inner();
     // Use the custom validation function with the de referenced body
-    if let Err(response) = validate_request_body(&body) {
-        return response; // Returns early if validation fails
-    }
+    // if let Err(response) = validate_request_body(&body) {
+    //     return response; // Returns early if validation fails
+    // }
     let db = &app_state.db;
-    let collection = db.collection(User::COLLECTION);
-
-    let document = to_document(&body).unwrap();
-    let result = collection
-        .insert_one(document, None)
-        .await
-        .expect("Error creating item");
-    let new_id = result.inserted_id.as_object_id().unwrap();
-    let response = collection.find_one(doc! {"_id": new_id}, None).await;
-    match response {
-        Ok(Some(payload)) => {
-            let doc: User = from_document(payload).unwrap();
-            HttpResponse::Created().json(&doc)
-        }
-        Ok(None) => {
-            HttpResponse::NotFound().json::<String>(&format!("No user found with id {new_id}"))
-        }
-        Err(err) => HttpResponse::InternalServerError().json(&err.to_string()),
-    }
+    create_item::<User, NewUser>(db, body).await
+    // let collection = db.collection(User::COLLECTION);
+    //
+    // let document = to_document(&body).unwrap();
+    // let result = collection
+    //     .insert_one(document, None)
+    //     .await
+    //     .expect("Error creating item");
+    // let new_id = result.inserted_id.as_object_id().unwrap();
+    // let response = collection.find_one(create_query_id(new_id), None).await;
+    // match response {
+    //     Ok(Some(payload)) => {
+    //         let doc: User = from_document(payload).unwrap();
+    //         HttpResponse::Created().json(&doc)
+    //     }
+    //     Ok(None) => {
+    //         HttpResponse::NotFound().json::<String>(&format!("No user found with id {new_id}"))
+    //     }
+    //     Err(err) => HttpResponse::InternalServerError().json(&err.to_string()),
+    // }
 }
 
 /// Update `User` by `UpdateProfile` struct
@@ -85,6 +87,7 @@ pub async fn update_user(
     let item_id = id.into_inner();
     let obj_id = ObjectId::parse_str(&item_id).unwrap();
     let filter = doc! {"_id": obj_id};
+    // let filter = create_query_id(obj_id);
     let db = &app_state.db;
     let collection: Collection<Document> = db.collection(User::COLLECTION);
     let serialized_item = to_document(&body).expect("Error serializing item");
@@ -130,7 +133,6 @@ pub async fn get_users(app_state: State<AppState>, query: Query<QueryParams>) ->
 
     let query = query.into_inner();
     let (filter, options) = construct_find_options_and_filter(query.clone()).unwrap();
-    dbg!(&options.projection);
     let db = &app_state.db;
     let s = get_users_redis(redis, "shit").await;
     match s {
