@@ -20,46 +20,34 @@ pub fn db_resource_derive_macro(input: TokenStream) -> TokenStream {
 // }
 fn capitalize_first_letter(input: &str) -> String {
     if input.is_empty() {
-        return String::from(input);
+        return input.to_owned();
     }
 
-    let mut chars = input.chars();
-    if let Some(first_char) = chars.next() {
-        let capitalized = first_char.to_uppercase().collect::<String>();
-        let rest = chars.collect::<String>();
-        format!("{}{}", capitalized, rest)
-    } else {
-        String::from(input)
-    }
+    input
+        .char_indices()
+        .fold(String::with_capacity(input.len()), |mut acc, (i, c)| {
+            if i == 0 {
+                acc.push_str(&c.to_uppercase().to_string());
+            } else {
+                acc.push(c);
+            }
+            acc
+        })
 }
 
 fn impl_db_resource_macro(ast: DeriveInput) -> TokenStream {
     // get struct identifier
     let ident = &ast.ident;
     let name = ident.to_string().to_lowercase();
-    let url = format!("/api/{}", name);
+    let url = format!("/{}", name);
     let collection = pluralize(name.as_str(), 2, false);
     let tag = capitalize_first_letter(&collection);
-
-    // TODO handle attributes
-    // for attr in ast.attrs {
-    //     if attr.path().is_ident("collection") {
-    //         let meta = attr.parse_args().unwrap();
-    //         match meta {
-    //             Meta::NameValue(MetaNameValue { value: Lit::Str(lit_str), .. }) => {
-    //                 // Get the value of the "collection" attribute
-    //                 let lit_str_value = lit_str.value();
-    //                 let collection_value = Expr::Lit(Lit::Str(lit_str.clone()));
-    //                 // Do something with the collection value
-    //             }
-    //             _ => {}
-    //         }
-    //     }
-    // }
 
     // generate implementation
     let gen = quote! {
         impl DbResource for #ident {
+            const SHIT: &'static str = #url;
+            const SHIT1: &'static str = #name;
             const URL: &'static str = #url;
             const COLLECTION: &'static str = #collection;
             const TAG: &'static str = #tag;

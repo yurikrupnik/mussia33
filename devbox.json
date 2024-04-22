@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.1/.schema/devbox.schema.json",
+  "packages": [
+    //    "eksctl@0.13",
+    "azure-cli",
+    //    "nerdctl",
+    //    "kuttl",
+    //    "kaniko",
+    //    "vcluster",
+    "kind",
+    "wrk",
+    "k9s",
+    "gh",
+    "fish",
+    "rustup",
+    "kubectl",
+    "velero",
+    "warp",
+    "bat",
+    //    "timoni",
+    "upbound",
+    "argo",
+    "argocd",
+    "gum",
+    "go-task",
+    "linkerd"
+    //    "argo-cd",
+    //    "rustup-toolchain-install-master@1.7",
+    //    "mongo@0.24",
+    //    "dagger@0.10.2",
+    //    "yq-go@4.41.1",
+    //    "kubernetes-helm@3.14",
+    //    "kuttl@0.15",
+    //    //    "mongodb@6.0",
+    //    "google-cloud-sdk",
+    //    //    "kaniko@1.21",
+    //    "tilt",
+    //    "podman"
+  ],
+  "shell": {
+    "init_hook": [
+      "uname -a",
+      "which velero",
+      //      "just logs"
+      //      "task cluster-create"
+      //            "dagger init",
+      //      "cargo install rustup-toolchain-install-master"
+      "cargo fmt",
+      "cargo clippy"
+      //      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh",
+      //      "cargo install rustycli",
+      //      "cargo install cargo-make",
+      //      "cargo build --release"
+      //      "docker build -t shit . --target rust "
+    ],
+    "scripts": {
+      "cargo-custom-command": [
+        "echo todo"
+      ],
+      "cluster-create": [
+        "task cluster-create"
+      ],
+      "cluster-destroy": [
+        "task cluster-destroy"
+      ],
+      "package-publish": [
+        "task package-publish"
+      ],
+      "test": [
+        "task test"
+      ],
+      "test-watch": [
+        "task test-watch"
+      ]
+    }
+  }
+}

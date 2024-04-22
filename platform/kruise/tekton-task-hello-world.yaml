@@ -1,0 +1,73 @@
+# docker registry secret, for docker push image
+#apiVersion: v1
+#data:
+#  .dockerconfigjson: xxxxxx
+#kind: Secret
+#metadata:
+#  name: dockersecret
+#type: kubernetes.io/dockerconfigjson
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  labels:
+    app: helloworld
+  name: helloworld-build-push
+spec:
+  stepTemplate:
+    workingDir: /workspace
+  params:
+    - name: gitrepositoryurl
+      type: string
+    - name: branch
+      type: string
+    - name: short_sha
+      type: string
+    - name: docker_repo
+      type: string
+    - name: app_name
+      type: string
+  steps:
+    # git clone
+    - name: git-clone-and-checkout
+      image: bitnami/git:latest
+      command: [ "sh", "-ce" ]
+      args:
+        - >
+          set -e
+          
+          echo $(params.gitrepositoryurl)
+          
+          git clone $(params.gitrepositoryurl) ./ && git checkout $(params.branch)
+    # unit test
+    - name: auto-test
+      image: golang:1.16
+      command: [ "sh", "-ce" ]
+      args:
+        - >
+          set -e
+          
+          cp -R /workspace/$(params.app_name) /go/src/ && cd /go/src/$(params.app_name) && pwd;
+          
+          go test
+    # docker build & push registry
+    - name: push-to-registry
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=Dockerfile
+        - --destination=$(params.docker_repo):$(params.branch)-$(params.short_sha)
+        - --context=./$(params.app_name)
+        - --cache=true
+        - --cache-dir=/cache
+        - --use-new-run
+      volumeMounts:
+        - name: kaniko-secret
+          mountPath: "/kaniko/.docker"
+  volumes:
+    # docker push secret
+    - name: kaniko-secret
+      secret:
+        secretName: dockersecret
+        items:
+          - key: .dockerconfigjson
+            path: config.json

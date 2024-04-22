@@ -40,7 +40,7 @@ spec:
       route:
         - destination:
             #            host: argocd-server.argocd.svc.cluster.local
-            host: node-nest-app-service.default.svc.cluster.local
+            host: node-nest-app.default.svc.cluster.local
             #            host: prometheus.istio-system.svc.cluster.local
             port:
               number: 3333

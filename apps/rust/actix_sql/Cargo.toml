@@ -17,15 +17,15 @@ utoipa = { workspace = true }
 futures = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
 validator = { workspace = true }
-uuid = { version = "1.6.1", features = ["serde", "v4", "js"] }
-chrono = {version = "0.4.34", features = ["serde"] }
-jsonwebtoken = { version = "9.2.0" }
+uuid = { version = "1.7", features = ["serde", "v4", "js"] }
+chrono = { version = "0.4", features = ["serde"] }
+jsonwebtoken = { version = "9.2" }
 #argonautica = "0.2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[package.metadata.scripts]
-shit = "docker images"
-sql = "psql -h localhost -p 5432 -d mydatabase -U myuser -W mypassword"
+#[package.metadata.scripts]
+#shit = "docker images"
+#sql = "psql -h localhost -p 5432 -d mydatabase -U myuser -W mypassword"
 
-[profile.dev.package.sqlx-macros]
-opt-level = 3
+#[profile.dev.package.sqlx-macros]
+#opt-level = 3

@@ -13,7 +13,6 @@ use mongodb::{
     options::{FindOneAndUpdateOptions, FindOptions, ReturnDocument},
     results::DeleteResult,
     Client, Collection, Database,
-
 };
 use serde::{de::DeserializeOwned, Serialize};
 use validator::Validate;
@@ -75,8 +74,9 @@ where
             .await
             .expect("Error creating item");
         let obj_id = item.inserted_id.as_object_id().unwrap();
+        println!("obj_id {obj_id}");
         let filter = doc! {"_id": obj_id};
-        let result = self.col.find_one(filter, None).await.expect("As");
+        let result = self.col.find_one(filter, None).await.unwrap();
         Ok(result)
     }
     pub async fn delete(&self, id: &str) -> Result<DeleteResult, Error> {

@@ -21,10 +21,23 @@ tasks:
     cmds:
       - echo "{{.GREETING}}"
     silent: true
+  # Package
+  package-generate:
+    desc: Generates package files.
+    cmds:
+      - timoni build dot-kubernetes timoni > package/all.yaml
+      - head -n -1 package/all.yaml > package/all.yaml.tmp
+      - mv package/all.yaml.tmp package/all.yaml
+  package-apply:
+    desc: Applies Compositions and Composite Resource Definition.
+    cmds:
+      - cmd: kubectl apply --filename package/definition.yaml && sleep 1
+      - cmd: kubectl apply --filename package/all.yaml
   wrk:
     cmds:
       - wrk -t8 -c256 -d30s http://127.0.0.1:5201/api/users
-      - wrk -t8 -c256 -d30s http://127.0.0.1:5301/api/users
+      - wrk -t8 -c256 -d30s http://127.0.0.1:5040/api/users
+  #      - wrk -t8 -c256 -d30s http://
 
   tilt:up:
     cmds:
@@ -35,87 +48,88 @@ tasks:
 
   protoc:
     cmds:
-#      - --rust_out ./libs/rust/grpc/src/generated
+      #      - --rust_out ./libs/rust/grpc/src/generated
       - protoc --go_out ./libs/go/ --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=nestJs=true,addGrpcMetadata=true,addNestjsRestParameter=true --ts_proto_out=./libs/node/grpc/src ./_proto/*.proto --ts_proto_opt=esModuleInterop=true
   image-pull-secret:
     cmds:
       - kubectl create secret docker-registry my-registry-secret --docker-server=europe-central2-docker.pkg.dev --docker-username=_json_key --docker-password="$(cat mussia-infra-a6504e8e275d.json)" --docker-email=container-puller-sa@mussia-infra.iam.gserviceaccount.com
   start-cluster-deps:
     deps:
-      - task: argocd:install
-      - task: crossplane:setup
       - task: prometheus:install # lens metrics do not show when installing via argo-cd helm chart
-#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#      - echo starting cluster deps
-#      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
-#      - task: kubevela:install
+      # - task: argocd:install
+      # - task: crossplane:setup
+
+    #      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+    #      - echo starting cluster deps
+    #      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
+    #      - task: kubevela:install
     cmds:
       - echo installed all deps!
   start-cluster:
     deps:
       - cluster:kind-local-cluster:up
     cmds:
-#     - up uxp install
-#     - kubectl auth can-i create namespaces --as=system:serviceaccount:crossplane-system:provider-helm-503c3591121b
-     - task: start-cluster-deps
-#     - task: argocd:install
-#     - task: argocd:apply
-#     - task: crossplane:setup
-#     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#     - kubectl -n argocd wait deployment argocd-server --for=condition=Available --timeout=180s
-#     - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
-#     - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
-#     - task: external-secrets:using-key1
+      #     - up uxp install
+      #     - kubectl auth can-i create namespaces --as=system:serviceaccount:crossplane-system:provider-helm-503c3591121b
+      - task: start-cluster-deps
+  #     - task: argocd:install
+  #     - task: argocd:apply
+  #     - task: crossplane:setup
+  #     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+  #     - kubectl -n argocd wait deployment argocd-server --for=condition=Available --timeout=180s
+  #     - kubectl -n external-secrets wait deployment external-secrets-webhook --for=condition=Available --timeout=180s
+  #     - kubectl -n external-secrets wait deployment external-secrets-cert-controller --for=condition=Available --timeout=180s
+  #     - task: external-secrets:using-key1
 
   start:
     deps:
       - task: start-cluster
     cmds:
-#      - echo ready to work on!.
-#      - open https://app.komodor.com/main/services
-#      - helm repo add komodorio https://helm-charts.komodor.io
-#      - helm repo update
-#      --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657
-#      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
-#      - task: kubevela:install
-#     - cargo run -p rust_master_operator
-#      - timoni apply cluster platform/app/timoni/cluster
+      #      - echo ready to work on!.
+      #      - open https://app.komodor.com/main/services
+      #      - helm repo add komodorio https://helm-charts.komodor.io
+      #      - helm repo update
+      #      --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657
+      #      - helm upgrade --install k8s-watcher komodorio/k8s-watcher --set apiKey=4b11ca71-2163-45d8-88a8-bd0c0d450657 --set watcher.clusterName=master-cluster  --wait --timeout=90s && open https://app.komodor.com/main/services
+      #      - task: kubevela:install
+      #     - cargo run -p rust_master_operator
+      #      - timoni apply cluster platform/app/timoni/cluster
       - tilt up
-#      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
-#     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
-#     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
-#     - helm install my-cadvisor ckotzbauer/cadvisor
-#     - helm install prometheus-release prometheus-community/kube-prometheus-stack -n monitoring
-#     - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
-#     - task: kubevela:install
-#     - task: argocd:install
-#     - task: argocd:apply
-#     - task: argocd:get-secret
-#     - helm install kubeshark kubeshark/kubeshark
-#     - task: kubevela:install
-#     - sleep 60
-#     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
-#     - kubectl get pods -n crossplane-system
-#     - kubectl get deployments -n crossplane-system
-#     - kubectl get crd --output json | cdk8s import /dev/stdin --language typescript
-#     - task: kubevela:apply
-#     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
-#     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
-#     - kubectl schemahero install
-#     - argocd app sync previews
-#     - task: tilt:up
+  #      - up ctp attach remote-virtual -a hashheddan | KUBECONFIG=kubeconfig.yaml up uxp connect -
+  #     - helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true
+  #     - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+  #     - kind create cluster --config=platform/cluster/cluster.yaml # cluster with ingress
+  #     - helm install my-cadvisor ckotzbauer/cadvisor
+  #     - helm install prometheus-release prometheus-community/kube-prometheus-stack -n monitoring
+  #     - kubectl get secret my-release-grafana-admin --namespace default -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d
+  #     - task: kubevela:install
+  #     - task: argocd:install
+  #     - task: argocd:apply
+  #     - task: argocd:get-secret
+  #     - helm install kubeshark kubeshark/kubeshark
+  #     - task: kubevela:install
+  #     - sleep 60
+  #     - kubectl -n crossplane-system wait deployment crossplane --for=condition=Available --timeout=180s
+  #     - kubectl get pods -n crossplane-system
+  #     - kubectl get deployments -n crossplane-system
+  #     - kubectl get crd --output json | cdk8s import /dev/stdin --language typescript
+  #     - task: kubevela:apply
+  #     - kubectl port-forward -n kubeshark service/kubeshark-hub 8898:80
+  #     - kubectl port-forward -n kubeshark service/kubeshark-front 8899:80
+  #     - kubectl schemahero install
+  #     - argocd app sync previews
+  #     - task: tilt:up
 
-#      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
-#      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
-#      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
-#      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
-#      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
-#      - helm repo add kubevela https://charts.kubevela.net/core
-#      - helm repo update
-#      - helm install --create-namespace -n vela-system kubevela kubevela/vela-core --wait
+  #      - kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/previous/v0.44.0/release.yaml
+  #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/release.yaml
+  #      - kubectl apply --filename https://github.com/shipwright-io/build/releases/download/v0.11.0/sample-strategies.yaml
+  #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+  #      - helm install kube-prometheus bitnami/kube-prometheus -n prometheus --create-namespace --set installCRDs=true
+  #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+  #      - kubectl wait --for condition=Available=True --timeout=300s deployment/argocd-server --namespace argocd
+  #      - helm repo add kubevela https://charts.kubevela.net/core
+  #      - helm repo update
+  #      - helm install --create-namespace -n vela-system kubevela kubevela/vela-core --wait
 
   stop:
     deps:

@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
+	go_fiber_helpers "mussia33/libs/go/fiber-helpers"
+	go_generic_api "mussia33/libs/go/generic-api"
+	go_models_user "mussia33/libs/go/models/user"
+	go_shared "mussia33/libs/go/shared"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
-	go_fiber_helpers "mussia33/libs/go/fiber-helpers"
-	go_generic_api "mussia33/libs/go/generic-api"
-	go_models_user "mussia33/libs/go/models/user"
-	go_shared "mussia33/libs/go/shared"
 )
 
 type Project struct {
@@ -20,7 +21,7 @@ type Project struct {
 	Name string             `json:"name" bson:"name,omitempty" validate:"required,min=3,max=36"`
 }
 
-var db = "mussia33"
+var db = "test"
 var userCollection = "users"
 var projectsCollection = "projects"
 

@@ -1,9 +1,9 @@
-mod model;
-mod handlers;
 mod dto;
+mod handlers;
+mod model;
 mod router;
 
-pub use router::*;
+pub use dto::*;
 pub use handlers::*;
 pub use model::*;
-pub use dto::*;
+pub use router::*;

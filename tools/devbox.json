@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.1/.schema/devbox.schema.json",
+  "packages": [
+    "go"
+  ],
+  "shell": {
+    "init_hook": [
+      "uname -a",
+      //      "just logs"
+      //      "task cluster-create"
+      //            "dagger init",
+      //      "cargo install rustup-toolchain-install-master"
+      "cargo fmt",
+      "cargo clippy"
+      //      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh",
+      //      "cargo install rustycli",
+      //      "cargo install cargo-make",
+      //      "cargo build --release"
+      //      "docker build -t shit . --target rust "
+    ],
+    "scripts": {
+      "cargo-custom-command": [
+        "echo todo"
+      ],
+      "cluster-create": [
+        "task cluster-create"
+      ],
+      "cluster-destroy": [
+        "task cluster-destroy"
+      ],
+      "package-publish": [
+        "task package-publish"
+      ],
+      "test": [
+        "task test"
+      ],
+      "test-watch": [
+        "task test-watch"
+      ]
+    }
+  }
+}
+  

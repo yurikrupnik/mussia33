@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::commands::{ClusterAction, ClusterSubcommand};
 use crate::commands::{SystemAction, SystemSubcommand};
 use crate::commands::{UserAction, UsersSubcommand};
-use clap::Parser;
+use clap::{FromArgMatches, Parser};
 
 /// Simple program to manage personal cli application
 #[derive(Parser, Debug)]
@@ -170,10 +170,15 @@ pub fn parse_subcommand() {
     // }
     match cli.subcommand {
         Subcommand::Cluster(cmd) => match cmd.action {
-            ClusterAction::Create(_) => {}
-            ClusterAction::Update(update_cluster) => {
-                println!("update_cluster.type_id() {:?}", update_cluster.type_id());
-                println!("update_cluster {update_cluster:?} ");
+            ClusterAction::Create(dto) => {
+                // let ds = dto.update_from(&["--name", "test"]);
+                // let sd= dto.update_from_arg_matches("");
+                println!("create_cluster.type_id() {:?}", dto.type_id());
+                println!("update_cluster {dto:?} ");
+            }
+            ClusterAction::Update(dto) => {
+                println!("update_cluster.type_id() {:?}", dto.type_id());
+                println!("update_cluster {dto:?} ");
             }
             ClusterAction::Delete(delete_cluster) => {
                 println!("delete_cluster.type_id() {:?}", delete_cluster.type_id());

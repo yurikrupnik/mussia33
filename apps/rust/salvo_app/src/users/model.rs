@@ -1,14 +1,15 @@
 use chrono::NaiveDateTime;
 use rust_proc_macros::{DbResource, Reflective};
+use salvo::oapi::{
+    ToResponse,
+    // self, EndpointOutRegister,
+    // ToResponses,
+    ToSchema,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 use validator::Validate;
-use salvo::oapi::{
-  // self, EndpointOutRegister,
-  // ToResponses,
-  ToSchema, ToResponse
-};
 
 #[derive(DbResource, FromRow, Debug, Deserialize, Serialize, Validate, ToSchema, ToResponse)]
 pub struct User {

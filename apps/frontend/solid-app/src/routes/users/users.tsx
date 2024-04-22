@@ -1,6 +1,6 @@
 import { For, createResource } from "solid-js";
 import { useMachine } from "@xstate/solid";
-import { testMachine } from "@mussia33/node/xstate-machines";
+import { testMachine, toggleMachine } from "@mussia33/node/xstate-machines";
 // import { users } from "@mussia33/node/grpc"; // does not affect
 import { User } from "@mussia33/node/nest/users-api"; // does not affect
 import instance from "../../request";
@@ -10,7 +10,7 @@ function getUsers() {
 }
 
 function getUsersRust() {
-  return instance.get<User[]>("/api-r/users").then((r: any) => r.data);
+  return instance.get<User[]>("/api-r/user").then((r: any) => r.data);
 }
 
 function getUsersGo() {
@@ -58,7 +58,7 @@ const Users = () => {
   return (
     <div>
       <h1 class="text-3xl font-bold underline">Users</h1>
-      <button onClick={() => send("TOGGLE")}>
+      <button onClick={() => send({type: "TOGGLE"})}>
         Click me ({state.matches("active") ? "✅" : "❌"})
       </button>{" "}
       <code>

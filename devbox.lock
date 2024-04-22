@@ -1,0 +1,74 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "argo": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#argo",
+      "source": "nixpkg"
+    },
+    "argocd": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#argocd",
+      "source": "nixpkg"
+    },
+    "azure-cli": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#azure-cli",
+      "source": "nixpkg"
+    },
+    "bat": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#bat",
+      "source": "nixpkg"
+    },
+    "fish": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#fish",
+      "source": "nixpkg"
+    },
+    "gh": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#gh",
+      "source": "nixpkg"
+    },
+    "go-task": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#go-task",
+      "source": "nixpkg"
+    },
+    "gum": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#gum",
+      "source": "nixpkg"
+    },
+    "k9s": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#k9s",
+      "source": "nixpkg"
+    },
+    "kind": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#kind",
+      "source": "nixpkg"
+    },
+    "kubectl": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#kubectl",
+      "source": "nixpkg"
+    },
+    "linkerd": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#linkerd",
+      "source": "nixpkg"
+    },
+    "rustup": {
+      "plugin_version": "0.0.1",
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#rustup",
+      "source": "nixpkg"
+    },
+    "upbound": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#upbound",
+      "source": "nixpkg"
+    },
+    "velero": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#velero",
+      "source": "nixpkg"
+    },
+    "warp": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#warp",
+      "source": "nixpkg"
+    },
+    "wrk": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#wrk",
+      "source": "nixpkg"
+    }
+  }
+}

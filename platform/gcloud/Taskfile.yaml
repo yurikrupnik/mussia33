@@ -3,10 +3,14 @@
 version: '3'
 
 vars:
-    ACCOUNT: krupnik.yuri@gmail.com
-    PROJECT: shared-404221
-#  PROJECT: yuri-sandbox
-#  ACCOUNT: yurik@sela.co.il
+  #    ACCOUNT: krupnik.yuri@gmail.com
+  #    PROJECT: shared-404221
+  PROJECT: devops-386509
+  ACCOUNT: yurik@sela.co.il
+  BUILDER_ACCOUNT: container-builder@sdp-demo-388112.iam.gserviceaccount.com
+  BUILDER_PROJECT: shared-404221
+#  BUILDER_PROJECT: personal-to-yuri
+#  BUILDER_PROJECT: sdp-demo-388112
 
 tasks:
   set-gcp:
@@ -28,3 +32,6 @@ tasks:
   get-access:
     cmds:
       - gcloud auth print-access-token
+  get-refresh:
+    cmds:
+      - gcloud auth activate-service-account {{.ACCOUNT}}

@@ -1,0 +1,35 @@
+apiVersion: apps.kruise.io/v1beta1
+kind: StatefulSet
+metadata:
+  name: sample
+spec:
+  replicas: 3
+  serviceName: fake-service
+  selector:
+    matchLabels:
+      app: sample
+  template:
+    metadata:
+      labels:
+        app: sample
+    spec:
+      readinessGates:
+        # A new condition that ensures the pod remains at NotReady state while the in-place update is happening
+        - conditionType: InPlaceUpdateReady
+      containers:
+        - name: main
+          image: nginx:alpine
+  podManagementPolicy: Parallel # allow parallel updates, works together with maxUnavailable
+  updateStrategy:
+    rollingUpdate:
+      unorderedUpdate:
+        priorityStrategy:
+          weightPriority:
+            - weight: 50
+              matchSelector:
+                matchLabels:
+                  test-key: foo
+            - weight: 30
+              matchSelector:
+                matchLabels:
+                  test-key: bar
