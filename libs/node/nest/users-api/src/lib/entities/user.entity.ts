@@ -31,6 +31,7 @@ export class User {
     example: 'some id',
     readOnly: true,
     required: false,
+
   })
   @IsOptional()
   @IsMongoId()
@@ -70,7 +71,7 @@ export class User {
     default: 'a@a.com',
     required: true,
   })
-  @IsEmail()
+  @IsEmail({}, { message: 'Invalid email' })
   email: string | undefined;
 
   @Prop()

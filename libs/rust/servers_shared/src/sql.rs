@@ -7,6 +7,9 @@ pub async fn create_pool(
 ) -> Result<Pool<Postgres>, sqlx::Error> {
     let pool = PgPoolOptions::new()
         .max_connections(connections.unwrap_or(5))
+      // .after_connect(|conn| {
+      //   println!("Connected to {}", conn.connection_info().host().unwrap_or("unknown"));
+      // })
         .connect(url.unwrap_or(&get_sql_uri()))
         .await?;
 
