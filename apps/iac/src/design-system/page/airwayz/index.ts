@@ -20,7 +20,7 @@ type Shared = {
   location: pulumi.Output<string> | string;
   project: string;
   labels: KubernetesLabel;
-  kms?: pulumi.Output<string>;
+  kms?: pulumi.Output<string> | string;
 };
 
 export interface AirwayzResourceProps {

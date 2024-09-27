@@ -46,7 +46,7 @@ export class ClusterResource extends pulumi.ComponentResource {
             advancedDatapathObservabilityConfigs: [
               {
                 enableMetrics: true,
-                enableRelay: true,
+                // enableRelay: true,
               },
             ],
             // enableComponents: [
