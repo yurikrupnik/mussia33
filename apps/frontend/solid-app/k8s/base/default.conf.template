@@ -29,7 +29,7 @@ server {
         large_client_header_buffers 4 8k;
         location / {
             root   /usr/share/nginx/html;
-            index  index.html index.htm;
+            index  index.html index.html;
             try_files $uri $uri/ /index.html =404;
         }
         location /api {

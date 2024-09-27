@@ -1,27 +1,27 @@
-// config:
-//   gcp:project: mussia-devops
-// gcp:region: europe-central2
-// gcp:zone: europe-central2-b
-
+// import * as storage from "@pulumi/gcp/storage";
 import * as pulumi from "@pulumi/pulumi";
-// import * as k8s from "@pulumi/kubernetes";
 import * as gcp from "@pulumi/gcp";
 import * as aws from "@pulumi/aws";
-// import * as gcp from "@pulumi/datadog";
-import { ServicesResource } from "./src/servicesResource";
-import { NetworkResource } from "./src/network";
-import { ArtifactoryResource } from "./src/artifactory";
-import { GcpFunction } from "./src/gcpFunction";
-import { WorkloadIdentityResource } from "./src/workloadIdentity";
-import { Providers, Subscriptions } from "../../libs/node/shared/src";
+// import { GetNetworkArgs, Subnetwork } from "@pulumi/gcp/compute";
+import { BigqueryResource } from "./src/design-system/core/bigquery";
+import { KmsIamMembersResource } from "./src/design-system/core/kms-iam-members";
+import { KmsResource } from "./src/design-system/core/kms";
+import { WorkloadIdentityResource } from "./src/design-system/core/workloadIdentity";
+import { ServiceAccountResource } from "./src/design-system/core/service-account";
+import { NetworkResource } from "./src/design-system/core/network";
+import { PubSubResource } from "./src/design-system/core/pubsub";
+import { AwsResource } from "./src/design-system/core/aws";
+// import { ServiceResource } from "./src/design-system/core/gcp-service";
+import { AirwayzResource } from "./src/design-system/page/airwayz";
 
-const config = new pulumi.Config("core");
-const nodeCount = config.get("nodeCount");
-
-// functions are no active at me-west1
-const gcpConfig = new pulumi.Config("gcp");
-const region = gcpConfig.get("region");
-const project = gcpConfig.get("project");
+// Get the current stack name
+const currentStack = pulumi.getStack();
+// Get some provider-namespaced configuration values
+const providerCfg = new pulumi.Config("gcp");
+const gcpProject = providerCfg.require("project");
+const gcpRegion = providerCfg.get("region") || "europe-central2";
+const awsProviderCfg = new pulumi.Config("aws");
+const awsRegion = awsProviderCfg.get("region") || "il-central-1";
 
 // Todo aws new user
 const lbUser = new aws.iam.User("crossplaneUser", {
@@ -50,578 +50,887 @@ const lbRoUserPolicy = new aws.iam.UserPolicy("lbRoUserPolicy", {
   ),
 });
 
-const cm = new gcp.serviceaccount.Account("crossplane-manager", {
-  project,
-  accountId: "iac-manager",
-  disabled: false,
-  description: "IaC manager service account",
-  displayName: "IaC Manager",
+const gcpProjectNumberPromise = gcp.organizations
+  .getProject({ projectId: gcpProject })
+  .then((res) => res.number);
+
+const subscriberProjects = ["platform-manager-dev", "platform-manager-prod"];
+
+const uniqName = {
+  kms: "airwayz-manager",
+  workloadIdentityPoolId: "github-pool1",
+  projects: subscriberProjects,
+};
+
+const compute = new gcp.projects.Service("compute.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "compute.googleapis.com",
+  project: gcpProject,
 });
-// cm.accountId
-new gcp.projects.IAMBinding(
-  "iac-manager-binding-secretmanager-resourcemanager-projectIamAdmin",
+
+const certificatemanager = new gcp.projects.Service(
+  "certificatemanager.googleapis.com",
   {
-    project: project,
-    members: [cm.email.apply((email) => `serviceAccount:${email}`)],
-    role: "roles/resourcemanager.projectIamAdmin",
+    disableOnDestroy: false,
+    disableDependentServices: false,
+    service: "certificatemanager.googleapis.com",
+    project: gcpProject,
   },
 );
 
-new gcp.projects.IAMBinding("iac-manager-binding-container-developer", {
-  project: project,
-  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
-  role: "roles/container.developer",
+const bigquery = new gcp.projects.Service("bigquery.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "bigquery.googleapis.com",
+  project: gcpProject,
 });
 
-new gcp.projects.IAMBinding("iac-manager-binding-secretmanager-admin", {
-  project: project,
-  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
-  role: "roles/secretmanager.admin",
+const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "cloudkms.googleapis.com",
+  project: gcpProject,
 });
 
-new gcp.projects.IAMBinding("iac-manager-binding-storage-admin", {
-  project: project,
-  members: [cm.email.apply((email) => `serviceAccount:${email}`)],
-  role: "roles/storage.admin",
-});
-
-const sa = new gcp.serviceaccount.Account("secret-puller", {
-  project,
-  accountId: "secret-puller",
-  disabled: false,
-  description: "Secrets Puller service account",
-  displayName: "Secrets Puller",
-});
-
-new gcp.projects.IAMBinding("secret-puller-binding", {
-  project: project,
-  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
-  role: "roles/secretmanager.secretAccessor",
-});
-
-new gcp.projects.IAMBinding("secret-puller-binding-token-creator", {
-  project: project,
-  members: [sa.email.apply((email) => `serviceAccount:${email}`)],
-  role: "roles/iam.serviceAccountTokenCreator",
-});
-
-// run to add
-// gcloud iam service-accounts add-iam-policy-binding secret-puller@mussia-infra.iam.gserviceaccount.com --role roles/iam.workloadIdentityUser --member "serviceAccount:mussia-infra.svc.id.goog[external-secrets/secret-puller]"
-
-// import * as k8s from "@pulumi/kubernetes";
-
-// let myk8s = new k8s.Provider("myk8s", { context: "test-ci" });
-// let myk8s1 = new gcp.Provider("myk8s", { project, region });
-
-// const appLabels = { app: "nginx" };
-// const deployment = new k8s.apps.v1.Deployment("nginx", {
-//   spec: {
-//     selector: { matchLabels: appLabels },
-//     replicas: 1,
-//     template: {
-//       metadata: { labels: appLabels },
-//       spec: { containers: [{ name: "nginx", image: "nginx" }] },
-//     },
-//   },
-// });
-
-// export const name = deployment.metadata.name;
-
-// import * as datadog from "@pulumi/datadog";
-//
-// const user = new datadog.User("my-policy", {
-//   email: "new@example.com",
-//   disabled: false,
-//   roles: [],
-//   sendUserInvitation: false,
-//   // handle: "new@example.com",
-//   name: "New User",
-// })
-
-// Create a new Slack channel
-// const channel = new slack.Conversation("acc-test", {
-//   topic: "my topic",
-//   isPrivate: false,
-// });
-//
-// // Get the id of the new channel as an output
-// export const channelId = channel.id;
-
-// const exampleRepository = new github.Repository("exampleRepository", {});
-// const exampleTeam = new github.Team("exampleTeam", {});
-// const exampleBranchProtectionV3 = new github.BranchProtectionV3("exampleBranchProtectionV3", {
-//   repository: exampleRepository.name,
-//   branch: "main",
-//   enforceAdmins: true,
-//   requiredStatusChecks: {
-//     strict: false,
-//     checks: ["ci/check:824642007264"],
-//   },
-//   requiredPullRequestReviews: {
-//     dismissStaleReviews: true,
-//     dismissalUsers: ["foo-user"],
-//     // dismissalTeams: [exampleTeam.slug],
-//     // bypassPullRequestAllowances: {
-//     //   users: ["foo-user"],
-//     //   teams: [exampleTeam.slug],
-//     //   apps: ["foo-app"],
-//     // },
-//   },
-//   // restrictions: {
-//   //   users: ["foo-user"],
-//   //   teams: [exampleTeam.slug],
-//   //   apps: ["foo-app"],
-//   // },
-// });
-// const exampleTeamRepository = new github.TeamRepository("exampleTeamRepository", {
-//   teamId: exampleTeam.id,
-//   repository: exampleRepository.name,
-//   permission: "pull",
-// });
-
-// const dataflow = new gcp.projects.Service("dataflow.googleapis.com", {
-//   disableOnDestroy: false,
-//   disableDependentServices: false,
-//   service: "dataflow.googleapis.com",
-//   project,
-// });
-//
-// // security
-// const cloudKMS = new gcp.projects.Service("cloudkms.googleapis.com", {
-//   disableOnDestroy: false,
-//   disableDependentServices: false,
-//   service: "cloudkms.googleapis.com",
-//   project,
-// });
-
-// const keyRing = new gcp.kms.KeyRing("keyring", {
-//   name: "first-keyring",
-//   project,
-//   location: "europe",
-// });
-
-// const example_key = new gcp.kms.CryptoKey("example-key", {
-//   name: "first-key",
-//   keyRing: keyRing.id,
-//   rotationPeriod: "100000s",
-// });
-//
-// const example_asymmetric_sign_key = new gcp.kms.CryptoKey(
-//   "example-asymmetric-sign-key",
-//   {
-//     name: "second-key",
-//     keyRing: keyRing.id,
-//     // rotationPeriod: "100000s",
-//     purpose: "ASYMMETRIC_SIGN",
-//     versionTemplate: {
-//       algorithm: "EC_SIGN_P384_SHA384",
-//     },
-//   }
-// );
-// end security
-
-// const tempBucket = new gcp.storage.Bucket("temp-bucket", {
-//   name: `${project}-temp-bucket`,
-//   location: region,
-//   forceDestroy: true,
-//   labels: {
-//     type: "temp",
-//     team: "util",
-//   },
-// });
-//
-// const eventsBucket = new gcp.storage.Bucket("events-bucket", {
-//   name: `${project}-events-bucket`,
-//   location: region,
-//   forceDestroy: true,
-//   labels: {
-//     type: "events",
-//     team: "big-data",
-//   },
-//   versioning: { enabled: true },
-//   // website
-// });
-
-// const funcBucket = new gcp.storage.Bucket(`${project}-func-bucket`, {
-//   name: `${project}-func-bucket`,
-//   location: "eu",
-//   // location: "EU",
-//   // location: region,
-//   forceDestroy: true,
-//   versioning: {
-//     enabled: true,
-//   },
-//   labels: {
-//     type: "code",
-//   },
-// });
-
-// const dataset = new gcp.bigquery.Dataset("applications_events", {
-//   datasetId: "applications_events",
-//   description: "This is a test description",
-//   friendlyName: "Test logs",
-//   location: region,
-//   // defaultTableExpirationMs: 3600000,
-//   labels: {
-//     env: "default",
-//     name: "aris-test",
-//   },
-// });
-
-const servicesNames = [
-  "cloudfunctions.googleapis.com",
-  "cloudbuild.googleapis.com",
-  "pubsub.googleapis.com",
-];
-
-// const gcpFunctionServices = new ServicesResource("GcpFunctionServices", {
-//   services: servicesNames,
-//   provider: Providers.GCP,
-// });
-
-// const functionsPath = "../../dist/apps/node/";
-//
-// const functions: GcpFunction[] = [
-//   {
-//     name: "nest-app",
-//     bucket: funcBucket,
-//     path: functionsPath,
-//     member: "allUsers",
-//     functionArgs: {
-//       availableMemoryMb: 256,
-//       region,
-//       triggerHttp: true,
-//       entryPoint: "dead",
-//       project,
-//       sourceArchiveBucket: funcBucket.name,
-//       eventTrigger: undefined,
-//       runtime: "nodejs18",
-//     },
-//   },
-// ];
-
-// const funcs = functions.map((f) => {
-//   return new GcpFunctionResource(f.name, f, {
-//     dependsOn: gcpFunctionServices,
-//     parent: gcpFunctionServices.firstService,
-//   });
-// });
-//
-// const bucket = new aws.s3.Bucket("bucket", {
-//   acl: "private",
-//   tags: {
-//     Environment: "Dev",
-//     Name: "My bucket",
-//   },
-// });
-//
-// const bucket1 = new aws.s3.Bucket("bucket1", {
-//   // acl: "private",
-//   tags: {
-//     Environment: "Test",
-//     Name: "My Test bucket",
-//   },
-//   versioning: {
-//     enabled: true
-//   },
-//   lifecycleRules: [
-//     { enabled: true, prefix: "te"}
-//   ]
-// });
-// bucket1.
-// export const bucketA = bucket.bucketDomainName;
-// export const bucketA1 = bucket1.bucketDomainName;
-
-const secretManager = new ServicesResource(
-  "secretManagerServices",
+const servicenetworking = new gcp.projects.Service(
+  "servicenetworking.googleapis.com",
   {
-    provider: Providers.GCP,
-    services: ["secretmanager.googleapis.com"],
+    disableOnDestroy: false,
+    disableDependentServices: false,
+    service: "servicenetworking.googleapis.com",
+    project: gcpProject,
   },
-  {},
 );
 
-// const eventarc = new ServicesResource(
-//   "eventArcServices",
+const container = new gcp.projects.Service("container.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "container.googleapis.com",
+  project: gcpProject,
+});
+
+const mesh = new gcp.projects.Service("mesh.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "mesh.googleapis.com",
+  project: gcpProject,
+});
+
+const gkehub = new gcp.projects.Service("gkehub.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "gkehub.googleapis.com",
+  project: gcpProject,
+});
+
+const pubsub = new gcp.projects.Service("pubsub.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "pubsub.googleapis.com",
+  project: gcpProject,
+});
+
+const artifactregistry = new gcp.projects.Service(
+  "artifactregistry.googleapis.com",
+  {
+    disableOnDestroy: false,
+    disableDependentServices: false,
+    service: "artifactregistry.googleapis.com",
+    project: gcpProject,
+  },
+);
+
+const secretmanager = new gcp.projects.Service("secretmanager.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "secretmanager.googleapis.com",
+  project: gcpProject,
+});
+
+const redis = new gcp.projects.Service("redis.googleapis.com", {
+  disableOnDestroy: false,
+  disableDependentServices: false,
+  service: "redis.googleapis.com",
+  project: gcpProject,
+});
+
+const network = new NetworkResource(
+  "primary-network",
+  {
+    networkArgs: {
+      name: "primary-network",
+      description: "A virtual network for your GKE cluster(s)",
+    },
+    subnetworkArgs: [
+      {
+        name: "eemshaven",
+        region: "europe-west4",
+        project: gcpProject,
+        ipCidrRange: "12.127.0.0/20",
+      },
+      {
+        name: "warsaw",
+        region: "europe-central2",
+        project: gcpProject,
+        ipCidrRange: "12.128.0.0/20",
+      },
+      {
+        name: "tel-aviv",
+        project: gcpProject,
+        region: "me-west1",
+        ipCidrRange: "12.129.0.0/20",
+      },
+      {
+        name: "zurich",
+        region: "europe-west6",
+        project: gcpProject,
+        ipCidrRange: "12.130.0.0/20",
+      },
+      {
+        name: "las-vegas",
+        region: "us-west1",
+        project: gcpProject,
+        ipCidrRange: "12.131.0.0/20",
+      },
+      {
+        name: "dallas",
+        region: "us-west1",
+        project: gcpProject,
+        ipCidrRange: "12.134.0.0/20",
+      },
+    ],
+  },
+  { dependsOn: [compute], parent: compute },
+);
+
+// const networkSecondary = new NetworkResource(
+//   "secondary-network",
 //   {
-//     provider: Providers.GCP,
-//     services: ["eventarc.googleapis.com"],
+//     networkArgs: {
+//       name: "secondary-network",
+//       description: "A virtual network for your GKE cluster(s) - secondary",
+//     },
+//     subnetworkArgs: [
+//       {
+//         name: "secondary-network-eemshaven",
+//         region: "europe-west4",
+//         project: gcpProject,
+//         ipCidrRange: "12.127.0.0/20",
+//       },
+//     ],
+//     globalAddressArgs: {
+//       project: gcpProject,
+//       purpose: "PRIVATE_SERVICE_CONNECT",
+//       description: "Private IP Address for VPC private service connect",
+//       labels: {
+//         type: "private",
+//       },
+//       name: "secondary-private-connect",
+//       address: "12.127.12.0", // Specify a valid IP address here
+//     },
 //   },
-//   {},
+//   { dependsOn: [compute], parent: compute },
 // );
 
-const _project = gcp.organizations.getProject({});
-// allow eventarc pubsub
-new gcp.projects.IAMBinding("pubsub-token-creator", {
-  project: project,
-  members: [
-    _project.then(
-      (project) =>
-        `serviceAccount:service-${project.number}@gcp-sa-pubsub.iam.gserviceaccount.com`,
-    ),
+const globalKms = new KmsResource(
+  uniqName.kms,
+  {
+    keyRingArgs: {
+      project: gcpProject,
+      location: "global",
+      name: "global-pulumi-keyring",
+      // labels: {}
+      // gcpRegion,
+    },
+    cryptoKeyArgs: {
+      labels: {
+        iac: "pulumi",
+      },
+    },
+  },
+  { dependsOn: [cloudKMS], parent: cloudKMS },
+);
+
+const euKms = new KmsResource(
+  `${uniqName.kms}-eu`,
+  {
+    keyRingArgs: {
+      project: gcpProject,
+      location: "europe",
+      name: "eu-pulumi-keyring",
+      // gcpRegion,
+    },
+    cryptoKeyArgs: {
+      labels: {
+        iac: "pulumi",
+      },
+    },
+  },
+  { dependsOn: [cloudKMS], parent: cloudKMS },
+);
+
+const euw4Kms = new KmsResource(
+  `${uniqName.kms}-euw4`,
+  {
+    keyRingArgs: {
+      project: gcpProject,
+      location: gcpRegion,
+      name: "euw4-pulumi-keyring",
+    },
+    cryptoKeyArgs: {
+      labels: {
+        iac: "pulumi",
+      },
+    },
+  },
+  { dependsOn: [cloudKMS], parent: cloudKMS },
+);
+
+const secretPullerSa = new ServiceAccountResource("secret-puller", {
+  accountArgs: {
+    project: gcpProject,
+    accountId: "secret-puller",
+    description: "Service account to get (pull) secrets",
+    displayName: "Secret Puller",
+  },
+  iAMBindingArgs: [
+    {
+      project: gcpProject,
+      role: "roles/secretmanager.secretAccessor",
+    },
+    // {
+    //   project: gcpProject,
+    //   role: "roles/container.developer",
+    //   // role: "roles/iam.serviceAccountTokenCreator",
+    // },
   ],
-  role: "roles/iam.serviceAccountTokenCreator",
 });
 
-// const _default = new gcp.cloudrun.Service("default", {
-//   location: region,
-//   template: {
-//     spec: {
-//       containers: [
-//         {
-//           image: "gcr.io/cloudrun/hello",
-//         },
-//       ],
-//     },
-//   },
-//   traffics: [
+const iacManagerSa = new ServiceAccountResource("iac-manager", {
+  accountArgs: {
+    project: gcpProject,
+    accountId: "iac-manager",
+    disabled: false,
+    description: "Service account to manage (crud) cloud resources",
+    displayName: "IAC Manager",
+  },
+  iAMBindingArgs: [
+    {
+      project: gcpProject,
+      role: "roles/iam.serviceAccountTokenCreator",
+    },
+  ],
+});
+
+const containerWriterSa = new ServiceAccountResource(
+  "github-container-writer",
+  {
+    accountArgs: {
+      project: gcpProject,
+      accountId: "container-writer",
+      disabled: false,
+      description: "Service account to write (push) containers",
+      displayName: "Container writer",
+    },
+    iAMBindingArgs: [
+      {
+        project: gcpProject,
+        role: "roles/artifactregistry.writer",
+      },
+    ],
+  },
+);
+
+const containerReaderSa = new ServiceAccountResource(
+  "github-container-reader",
+  {
+    accountArgs: {
+      project: gcpProject,
+      accountId: "container-reader",
+      disabled: false,
+      description: "Service account to read (pull) containers",
+      displayName: "Container reader",
+    },
+    iAMBindingArgs: [
+      {
+        project: gcpProject,
+        role: "roles/artifactregistry.reader",
+      },
+    ],
+  },
+);
+
+const clusterSa = new ServiceAccountResource("cluster-sa", {
+  accountArgs: {
+    project: gcpProject,
+    accountId: "cluster-sa",
+    disabled: false,
+    description: "GKE cluster service account",
+    displayName: "Cluster manager SA",
+  },
+  iAMBindingArgs: [
+    {
+      role: "roles/cloudkms.cryptoKeyEncrypterDecrypter",
+      project: gcpProject,
+    },
+  ],
+});
+
+const nodeSa = new ServiceAccountResource("node-sa", {
+  accountArgs: {
+    project: gcpProject,
+    accountId: "node-sa",
+    disabled: false,
+    description: "GKE node service account",
+    displayName: "Node manager SA",
+  },
+  iAMBindingArgs: [
+    {
+      role: "roles/cloudkms.cryptoKeyEncrypterDecrypter",
+      project: gcpProject,
+    },
+  ],
+});
+
+const serviceAccounts = gcpProjectNumberPromise.then((gcpProjectNumber) => {
+  return [
+    // ui
+    `serviceAccount:bq-${gcpProjectNumber}@bigquery-encryption.iam.gserviceaccount.com`,
+    // ui storage
+    `serviceAccount:service-${gcpProjectNumber}@gcp-sa-artifactregistry.iam.gserviceaccount.com`,
+    `serviceAccount:service-${gcpProjectNumber}@gs-project-accounts.iam.gserviceaccount.com`,
+    `serviceAccount:service-${gcpProjectNumber}@compute-system.iam.gserviceaccount.com`,
+    `serviceAccount:service-${gcpProjectNumber}@container-engine-robot.iam.gserviceaccount.com`,
+    `serviceAccount:service-${gcpProjectNumber}@cloud-redis.iam.gserviceaccount.com`,
+    // ui
+    `serviceAccount:service-${gcpProjectNumber}@gcp-sa-cloud-sql.iam.gserviceaccount.com`,
+    // ui
+    `serviceAccount:service-${gcpProjectNumber}@gcp-sa-pubsub.iam.gserviceaccount.com`,
+  ];
+});
+
+const iamMembers = new KmsIamMembersResource(
+  "cryptoKeyIamMembers",
+  {
+    serviceAccounts,
+    iAMMemberArgs: {
+      role: "roles/cloudkms.cryptoKeyEncrypterDecrypter",
+      project: gcpProject,
+    },
+  },
+  {
+    dependsOn: [
+      cloudKMS,
+      pubsub,
+      redis,
+      bigquery,
+      compute,
+      artifactregistry,
+      servicenetworking,
+      container,
+    ],
+  },
+);
+
+const workloadIdentity = new WorkloadIdentityResource(
+  "github-repos-with-gcp-container-pusher",
+  {
+    workloadIdentityPoolArgs: {
+      project: gcpProject,
+      workloadIdentityPoolId: uniqName.workloadIdentityPoolId,
+      description: "Git Pool",
+      displayName: "Git pool",
+    },
+    workloadIdentityPoolProviderArgs: {
+      workloadIdentityPoolProviderId: "github-identity-pool-provider",
+      displayName: "Github provider",
+      attributeMapping: {
+        "google.subject": "assertion.sub",
+        "attribute.actor": "assertion.actor",
+        "attribute.repository": "assertion.repository",
+      },
+      oidc: {
+        issuerUri: "https://token.actions.githubusercontent.com",
+      },
+    },
+    repos: [
+      "https://github.com/yurikrupnik-airwayz/rust-monorepo",
+      "https://github.com/Airwayz-Drones/ussp-monorepo",
+    ],
+    serviceAccount: containerWriterSa.serviceAccount,
+  },
+  { parent: containerWriterSa },
+);
+
+const gkeTopic = new PubSubResource(
+  "gke-topic",
+  {
+    topicArgs: {
+      name: "gke-topic",
+      project: gcpProject,
+      labels: {
+        iac: "pulumi",
+        team: "platform",
+        sector: "k8s",
+        kms: "false",
+      },
+    },
+  },
+  { dependsOn: [pubsub, iamMembers] },
+);
+
+const gkeTopicSecret = new PubSubResource(
+  "gke-topic-secret",
+  {
+    topicArgs: {
+      name: "gke-topic-secret",
+      project: gcpProject,
+      labels: {
+        iac: "pulumi",
+        team: "platform",
+        sector: "k8s",
+        kms: "true",
+      },
+      kmsKeyName: globalKms.keyId,
+    },
+  },
+  { dependsOn: [pubsub, iamMembers] },
+);
+
+const gkeTopic1 = new PubSubResource(
+  "gke-topic1",
+  {
+    topicArgs: {
+      name: "gke-topic1",
+      project: gcpProject,
+      labels: {
+        man: "pulumi",
+        team: "platform",
+        sector: "k8s",
+      },
+      kmsKeyName: euw4Kms.keyId,
+    },
+  },
+  { dependsOn: [pubsub, iamMembers] },
+);
+
+const finOpsTopic = new PubSubResource(
+  "fin-ops-topic",
+  {
+    topicArgs: {
+      name: "fin-ops-topic",
+      project: gcpProject,
+      labels: {
+        iac: "pulumi",
+        team: "platform",
+        sector: "finance",
+      },
+      kmsKeyName: euKms.keyId,
+    },
+  },
+  { dependsOn: [pubsub, iamMembers] },
+);
+
+const stamTopic = new PubSubResource(
+  "stam-topic",
+  {
+    topicArgs: {
+      name: "stam-topic",
+      project: gcpProject,
+      labels: {
+        iac: "pulumi",
+        team: "platform",
+        sector: "test",
+      },
+      kmsKeyName: globalKms.keyId,
+    },
+  },
+  { dependsOn: [pubsub, iamMembers] },
+);
+
+const gkeDataset = new BigqueryResource(
+  "gke-dataset",
+  {
+    datasetArgs: {
+      datasetId: "gke_dataset",
+      friendlyName: "GKE exported data",
+      description: "This is GKE usage exported data",
+      location: "EU",
+      defaultTableExpirationMs: 3600000,
+      labels: {
+        env: "dev",
+      },
+      deleteContentsOnDestroy: true,
+      // TODO fails
+      // defaultEncryptionConfiguration: {
+      //   kmsKeyName: euKms.keyId,
+      // },
+    },
+    tableArgs: {
+      project: gcpProject,
+      labels: {
+        env: "dev",
+      },
+      description: "GKE EU Table",
+      tableId: "gke-exports",
+      friendlyName: "gke-events",
+      // TODO fails
+      // encryptionConfiguration: {
+      //   kmsKeyName: euKms.keyName,
+      // },
+    },
+  },
+  { dependsOn: [bigquery] },
+);
+
+const example = new aws.s3.BucketV2("example", {
+  bucket: "my-tf-test-bucket111",
+  tags: {
+    Name: "My bucket",
+    Environment: "Dev",
+  },
+});
+
+// const awsResource = new AwsResource("aws-pulumi", {
+//   subnetArgs: [
 //     {
-//       percent: 100,
-//       latestRevision: true,
+//       cidrBlock: "10.0.1.0/24",
+//       mapPublicIpOnLaunch: false,
+//       availabilityZone: `${awsRegion}a`,
+//       tags: {
+//         Name: "private-subnet-1",
+//       },
+//     },
+//     {
+//       cidrBlock: "10.0.2.0/24",
+//       mapPublicIpOnLaunch: true,
+//       availabilityZone: `${awsRegion}a`,
+//       tags: {
+//         Name: "public-subnet-1",
+//       },
+//     },
+//     {
+//       cidrBlock: "10.0.3.0/24",
+//       mapPublicIpOnLaunch: false,
+//       availabilityZone: `${awsRegion}b`,
+//       tags: {
+//         Name: "private-subnet-2",
+//       },
+//     },
+//     {
+//       cidrBlock: "10.0.4.0/24",
+//       mapPublicIpOnLaunch: true,
+//       availabilityZone: `${awsRegion}b`,
+//       tags: {
+//         Name: "public-subnet-2",
+//       },
+//     },
+//     {
+//       cidrBlock: "10.0.5.0/24",
+//       mapPublicIpOnLaunch: false,
+//       availabilityZone: `${awsRegion}c`,
+//       tags: {
+//         Name: "private-subnet-3",
+//       },
+
+//     },
+//     {
+//       cidrBlock: "10.0.6.0/24",
+//       mapPublicIpOnLaunch: true,
+//       availabilityZone: `${awsRegion}c`,
+//       tags: {
+//         Name: "public-subnet-3",
+//       },
 //     },
 //   ],
 // });
 
-// const deadLetter = new gcp.pubsub.Topic(
-//   "dead-letter",
-//   {
-//     name: "dead-letter",
-//   },
-//   {
-//     // provider: Providers.gcp
-//   },
-// );
+// export const kubeconfig = cluster.eksCluster.kubeconfig;
 
-// const userAdded = new gcp.pubsub.Topic("user-added", {
-//   name: "user-added",
-//   messageRetentionDuration: "86600s",
-// });
-//
-// const sub = new gcp.pubsub.Subscription("exampleSubscription", {
-//   topic: userAdded.id,
-//   labels: {
-//     foo: "bar",
-//   },
-//   name: Subscriptions.yes,
-//   enableMessageOrdering: true,
+// new gcp.kms.CryptoKeyIAMBinding("keyEncrypterDecrypterBinding", {
+//   cryptoKeyId: euw4Kms.keyId,
+//   members: [`serviceAccount:${clusterSa.account.email}`],
+//   role: "roles/cloudkms.cryptoKeyEncrypterDecrypter",
 // });
 
-// const subscription = new gcp.pubsub.Subscription("subscription", {
-//   topic: deadLetter.name,
-//   pushConfig: {
-//     pushEndpoint: _default.statuses.apply((statuses) => statuses[0].url),
-//     // oidcToken: {
-//     //   serviceAccountEmail: sa.email,
-//     // },
-//     attributes: {
-//       "x-goog-version": "v1",
-//     },
-//   },
-// });
-// new gcp.eventarc.Trigger("eventarc-trigger-pubsub", {
-//   name: "s",
-//   labels: {},
-//   location: region,
-//   project,
-//   destination,
-// });
-
-// const eventarcpublishing = new gcp.projects.Service(
-//   "eventarcpublishing.googleapis.com",
+// let airwayz = new AirwayzResource(
+//   "yuri-dev",
 //   {
-//     disableDependentServices: true,
-//     service: "eventarcpublishing.googleapis.com",
-//   },
-// );
-//
-// const iamcredentials = new gcp.projects.Service(
-//   "iamcredentials.googleapis.com",
-//   {
-//     disableDependentServices: true,
-//     service: "iamcredentials.googleapis.com",
-//   },
-// );
-// const workloadIdentity = new WorkloadIdentityResource(
-//   "WorkloadIdentityResource",
-//   {
-//     repos: [
-//       "yurikrupnik/mussia33",
-//       "yurikrupnik/first-rust-app",
-//       "yurikrupnik/fiber-mongo",
-//     ],
-//     project,
-//   },
-//   { dependsOn: [iamcredentials], parent: iamcredentials },
-// );
-//
-// const cloudScheduler = new gcp.projects.Service(
-//   "cloudscheduler.googleapis.com",
-//   {
-//     disableDependentServices: true,
-//     service: "cloudscheduler.googleapis.com",
-//   },
-// );
-
-// const binaryAuthorization = new gcp.projects.Service(
-//   "binaryauthorization.googleapis.com",
-//   {
-//     disableDependentServices: true,
-//     service: "binaryauthorization.googleapis.com",
-//   },
-// );
-
-// high price
-// const scanning = new gcp.projects.Service("containerscanning.googleapis.com", {
-//   disableDependentServices: true,
-//   service: "containerscanning.googleapis.com",
-// });
-
-// const artifactRegistry = new gcp.projects.Service(
-//   "artifactregistry.googleapis.com",
-//   {
-//     disableDependentServices: true,
-//     service: "artifactregistry.googleapis.com",
-//   },
-// );
-//
-// const dockerRegistry = new ArtifactoryResource(
-//   "docker-registry",
-//   {
-//     repositoryArgs: {
-//       mode: "STANDARD_REPOSITORY",
-//       project,
+//     shared: {
+//       networkId: network.network.id,
+//       networkName: network.network.name,
+//       //     kms: euw4Kms.keyId,
+//       project: gcpProject,
+//       location: "europe-west4",
+//       // location: network.subnets[0].region.apply((v) => v),
+//       production: false,
 //       labels: {
-//         iac: "pulumi",
+//         purpose: "yuri",
+//         prod: "false",
 //       },
-//       repositoryId: "container-repository",
-//       location: region,
-//       format: "DOCKER",
-//       description: "Example docker repository.",
+//     },
+//     componentProps: {
+//       // secretResourceProps: {},
+//       clusterResourceProps: {
+//         clusterArgs: {
+//           // description: "A GKE Airwayz Production Cluster",
+//           resourceLabels: {
+//             shit: "shit",
+//           },
+//           notificationConfig: {
+//             pubsub: {
+//               enabled: true,
+//               topic: gkeTopic.topic.id,
+//             },
+//           },
+//           resourceUsageExportConfig: {
+//             bigqueryDestination: {
+//               datasetId: gkeDataset.dataset.datasetId,
+//             },
+//             enableNetworkEgressMetering: true,
+//             enableResourceConsumptionMetering: true,
+//           },
+//           subnetwork: network.subnets[0].name,
+//           // clusterAutoscaling: {
+//           //   enabled: true,
+//           // },
+//         },
+//         nodePoolArgs: [
+//           {
+//             autoscaling: {
+//               minNodeCount: 1,
+//               maxNodeCount: 5,
+//             },
+//             nodeConfig: {
+//               serviceAccount: nodeSa.account.email,
+//               // machineType: "e2-standard-8",
+//             },
+//           },
+//         ],
+//       },
+//       redisResourceProps: {
+//         instanceArgs: {
+//           // memorySizeGb: 15,
+//         },
+//       },
 //     },
 //   },
-//   { parent: artifactRegistry, dependsOn: [artifactRegistry] },
+//   { dependsOn: [network, gkeDataset] },
 // );
 //
-// const mesh = new gcp.projects.Service("mesh.googleapis.com", {
-//   disableDependentServices: true,
-//   service: "mesh.googleapis.com",
-// });
-
-// networking
-// const computeServices = new ServicesResource(
-//   "computeServices",
+// let airwayz0 = new AirwayzResource(
+//   "yuri-deva",
 //   {
-//     provider: Providers.GCP,
-//     services: ["compute.googleapis.com"],
-//   },
-//   {},
-// );
-
-// new NetworkResource(
-//   "network",
-//   {
-//     region,
-//     project,
-//   },
-//   { dependsOn: computeServices },
-// );
-// DB SQL
-// const migrationServices = new ServicesResource(
-//   "migrationServices",
-//   {
-//     provider: Providers.GCP,
-//     services: ["datamigration.googleapis.com"],
-//   },
-//   {},
-// );
-
-// const instance = new gcp.sql.DatabaseInstance("instance", {
-//   name: "test-instance",
-//   project,
-//   region,
-//   databaseVersion: "MYSQL_8_0",
-//   settings: {
-//     tier: "db-f1-micro",
-//   },
-//   rootPassword: "123456",
-//   // replicaConfiguration: {
-//   //
-//   // },create
-//   // instanceType: "",
-//   deletionProtection: false,
-// });
+//     shared: {
+//       networkId: network.network.id,
+//       networkName: network.network.name,
+//       //     kms: euw4Kms.keyId,
+//       project: gcpProject,
+//       // location: network.subnets[1].region,
+//       location: "europe-central2",
+//       production: false,
+//       labels: {
+//         purpose: "yuri",
+//         prod: "false",
+//       },
+//     },
+//     componentProps: {
+//       // secretResourceProps: {},
+//       clusterResourceProps: {
+//         clusterArgs: {
+//           // description: "A GKE Airwayz Production Cluster",
+//           resourceLabels: {
+//             shit: "shit",
+//           },
+//           // subnetwork: "europe-west4",
+//           // Todo fails!!
+//           subnetwork: network.subnets[1].name,
+//           notificationConfig: {
+//             pubsub: {
+//               enabled: true,
+//               topic: gkeTopic.topic.id,
+//             },
+//           },
+//           resourceUsageExportConfig: {
+//             bigqueryDestination: {
+//               datasetId: gkeDataset.dataset.datasetId,
+//             },
+//             enableNetworkEgressMetering: true,
+//             enableResourceConsumptionMetering: true,
+//           },
+//           // subnetwork: "tel-aviv",
+//           // clusterAutoscaling: {
+//           //   enabled: true,
+//           // },
+//         },
+//         nodePoolArgs: [
+//           {
+//             name: "dev",
+//             autoscaling: {
+//               minNodeCount: 1,
+//               maxNodeCount: 10,
+//             },
 //
-// const users = new gcp.sql.User("users", {
-//   name: "my-user",
-//   project,
-//   instance: instance.name,
-//   host: "me.com",
-//   type: "CLOUD_IAM_USER",
-//   password: "111111"
-// });
+//             nodeConfig: {
+//               serviceAccount: nodeSa.account.email,
+//               // machineType: "e2-standard-8",
+//             },
+//           },
+//           {
+//             name: "ci",
+//             autoscaling: {
+//               minNodeCount: 1,
+//               maxNodeCount: 5,
+//             },
 //
-// const database = new gcp.sql.Database("database", {instance: instance.name,name: 'first-database'});
+//             nodeConfig: {
+//               serviceAccount: nodeSa.account.email,
+//               // machineType: "e2-standard-8",
+//               preemptible: true,
+//             },
+//             initialNodeCount: 1,
+//           },
+//         ],
+//       },
+//       redisResourceProps: {
+//         instanceArgs: {
+//           // authorizedNetwork: network.network.name,
+//           memorySizeGb: 15,
+//         },
+//       },
+//       // postgresResourceProps: {
+//       //   databaseInstanceArgs: {},
+//       // },
+//     },
+//   },
+//   { dependsOn: [network, gkeDataset] },
+// );
+//
+// let airwayz1 = new AirwayzResource(
+//   "yuri-prod",
+//   {
+//     shared: {
+//       networkId: network.network.id,
+//       networkName: network.network.name,
+//       kms: euw4Kms.keyId,
+//       project: gcpProject,
+//       location: "europe-west4",
+//       production: true,
+//       labels: {
+//         purpose: "yuri",
+//         prod: "true",
+//       },
+//     },
+//     componentProps: {
+//       // secretResourceProps: {},
+//       clusterResourceProps: {
+//         clusterArgs: {
+//           resourceLabels: {
+//             shit: "shit1",
+//           },
+//           subnetwork: network.subnets[0].name,
+//           notificationConfig: {
+//             pubsub: {
+//               enabled: true,
+//               topic: gkeTopicSecret.topic.id,
+//             },
+//           },
+//           resourceUsageExportConfig: {
+//             bigqueryDestination: {
+//               datasetId: gkeDataset.dataset.datasetId,
+//             },
+//             enableNetworkEgressMetering: true,
+//             enableResourceConsumptionMetering: true,
+//           },
+//           // clusterAutoscaling: {
+//           //   enabled: true,
+//           // },
+//         },
+//         nodePoolArgs: [
+//           {
+//             autoscaling: {
+//               minNodeCount: 1,
+//               maxNodeCount: 6,
+//             },
+//             nodeConfig: {
+//               serviceAccount: nodeSa.serviceAccount.email,
+//               bootDiskKmsKey: euw4Kms.keyId,
+//               machineType: "e2-standard-8",
+//             },
+//           },
+//         ],
+//       },
+//       redisResourceProps: {
+//         instanceArgs: {
+//           // authorizedNetwork: network.network.name,
+//           // memorySizeGb: 15,
+//         },
+//       },
+//     },
+//   },
+//   { dependsOn: [network, gkeDataset, euw4Kms] },
+// );
 
-// export const databaseSelfLink = database.selfLink;
-// export const firstIpAddress = instance.firstIpAddress;
-// export const ipAddresses = instance.ipAddresses;
-// export const publicIpAddress = instance.publicIpAddress;
-// export const sqlUrl = instance.selfLink;
-// END DB SQL
-// Serverless VPC Access allows Cloud Functions, Cloud Run (fully managed) services and App Engine standard environment apps to access resources in a VPC network using the internal IP addresses of those resources
-// const vpcConnector = new gcp.vpcaccess.Connector("serverless-connector", {
-//   name: "serverless-connector",
-//   region: region,
-//   network: vpcNetwork.id,
-//   // subnet: {
-//   //   projectId: project,
-//   //   name: euSubnet.name,
-//   // },
-//   ipCidrRange: "10.10.11.0/28", // 10.8.0.0/28 suggested by ui
-//   project,
-//   minInstances: 2,
-//   maxInstances: 3,
-//   machineType: "f1-micro", // "e2-micro" default
-// });
-
-// start compute k8s
-// const cluster = new gcp.container.Cluster("autopilot", {
-//   name: "autopilot-dev",
-//   project,
-//   location: region,
-//   description: "Development europe autopilot cluster",
-//   enableAutopilot: true,
-//   // network: vpcNetwork.id,
-//   // clusterAutoscaling: {
-//   //   enabled: false,
-//   // },
-//   // initialNodeCount: 3,
-//   // notificationConfig: {
-//   //   pubsub: "",
-//   // },
-// });
-// end compute k8s
-// export const connectorId = vpcConnector.id;
-
-const containerReaderSa = new gcp.serviceaccount.Account(
-  "container-reader-sa",
-  {
-    project,
-    accountId: "container-reader-sa",
-    disabled: false,
-    description: "Kubernetes containers reader sa",
-    displayName: "Container reader",
-  },
-);
-
-new gcp.projects.IAMBinding("artifact-registry-reader", {
-  project: project,
-  members: [
-    containerReaderSa.email.apply((email) => `serviceAccount:${email}`),
-  ],
-  role: "roles/artifactregistry.reader",
-});
-
-// export const dockerRepo = dockerRegistry.dockerRepo;
-// export const workloadName = workloadIdentity.workload_identity_provider;
-// export const workloadSAEmail = workloadIdentity.saEmail;
+// let airwayz2 = new AirwayzResource(
+//   "yuri-private",
+//   {
+//     shared: {
+//       networkId: network.network.id,
+//       networkName: network.network.name,
+//       kms: euw4Kms.keyId,
+//       project: gcpProject,
+//       location: "me-west1",
+//       production: true,
+//       labels: {
+//         purpose: "yuri",
+//         prod: "true",
+//       },
+//     },
+//     componentProps: {
+//       // secretResourceProps: {},
+//       clusterResourceProps: {
+//         clusterArgs: {
+//           resourceLabels: {
+//             shit: "shit1",
+//             type: "private",
+//           },
+//           subnetwork: network.subnets[2].name,
+//           privateClusterConfig: {
+//             enablePrivateEndpoint: false,
+//             enablePrivateNodes: true,
+//           },
+//           notificationConfig: {
+//             pubsub: {
+//               enabled: true,
+//               topic: gkeTopicSecret.topic.id,
+//             },
+//           },
+//           // clusterAutoscaling: {
+//           //   enabled: true,
+//           // },
+//         },
+//         nodePoolArgs: [
+//           {
+//             autoscaling: {
+//               minNodeCount: 1,
+//               maxNodeCount: 6,
+//             },
+//             nodeConfig: {
+//               serviceAccount: nodeSa.serviceAccount.email,
+//               bootDiskKmsKey: euw4Kms.keyId,
+//               machineType: "e2-standard-8",
+//             },
+//           },
+//         ],
+//       },
+//       redisResourceProps: {
+//         instanceArgs: {
+//           // authorizedNetwork: network.network.name,
+//           // memorySizeGb: 15,
+//         },
+//       },
+//     },
+//   },
+//   { dependsOn: [network, gkeDataset] },
+// );
