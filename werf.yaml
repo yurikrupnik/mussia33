@@ -10,7 +10,7 @@ configVersion: 1
 #  namespaceSlug: bool
 image: yurikrupnik/fiber-app:main
 dockerfile: Dockerfile
-#staged: bool
+staged: bool
 #context: string
 #platform: [ string, ... ]
 #contextAddFiles: [ string, ... ]
